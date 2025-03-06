@@ -1,0 +1,48 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+labels:
+  - id: 02acb3ab-3a1e-4b41-a7ba-9077596c062d
+    name: Windows Defender
+    category: AV
+  - id: 56c48e70-1f86-4238-9ab2-163a28f3d6fa
+    name: McAfee
+    category: AV
+  - id: 5030ecc8-57c8-4ed9-9ae7-b9b3005c8bdf
+    name: Trend Micro
+    category: AV
+  - id: 2c43138d-b427-4cd4-afb6-efc0481d7070
+    name: Symantec
+    category: AV
+  - id: 1e655bfe-512d-4e51-9cd0-f05b87d4d0f0
+    name: BitDefender
+    category: AV
+  - id: be7e219f-5396-44b3-8863-d42f1da0a761
+    name: ESET
+    category: AV
+  - id: fb07c852-eb18-42a3-9126-548b472db661
+    name: MalwareBytes
+    category: AV
+  - id: f95b427e-fe54-4409-af57-440e8aa99a7e
+    name: Dell Secureworks
+    category: AV
+  - id: 2d9186f5-ed2f-4103-a5cd-cc4a2d778439
+    name: Sophos
+    category: AV
+  - id: 30a55561-3ab1-455f-8f46-0cd23419a08e
+    name: TrendMicro
+    category: AV
+  - id: 96101df6-4cde-4781-a72a-655809a58037
+    name: CylancePROTECT
+    category: AV

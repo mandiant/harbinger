@@ -1,0 +1,27 @@
+{
+  "include": [
+    "src"
+  ],
+  
+  "exclude": [
+    "src/harbinger/proto",
+  ],
+
+  "ignore": [
+  ],
+
+  "defineConstant": {
+    "DEBUG": true
+  },
+
+  "stubPath": "",
+
+  "reportMissingImports": true,
+  "reportMissingTypeStubs": false,
+
+  "pythonVersion": "3.11",
+  "pythonPlatform": "Linux",
+
+  "executionEnvironments": [
+  ]
+}

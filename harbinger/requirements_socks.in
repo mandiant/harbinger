@@ -1,0 +1,18 @@
+impacket
+bloodhound
+certipy-ad
+cryptography
+six
+pyasn1
+ldap3
+ldapdomaindump
+rich
+setuptools
+dsinternals
+bloodhound
+pycryptodome
+asciinema
+kerbrute
+sprayhound
+oscrypto @ https://github.com/wbond/oscrypto/archive/1547f535001ba568b239b8797465536759c742a3.zip
+minikerberos

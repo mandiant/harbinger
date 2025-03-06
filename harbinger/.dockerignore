@@ -1,0 +1,12 @@
+.env*
+venv/
+*.pyc
+dist/
+.git
+.venv
+.vscode
+.github
+.pytest_cache
+__pycache__
+node_modules/
+gen/

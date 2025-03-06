@@ -1,0 +1,46 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+harbinger_minio_admin: minioadmin
+harbinger_minio_secret_key:
+harbinger_minio_host: http://minio
+harbinger_minio_port: 9000
+harbinger_minio_ssl: false
+harbinger_minio_default_bucket: data
+harbinger_postgres_user: postgres
+harbinger_postgres_password:
+harbinger_postgres_host: postgres
+harbinger_postgres_port: 5432
+harbinger_postgres_db: postgres
+harbinger_tmate_server: tmate
+harbinger_tmate_port: 2200
+harbinger_redis_password:
+harbinger_redis_host: redis
+harbinger_redis_port: 6379
+harbinger_redis_db: 0
+harbinger_neo4j_host:
+harbinger_neo4j_port: 7687
+harbinger_neo4j_user: neo4j
+harbinger_neo4j_password:
+harbinger_docker_build_args: 
+harbinger_password:
+harbinger_users:
+harbinger_temporal_host: temporal:7233
+harbinger_harbinger_version: latest
+harbinger_grpc_host: grpc:50051
+harbinger_gemini_key:
+harbinger_domain_name: harbinger
+harbinger_http_proxy:
+harbinger_https_proxy:

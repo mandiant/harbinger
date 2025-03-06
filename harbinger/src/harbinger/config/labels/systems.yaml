@@ -1,0 +1,30 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+labels:
+  - id: 3504f6c3-bd8a-46a2-8e78-53d99f7d8d0f
+    name: DC
+    category: System
+  - id: 0ecd966c-25ac-4281-9ede-498d17be1fbe
+    name: SCCM
+    category: System
+  - id: 8c5f60e2-8e9f-4249-9f67-4c1c656ab6a9
+    name: ADCS
+    category: System
+  - id: 61f9ec60-ffbe-475a-b163-bfc588513445
+    name: Fileshare
+    category: System
+  - id: 7d212f5f-2054-41f2-8aa0-89caefd73f30
+    name: DNS
+    category: System

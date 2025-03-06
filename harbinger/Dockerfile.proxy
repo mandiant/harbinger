@@ -1,0 +1,72 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+FROM rust:1.83.0-slim-bookworm AS rusthound-builder
+
+WORKDIR /usr/src/rusthound
+
+RUN \
+  apt-get -y update && \
+  apt-get -y install git gcc clang libclang-dev libgssapi-krb5-2 libkrb5-dev libsasl2-modules-gssapi-mit musl-tools make gcc-mingw-w64-x86-64 && \
+  rm -rf /var/lib/apt/lists/*
+
+RUN git clone https://github.com/NH-RED-TEAM/RustHound.git .
+
+RUN make install
+
+FROM python:3.11
+
+RUN apt-get update && apt-get install -y proxychains4 tmate nmap nano unzip libldap2-dev libsasl2-dev libssl-dev && \
+  mkdir /tools && \
+  wget -O /tmp/naabu.zip https://github.com/projectdiscovery/naabu/releases/download/v2.3.0/naabu_2.3.0_linux_amd64.zip && \
+  unzip -d /tools/ /tmp/naabu.zip && rm /tmp/naabu.zip && \
+  wget -O /tools/gettgtpkinit.py https://raw.githubusercontent.com/dirkjanm/PKINITtools/master/gettgtpkinit.py && \
+  wget -O /tools/gets4uticket.py https://raw.githubusercontent.com/dirkjanm/PKINITtools/master/gets4uticket.py && \
+  wget -O /tools/getnthash.py https://raw.githubusercontent.com/dirkjanm/PKINITtools/master/getnthash.py
+
+ENV PATH="${PATH}:/tools"
+
+COPY docker/openssl.cnf openssl.cnf
+
+ENV OPENSSL_CONF=/app/openssl.cnf
+
+COPY requirements_socks.txt requirements.txt
+
+COPY docker/custom_tools/* /tools/
+
+COPY --from=rusthound-builder /usr/local/cargo/bin/rusthound /tools/rusthound
+
+RUN chmod +x /tools/*
+
+RUN pip install -r requirements.txt --require-hashes --no-deps
+
+ENV RSA_SIG="" \
+  ED25519_SIG="" \
+  TMATE_SERVER=""\
+  TMATE_PORT=""
+
+ARG USERNAME=user
+ARG USER_UID=1000
+ARG USER_GID=$USER_UID
+
+RUN groupadd --gid $USER_GID $USERNAME \
+  && useradd -s /bin/bash --uid $USER_UID --gid $USER_GID -m $USERNAME
+
+RUN mkdir /workdir
+
+RUN chown $USER_UID:$USER_GID /workdir
+
+USER user:user
+
+WORKDIR /workdir

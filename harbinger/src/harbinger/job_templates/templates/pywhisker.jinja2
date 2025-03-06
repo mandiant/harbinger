@@ -1,0 +1,2 @@
+{% set target = target_user.split('@')[0] %}
+-d {{ credential.domain.long_name }} -u {{ credential.username }} {% if credential.password.nt %}-H :{{ credential.password.nt }}{% endif %}{% if credential.password.password %}-p {{ credential.password.password }}{% endif %} --target {{ target }}{% if extra_args %} {{ extra_args }}{% endif %} -a {{ action.value }}

@@ -1,0 +1,364 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: BitDefender
+description: BitDefender
+type: AV
+tag_id: 1e655bfe-512d-4e51-9cd0-f05b87d4d0f0
+processes:
+- "bdredline.exe"
+- "bdreinit.exe"
+- "analysecrash.exe"
+- "downloader.exe"
+- "epag.exe"
+- "epconsole.exe"
+- "ephost.exe"
+- "ephost.integrity.exe"
+- "ephost.integrity.legacy.exe"
+- "epintegrationservice.exe"
+- "eplowprivilegeworker.exe"
+- "eppowerconsole.exe"
+- "epprotectedservice.exe"
+- "epsecurityservice.exe"
+- "epsupportmanager.exe"
+- "epupdateservice.exe"
+- "genptch.exe"
+- "installer.exe"
+- "redpatch0.exe"
+- "testinitsigs.exe"
+- "wscremediation.exe"
+- "product.configuration.tool.exe"
+- "product.console.exe"
+- "product.support.tool.exe"
+---
+name: McAfee
+description: McAfee
+type: AV
+tag_id: 56c48e70-1f86-4238-9ab2-163a28f3d6fa
+processes:
+- "eegoservice.exe"
+- "hipmgmt.exe"
+- "mctelsvc.exe"
+- "mfeann.exe"
+- "vstskmgr.exe"
+- "mcshield.exe"
+- "mfecanary.exe"
+- "mfefire.exe"
+- "mfehcs.exe"
+- "mfemms.exe"
+- "mfemactl.exe"
+- "macmnsvc.exe"
+- "masvc.exe"
+- "macompatsvc.exe"
+- "mfemactl.exe"
+- "updaterui.exe"
+- "mfeepehost.exe"
+- "mfeffcore.exe"
+- "mfeffcoreservice.exe"
+- "mfeffproxy32.exe"
+- "epepcmonitor.exe"
+- "mdecryptservice.exe"
+- "toast32.exe"
+- "mfeesp.exe"
+- "mfetp.exe"
+- "firesvc.exe"
+- "mfevtps.exe"
+- "mfeatp.exe"
+- "mfeensppl.exe"
+---
+name: Windows Defender
+description: Windows Defender
+type: AV
+tag_id: 02acb3ab-3a1e-4b41-a7ba-9077596c062d
+processes:
+- "msmpeng.exe"
+- "msascuil.exe"
+---
+name: ESET
+description: ESET
+type: AV
+tag_id: be7e219f-5396-44b3-8863-d42f1da0a761
+processes:
+- "sysinspector.exe"
+- "callmsi.exe"
+- "eamonm.sys"
+- "edevmon.sys"
+- "eelam.sys"
+- "ehdrv.sys"
+- "epfw.sys"
+- "epfwwfp.sys"
+- "ecls.exe"
+- "ecmd.exe"
+- "ecmds.exe"
+- "ecomserver.exe"
+- "eeclnt.exe"
+- "egui.exe"
+- "eguiproxy.exe"
+- "ehttpsrv.exe"
+- "ekrn.exe"
+- "ermm.exe"
+- "speclean.exe"
+- "avremover.exe"
+- "diagnostic.exe"
+- "eraagent.exe"
+- "esetlogcollector.exe"
+---
+name: MalwareBytes
+description: MalwareBytes
+type: AV
+tag_id: fb07c852-eb18-42a3-9126-548b472db661
+processes:
+- "mbamservice.exe"
+- "mbcloudea.exe"
+- "eacmd.exe"
+- "endpoint agent tray.exe"
+- "mbamtray.exe"
+- "malwarebytes_assistant.exe"
+- "mbamwsc.exe"
+- "mbam.exe"
+- "assistant.exe"
+- "mbam.exe"
+- "businessmessaging.exe"
+- "mbamservice.exe"
+- "mbupdatr.exe"
+---
+name: SentinelOne
+description: SentinelOne
+type: EDR
+tag_id: 96924d13-f311-489a-b6af-d8e17e64bb85
+processes:
+- "nssm.exe"
+- "serverrpc.exe"
+- "sentinelstaticenginescanner.exe"
+- "sentinelui.exe"
+- "sentinelbrowsernativehost.exe"
+- "sentinelhelperservice.exe"
+- "sentinelagent.exe"
+- "sentinelstaticengine.exe"
+- "sentinelservicehost.exe"
+- "sentinelmemoryscanner.exe"
+---
+name: Carbon Black
+description: Carbon Black
+type: EDR
+tag_id: efc53c9a-f964-4474-b97b-e17d5c1ee920
+processes:
+- "cb.exe"
+- "repwsc.exe"
+- "reputils.exe"
+- "rep.mgr.exe"
+- "repmgr.exe"
+- "bladerunner.exe"
+- "scanhost.exe"
+---
+name: MDE
+description: MDE
+type: EDR
+tag_id: 2cafbd4a-c404-4e79-857f-1f8692659eb2
+processes:
+- "mssense.exe"
+- "sensecncproxy.exe"
+- "sensesampleuploader.exe"
+- "senseir.exe"
+- "healthservice.exe"
+---
+name: Palo Alto Traps
+description: Palo Alto Traps
+type: EDR
+tag_id: 39c88205-3874-4ea4-829b-f766a081fcb6
+processes:
+- "cyveraconsole.exe"
+- "cyreport.exe"
+- "cyrprtui.exe"
+- "cyserver.exe"
+- "cytool.exe"
+- "cytray.exe"
+- "cyveraconsole.exe"
+- "cyveraservice.exe"
+- "tlaservice.exe"
+- "tlaworker.exe"
+- "twdservice.exe"
+---
+name: Dell Secureworks
+description: Dell Secureworks
+type: AV
+tag_id: f95b427e-fe54-4409-af57-440e8aa99a7e
+processes:
+- "authtap64.exe"
+- "cyclorama64.exe"
+- "groundling64.exe"
+- "inspector64.exe"
+- "lacuna64.exe"
+- "procwall64.exe"
+- "groundling64.exe"
+- "inspector64.exe"
+- "procwall64.exe"
+- "redcloak.exe"
+---
+name: Sophos
+description: Sophos
+type: AV
+tag_id: 2d9186f5-ed2f-4103-a5cd-cc4a2d778439
+processes:
+- "savservice.exe"
+- "savadminservice.exe"
+- "alsvc.exe"
+- "sophoscleanm64.exe"
+- "sdcservice.exe"
+- "sophos.encryption.bitlockerservice.exe"
+- "sedservice.exe"
+- "sophosfs.exe"
+- "sophoshealth.exe"
+- "sophoslivequeryservice.exe"
+- "sophosmtr.exe"
+- "mcsagent.exe"
+- "mcsclient.exe"
+- "sophosntpservice.exe"
+- "sophossafestore64.exe"
+- "sspservice.exe"
+- "swc_service.exe"
+- "swi_filter.exe"
+- "swi_service.exe"
+- "sophosfimservice.exe"
+---
+name: CrowdStrike
+description: CrowdStrike
+type: EDR
+tag_id: 73126fcf-e3e1-4914-81dc-17646a01cea7
+processes:
+- "crowdstrike.sensor.scriptcontrol10207.dll"
+- "csfalconcontainer.exe"
+- "csfalconservice.exe"
+- "cscomutils.exe"
+---
+name: Tanium
+description: Tanium
+type: EDR
+tag_id: bed553a2-3c99-469b-9e6d-2bbb5337ed04
+processes:
+- "taniumexecwrapper.exe"
+- "taniumcx.exe"
+- "taniumclient.exe"
+- "taniumexecwrapper.exe"
+- "taniumendpointindex.exe"
+- "taniumdetectengine.exe"
+- "tanium.ua.clientdeploy.exe"
+- "node.exe"
+- "twsm.exe"
+- "node.exe"
+- "twsm.exe"
+- "twsm.exe"
+- "taniummodulestaerver.exe"
+- "taniumreceiver.exe"
+- "taniumzoneserver.exe"
+---
+name: Elastic
+description: Elastic
+type: EDR
+tag_id: 7ac2c584-b07e-4310-9dc9-1ed8cf871dfe
+processes:
+- "esensor.exe"
+- "useralert.exe"
+---
+name: TrendMicro
+description: TrendMicro
+type: AV
+tag_id: 30a55561-3ab1-455f-8f46-0cd23419a08e
+processes:
+- "tmccsf.exe"
+- "ntrtscan.exe"
+- "ntrmv.exe"
+- "tsc64.exe"
+- "pccntupd.exe"
+- "ds_monitor.exe"
+- "notifier.exe"
+- "dsa.com"
+- "dsa.exe"
+- "dsc.exe"
+- "dsuam.exe"
+- "tmbmsrv.exe"
+- "pccntmon.exe"
+- "tmssclient.exe"
+- "amsp_logserver.exe"
+- "coreframeworkhost.exe"
+- "coreserviceshell.exe"
+- "ofccccaupdate.exe"
+- "tmlisten.exe"
+- "tmwscsvc.exe"
+- "tmsainstance64.exe"
+- "officescantouch.exe"
+---
+name: CylancePROTECT
+description: CylancePROTECT
+type: AV
+tag_id: 96101df6-4cde-4781-a72a-655809a58037
+processes:
+- "cylancesvc.exe"
+- "cylanceui.exe"
+- "cyupdate.exe"
+- "localepkg.exe"
+---
+name: VMWare
+description: VMWare tools
+type: Software
+tag_id: f7890a29-fbd7-49da-b7ab-8d4666506556
+processes:
+- "vmtoolsd.exe"
+---
+name: Rapid 7 Insight IDR
+description: Rapid 7 Insight IDR
+type: EDR
+tag_id: d0ee88e4-5d4b-42ac-96a1-3f71f7bfd11b
+processes:
+- "rapid7_events_monitor.exe"
+- "honeyhash.exe"
+- "ir_agent.exe"
+- "rapid7_endpoint_broker.exe"
+- "rapid7_sysmon_installer.exe"
+- "rapid7_agent_core.exe"
+- "rapid7_velociraptor.exe"
+---
+name: CyberReason
+description: CyberReason
+type: EDR
+tag_id: 71339b87-3607-4084-a158-f8e98f7613e6
+processes:
+- "executionpreventionsvc.exe"
+- "pylumloader.exe"
+- "activeconsole.exe"
+- "minionhost.exe"
+- "cramtray.exe"
+---
+name: Trellix EDR
+description: Trellix EDR
+type: EDR
+tag_id: cfdd3e1e-e263-43d9-9195-065edae2691d
+processes:
+- "xagtnotif.exe"
+---
+name: ZScaler
+description: ZScaler Zero-Trust
+type: EDR
+tag_id: fe24d8ac-d238-4000-a8c8-f73dc7f16153
+processes:
+- "ZSAService.exe"
+- "ZSATrayManager.exe"
+- "ZSATunnel.exe"
+---
+name: velociraptor
+description: velociraptor
+type: EDR
+tag_id: 5c7de735-5e21-43e9-97fa-d6838bd190fe
+processes:
+- "velociraptor.exe"

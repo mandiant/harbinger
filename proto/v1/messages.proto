@@ -1,0 +1,267 @@
+// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package proto.v1;
+
+option go_package = "https://github.com/mndt-proactive/Harbinger/gen/messages/v1;messagesv1";
+
+service Harbinger {
+  rpc Ping (PingRequest) returns (PingResponse) {}
+  rpc SaveImplant (ImplantRequest) returns (ImplantResponse) {}
+  rpc SaveProxy (ProxyRequest) returns (ProxyResponse) {}
+  rpc SaveFile (FileRequest) returns (FileResponse) {}
+  rpc C2TaskStatus (C2TaskStatusRequest) returns (C2TaskStatusResponse) {}
+  rpc GetSettings (SettingsRequest) returns (SettingsResponse) {}
+  rpc SaveTask (TaskRequest) returns (TaskResponse) {}
+  rpc SaveTaskOutput (TaskOutputRequest) returns (TaskOutputResponse) {}
+  rpc CheckFileExists (FileExistsRequest) returns (FileExistsResponse) {}
+  rpc UploadFile (stream UploadFileRequest) returns (UploadFileResponse) {}
+  rpc DownloadFile (DownloadFileRequest) returns (stream DownloadFileResponse) {}
+  rpc SetC2ServerStatus (C2ServerStatusRequest) returns (C2ServerStatusResponse) {}
+}
+
+message PingRequest {
+  string message = 1;
+}
+
+message ImplantRequest {
+  string c2_server_id = 1;
+  string internal_id = 2;
+  string c2_type = 3;
+  string payload_type = 4;
+  string name = 5;
+  string hostname = 6;
+  string description = 7;
+  int32 sleep = 8;
+  int32 jitter = 9;
+  string os = 10;
+  int32 pid = 11;
+  string architecture = 12;
+  string process = 13;
+  string username = 14;
+  string ip = 15;
+  string external_ip = 16;
+  string domain = 17;
+  string last_checkin = 18;
+}
+
+message ImplantResponse {
+
+}
+
+message ProxyRequest {
+  string host = 1;
+  int32 port = 2;
+  string type = 3;
+  string status = 4;
+  string note = 5;
+  string remote_hostname = 6;
+  string username = 7;
+  string password = 8;
+  string c2_server_id = 9;
+  string internal_id = 10;
+}
+
+message ProxyResponse {
+
+}
+
+message FileRequest {
+  string filename = 1;
+  string bucket = 2;
+  string path = 3;
+  string internal_task_id = 4;
+  string c2_server_id = 5;
+  string internal_implant_id = 6;
+  string upload_file_id = 7;
+}
+
+message FileResponse {
+  string id = 1;
+}
+
+message C2TaskStatusRequest {
+  string c2_server_id = 1;
+  string c2_task_id = 2;
+  string status = 3;
+  string message = 4;
+}
+
+message C2TaskStatusResponse {
+
+}
+
+message SettingsRequest {
+  string c2_server_id = 1;
+}
+
+message SettingsResponse {
+  string type = 1;
+  string name = 2;
+  string hostname = 3;
+  string username = 4;
+  int32 port = 5;
+  string password = 6;
+  string ca_certificate = 7;
+  string private_key = 8;
+  string token = 9;
+  string certificate = 10;
+}
+
+message TaskRequest {
+  string internal_id = 1;
+  string c2_server_id = 2;
+  string status = 3;
+  string original_params = 4;
+  string display_params = 5;
+  string time_started = 6;
+  string time_completed = 7;
+  string command_name = 8;
+  string operator = 9;
+  string internal_implant_id = 10;
+}
+
+message TaskResponse {
+
+}
+
+message Process {
+  int32 process_id = 1;
+  string architecture = 2;
+  string name = 3;
+  string user = 4;
+  string bin_path = 5;
+  int32 parent_process_id = 6;
+  string command_line = 7;
+  string description = 8;
+  string handle = 9;
+}
+
+message ShareFile {
+  string type = 1;
+  int64 size = 2;
+  string last_accessed = 3;
+  string last_modified = 4;
+  string created = 5;
+  string unc_path = 6;
+  string name = 7;
+}
+
+message FileList {
+  string host = 1;
+  string parent_path = 2;
+  string name = 3;
+  string unc_path = 4;
+  int64 size = 5;
+  string last_accessed = 6;
+  string last_modified = 7;
+  string created = 8;
+  repeated ShareFile files = 10;
+}
+
+message TaskOutputRequest {
+  string internal_id = 1;
+  string c2_server_id = 2;
+  string response_text = 3; 
+  string output_type = 4;
+  string timestamp = 5;
+  string internal_task_id = 6;
+  string bucket = 7;
+  string path = 8;
+  repeated Process processes = 9;
+  // repeated ShareFile files = 10;
+  FileList file_list = 11;
+}
+
+message TaskOutputResponse {
+
+}
+
+message PingResponse {
+  string message = 1;
+}
+
+message Event {
+  string event = 1;
+  string id = 2;
+  string name = 3;
+  string chain_status = 4;
+  Progress progress = 5;
+}
+
+message Progress {
+  string id = 1;
+  int32 current = 2;
+  int32 max = 3;
+  float percentage = 4;
+  string type = 5;
+  string description = 6;
+}
+
+message Arguments {
+  repeated string arguments = 1;
+}
+
+
+enum OutputType {
+  OUTPUT_TYPE_UNSPECIFIED = 0;
+  OUTPUT_TYPE_STDOUT = 1;
+  OUTPUT_TYPE_STDERR = 2;
+}
+
+message Output {
+  string id = 1;
+  string job_id = 2;
+  OutputType type = 4;
+  string output = 5;
+  int64 created_at = 6;
+}
+
+message FileExistsRequest {
+  string md5 = 1;
+  string sha1 = 2;
+  string sha256 = 3;
+}
+
+message FileExistsResponse {
+  bool exists = 1;
+}
+
+message UploadFileRequest {
+  bytes data = 1;
+}
+
+message UploadFileResponse {
+  string upload_file_id = 1;
+}
+
+message DownloadFileRequest {
+  string file_id = 1;
+}
+
+message DownloadFileResponse {
+  bytes data = 1;
+}
+
+message C2ServerStatusRequest {
+  string c2_server_id = 1;
+  string status = 2;
+  string name = 3;
+}
+
+message C2ServerStatusResponse {
+
+}

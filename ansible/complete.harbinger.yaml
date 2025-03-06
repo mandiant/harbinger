@@ -1,0 +1,63 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+- name: "Configuring Harbinger servers"
+  hosts: harbinger_server
+  vars:
+    installation_path: "/opt/harbinger"
+
+  pre_tasks:
+    - name: Create 'site/{{ inventory_hostname }}' directory
+      ansible.builtin.file:
+        path: "{{ inventory_dir }}/site/{{ inventory_hostname }}"
+        state: directory
+      register: local_dir
+      delegate_to: localhost
+      become: false
+
+    - name: install pip3
+      ansible.builtin.apt:
+        name: python3-pip
+        update_cache: true
+      become: true
+
+    - name: Install docker on kali
+      ansible.builtin.apt:
+        pkg:
+        - docker.io
+        - docker-compose
+      become: true
+      when: ansible_distribution == "Kali"
+
+    - name: Install docker on other os
+      ansible.builtin.include_role:
+        name: geerlingguy.docker
+      when: ansible_distribution != "Kali"
+
+  roles:
+    - role: "harbinger"
+      become: true
+      vars:
+        harbinger_postgres_password: "{{ lookup('password', inventory_dir + '/site/' + inventory_hostname + '/postgres_password.txt chars=ascii_letters length=12') }}"
+        harbinger_redis_password: "{{ lookup('password', inventory_dir + '/site/' + inventory_hostname + '/redis_password.txt chars=ascii_letters length=12') }}"
+        harbinger_users: "{{ users }}"
+        harbinger_password: "{{ lookup('password', inventory_dir + '/site/' + inventory_hostname + '/harbinger_password.txt chars=ascii_letters length=12') }}"
+        harbinger_minio_secret_key: "{{ lookup('password', inventory_dir + '/site/' + inventory_hostname + '/minio_secret_key.txt chars=ascii_letters length=12') }}"
+        harbinger_neo4j_host: "{{ neo4j_host }}"
+        harbinger_neo4j_port: "{{ neo4j_port }}"
+        harbinger_neo4j_user: "{{ neo4j_user }}"
+        harbinger_neo4j_password: "{{ neo4j_password }}"
+        harbinger_gemini_key: "{{ gemini_api_key }}"
+        harbinger_domain_name: "{{ inventory_hostname }}.local"

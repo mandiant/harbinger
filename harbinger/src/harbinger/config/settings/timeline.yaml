@@ -1,0 +1,82 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+setting_categories:
+  - name: timeline
+    description: settings for timeline creation
+    order: 2
+    icon: timeline
+    settings:
+    - name: skipped_commands
+      type: list
+      value:
+      - disableetw
+      - disableamsi
+      - sleep
+      - ps
+      - ls
+      - cd
+      - pwd
+      - cat
+      - download
+      - help
+      - exit
+      - getenv
+      - rm
+      - dns
+      - socks
+      - whoami
+      - jobs
+      - jobkill
+      - upload
+      - clear
+      - drives
+      - cp
+      - regquerykey
+      - kill
+      - etw stop
+      - linktcp
+      - unlinktcp
+      - mv
+      - ival
+      - stop
+      - sink_inline_etw
+      - sink_inline_amsi
+      - acquire
+      - proclist
+      description: Tasks to skip in the timeline.
+    - name: include_status
+      type: list
+      value:
+      - completed
+      - error
+      - success
+      description: Status to include in the timeline
+    - name: ignore_labels
+      type: list
+      value:
+      - Test
+      description: Labels to ignore in the timeline
+    - name: idle_time
+      type: int
+      value: 1
+      description: Idle time used in the generation of gifs
+    - name: speed
+      type: int
+      value: 2
+      description: Speed used in generation of gifs
+    - name: agg_timeout
+      type: int
+      value: 30
+      description: Max running time for agg, in seconds 

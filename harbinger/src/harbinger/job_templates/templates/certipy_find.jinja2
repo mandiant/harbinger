@@ -1,0 +1,1 @@
+find -dns-tcp -json -timeout 20 -u {{ credential.username }}@{{ credential.domain.long_name }}{% if credential.password.nt %} -hashes :{{ credential.password.nt }}{% endif %}{% if credential.password.password %} -p '{{ credential.password.password }}'{% endif %}{% if extra_args %} {{ extra_args }}{% endif %}

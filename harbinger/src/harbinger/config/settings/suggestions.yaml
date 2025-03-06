@@ -1,0 +1,45 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+setting_categories:
+  - name: suggestions
+    description: settings for ai suggestions
+    order: 3
+    icon: fas fa-robot
+    settings:
+    - name: implant_checklist
+      type: str
+      description: Checklist that the LLM should follow for each implant
+      value: |
+        Run ps
+    - name: host_checklist
+      type: str
+      description: Checklist that the LLM should follow per host.
+      value: |
+        Check the local system for interesting files
+    - name: domain_checklist
+      type: str
+      description: Checklist that the LLM should follow per domain
+      value: |
+        Run sharphound or another bloodhound ingestor
+    - name: edr_detections
+      type: str
+      description: Checklist for the LLM to determine which actions are detected
+      value: |
+        No detections available.
+    - name: interesting_files
+      type: str
+      description: Checklist for the LLM to determine interesting files.
+      value: |
+        Password files

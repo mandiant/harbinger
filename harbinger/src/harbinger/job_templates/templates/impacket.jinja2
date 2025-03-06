@@ -1,0 +1,1 @@
+{% if credential.kerberos %}-k -no-pass {% endif %}{% if credential.password.nt %}-hashes :{{ credential.password.nt }} {% endif %}'{{ credential.domain.short_name or credential.domain.long_name or '.' }}/{{ credential.username }}{% if credential.password.password %}:{{ credential.password.password }}{% endif %}@{{ target_computer }}'

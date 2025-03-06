@@ -1,0 +1,8 @@
+{% macro arguments() -%}
+--memcache 
+{% if zipfilename %}--zipfilename {{ zipfilename }} {% endif %}
+{% if zippassword %}--zippassword {{ zippassword }} {% endif %}
+{% if dc_only %}-c DCOnly {% endif %}
+{% if extra_args %}{{ extra_args }}{% endif %}
+{%- endmacro %}
+{% set d1 = {'file': filename_id, 'arguments': arguments()} %}{{ d1 | tojson }}

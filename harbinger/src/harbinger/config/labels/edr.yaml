@@ -1,0 +1,51 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+labels:
+  - id: 96924d13-f311-489a-b6af-d8e17e64bb85
+    name: Sentinel One
+    category: EDR
+  - id: 73126fcf-e3e1-4914-81dc-17646a01cea7
+    name: Crowdstrike
+    category: EDR
+  - id: 2cafbd4a-c404-4e79-857f-1f8692659eb2
+    name: MDE
+    category: EDR
+  - id: d3dcdf24-f51d-4a7b-b655-79fd2b9bba10
+    name: Cortex
+    category: EDR
+  - id: 87aaa0b4-d805-4e67-9d2c-62e7011d7efe
+    name: Cynet
+    category: EDR
+  - id: efc53c9a-f964-4474-b97b-e17d5c1ee920
+    name: Carbon Black
+    category: EDR
+  - id: 39c88205-3874-4ea4-829b-f766a081fcb6
+    name: Palo Alto Traps
+    category: EDR
+  - id: bed553a2-3c99-469b-9e6d-2bbb5337ed04
+    name: Tanium
+    category: EDR
+  - id: 7ac2c584-b07e-4310-9dc9-1ed8cf871dfe
+    name: Elastic
+    category: EDR
+  - id: d0ee88e4-5d4b-42ac-96a1-3f71f7bfd11b
+    name: Rapid 7 Insight IDR
+    category: EDR
+  - id: 71339b87-3607-4084-a158-f8e98f7613e6
+    name: CyberReason
+    category: EDR
+  - id: cfdd3e1e-e263-43d9-9195-065edae2691d
+    name: Trellix
+    category: EDR

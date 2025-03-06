@@ -1,0 +1,227 @@
+services:
+  postgresql:
+    container_name: temporal-postgresql
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: temporal
+      POSTGRES_USER: temporal
+    image: postgres:17
+    networks:
+      - harbinger
+    volumes:
+      - /var/lib/postgresql/data
+
+  temporal:
+    container_name: temporal
+    restart: unless-stopped
+    depends_on:
+      - postgresql
+    environment:
+      - DB=postgresql
+      - DB_PORT=5432
+      - POSTGRES_USER=temporal
+      - POSTGRES_PWD=temporal
+      - POSTGRES_SEEDS=postgresql
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/deploy.yaml
+    image: temporalio/auto-setup:1.22
+    networks:
+      - harbinger
+    ports:
+      - 7233:7233
+    volumes:
+      - ./deploy/dynamicconfig:/etc/temporal/config/dynamicconfig
+
+  temporal-ui:
+    container_name: temporal-ui
+    restart: unless-stopped
+    depends_on:
+      - temporal
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_UI_ENABLED=true
+      - TEMPORAL_UI_PORT=8080
+      - TEMPORAL_OPENAPI_ENABLED=true
+    image: temporalio/ui:2.25.0
+    networks:
+      - harbinger
+    ports:
+      - 8080:8080
+
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    env_file:
+      - deploy/postgres.env
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - harbinger
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready", "-d", "postgres" ]
+      interval: 30s
+      timeout: 60s
+      retries: 5
+      start_period: 80s
+
+  redis:
+    image: "redis:latest"
+    restart: unless-stopped
+    command: "redis-server /etc/redis/redis.conf"
+    ports:
+      - "6379:6379"
+    env_file:
+      - deploy/redis.env
+    volumes:
+      - ./deploy/redis.conf:/etc/redis/redis.conf:ro
+      - redis-data:/data
+    networks:
+      - harbinger
+
+  minio:
+    image: quay.io/minio/minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    ports:
+      - 9000:9000
+      - 9001:9001
+    volumes:
+      - minio-data:/data
+    env_file:
+      - deploy/minio.env
+    networks:
+      - harbinger
+
+  web:
+    image: harbinger:latest
+    restart: unless-stopped
+    command: "uvicorn harbinger.config.app:app --host 0.0.0.0 --forwarded-allow-ips='*' --proxy-headers"
+    ports:
+      - "8000:8000"
+    env_file:
+      - deploy/redis.env
+      - deploy/server.env
+    depends_on:
+      - redis
+      - minio
+    networks:
+      - harbinger
+
+  grpc:
+    image: harbinger:latest
+    restart: unless-stopped
+    command: "harbinger_grpc"
+    ports:
+      - "50051:50051"
+    env_file:
+      - deploy/redis.env
+      - deploy/server.env
+    depends_on:
+      - redis
+      - minio
+    networks:
+      - harbinger
+
+  caddy:
+    image: caddy:2.4.3-alpine
+    restart: unless-stopped
+    command: caddy reverse-proxy --from https://{{ harbinger_domain_name | default('*') }}:8443 --to http://web:8000
+    ports:
+      - 8443:8443
+    volumes:
+      - caddy:/data
+    depends_on:
+      - web
+    networks:
+      - harbinger
+
+  tmate:
+    image: tmate/tmate-ssh-server:latest
+    restart: unless-stopped
+    ports:
+      - 2200:2200
+    volumes:
+      - ./deploy/keys:/keys
+    cap_add:
+      - "SYS_ADMIN"
+    environment:
+      - SSH_HOSTNAME="{{ harbinger_domain_name | default('localhost') }}"
+      - SSH_KEYS_PATH=/keys
+    networks:
+      - harbinger
+
+  migration:
+    image: harbinger:latest
+    command: harbinger_migrate
+    env_file:
+      - deploy/redis.env
+      - deploy/server.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - harbinger
+
+  create_defaults:
+    image: harbinger:latest
+    command: harbinger_create_defaults
+    env_file:
+      - deploy/redis.env
+      - deploy/server.env
+    depends_on:
+      migration:
+        condition: service_completed_successfully
+    networks:
+      - harbinger
+
+  worker:
+    command: harbinger_worker
+    image: harbinger:latest
+    env_file:
+      - deploy/redis.env
+      - deploy/server.env
+      - deploy/tmate.env
+      - deploy/proxy.env
+    depends_on:
+      migration:
+        condition: service_completed_successfully
+      temporal:
+        condition: service_started
+      redis:
+        condition: service_started
+    restart: on-failure
+    networks:
+      - harbinger
+
+  docker_worker:
+    image: harbinger:latest
+    command: harbinger_docker_worker
+    user: root
+    env_file:
+      - deploy/redis.env
+      - deploy/server.env
+      - deploy/tmate.env
+    depends_on:
+      migration:
+        condition: service_completed_successfully
+      temporal:
+        condition: service_started
+      redis:
+        condition: service_started
+    restart: on-failure
+    networks:
+      - harbinger
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+volumes:
+  db-data:
+  minio-data:
+  caddy:
+  redis-data:
+
+
+networks:
+  harbinger:
+    name: harbinger

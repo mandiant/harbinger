@@ -1,0 +1,35 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+labels:
+  - id: d734d03b-50d4-43e3-bb0e-e6bf56ec76b1
+    name: Dead
+    category: State
+    color: '#000806'
+  - id: 545b2c8d-9b2b-4c8f-948a-6fb2627d295f
+    name: Zombie
+    category: State
+  - id: 32379e17-5972-44de-bc03-52917ccec9da
+    name: Sandbox
+    category: State
+    color: '#eb0c0c'
+  - id: 3a96e4b7-1d06-49cd-8bf4-f6096e76b84b
+    name: DisabledAMSI
+    category: State
+  - id: 91ee5fb5-19da-4e47-8349-90f7825c1870
+    name: DisabledETW
+    category: State
+  - id: 6cfd94f0-c465-43f5-b175-758d1256dd14
+    name: Test
+    category: State

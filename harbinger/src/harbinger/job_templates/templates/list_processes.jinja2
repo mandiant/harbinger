@@ -1,0 +1,1 @@
+{{ target_computer }} --output {{ target_computer }}.json --domain {{ credential.domain.short_name }} --username {{ credential.username }}{% if credential.password.password %} --password '{{ credential.password.password }}'{% endif %}{% if credential.password.nt %} --nt {{ credential.password.nt }}{% endif %}{% if load_owners %} --load-owners{% endif %}

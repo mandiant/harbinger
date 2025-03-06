@@ -1,0 +1,154 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+- name: install apt packages
+  ansible.builtin.apt:
+    pkg:
+    - python3-docker
+    - rsync
+  become: true
+
+- name: Create installation directory
+  file:
+    path: "{{ installation_path }}"
+    state: directory
+
+- name: Create deploy directory
+  file:
+    path: "{{ installation_path }}/deploy"
+    state: directory
+
+- name: Create keys directory
+  file:
+    path: "{{ installation_path }}/deploy/keys"
+    state: directory
+
+- name: Create dynamicconfig directory
+  file:
+    path: "{{ installation_path }}/deploy/dynamicconfig"
+    state: directory
+
+- name: Generate an ed25519 key for tmate
+  community.crypto.openssh_keypair:
+    path: "{{ installation_path }}/deploy/keys/ssh_host_ed25519_key"
+    type: ed25519
+  register: ed25519_key
+
+- name: Generate an ed25519 key for tmate
+  community.crypto.openssh_keypair:
+    path: "{{ installation_path }}/deploy/keys/ssh_host_rsa_key"
+    type: rsa
+  register: rsa_key
+
+- name: Upload minio configuration template
+  template:
+    src: minio.env.j2
+    dest: "{{ installation_path }}/deploy/minio.env"
+
+- name: Upload postgres configuration template
+  template:
+    src: postgres.env.j2
+    dest: "{{ installation_path }}/deploy/postgres.env"
+
+- name: Upload tmate configuration template
+  template:
+    src: tmate.env.j2
+    dest: "{{ installation_path }}/deploy/tmate.env"
+  vars:
+    rsa_sig: "{{ rsa_key.fingerprint }}"
+    ed25519_sig: "{{ ed25519_key.fingerprint }}"
+
+- name: Upload proxy configuration template
+  template:
+    src: proxy.env.j2
+    dest: "{{ installation_path }}/deploy/proxy.env"
+
+- name: Upload redis configuration template
+  template:
+    src: redis.conf.j2
+    dest: "{{ installation_path }}/deploy/redis.conf"
+
+- name: Upload redis configuration template
+  template:
+    src: redis.env.j2
+    dest: "{{ installation_path }}/deploy/redis.env"
+
+- name: Upload server configuration template
+  template:
+    src: server.env.j2
+    dest: "{{ installation_path }}/deploy/server.env"
+
+- name: Upload docker compose
+  template:
+    src: docker-compose.yml.j2
+    dest: "{{ installation_path }}/docker-compose.yml"
+    follow: true
+
+- name: Upload repository
+  ansible.posix.synchronize:
+    src: "{{ role_path }}/../../../harbinger"
+    dest: /opt/harbinger_build/
+
+- name: Create deploy.yaml for temporal
+  copy:
+    src: deploy.yaml
+    dest: "{{ installation_path }}/deploy/dynamicconfig/deploy.yaml"
+
+- name: Build proxy container
+  community.docker.docker_image:
+    name: "harbinger_proxy:latest"
+    source: build
+    force_source: true
+    build:
+      dockerfile: "Dockerfile.proxy"
+      path: /opt/harbinger_build/harbinger/
+      args: "{{ harbinger_docker_build_args }}"
+
+- name: Build harbinger container
+  community.docker.docker_image:
+    name: "harbinger:latest"
+    source: build
+    force_source: true
+    build:
+      dockerfile: "Dockerfile"
+      path: /opt/harbinger_build/harbinger/
+      args: "{{ harbinger_docker_build_args }}"
+
+- name: Build harbinger mythic container
+  community.docker.docker_image:
+    name: "harbinger_mythic:latest"
+    source: build
+    force_source: true
+    build:
+      dockerfile: "Dockerfile.mythic"
+      path: /opt/harbinger_build/harbinger/
+      args: "{{ harbinger_docker_build_args }}"
+
+- name: Start harbinger
+  community.docker.docker_compose_v2:
+    project_src: "{{ installation_path }}"
+    project_name: harbinger
+    state: present
+
+- name: Create users
+  community.docker.docker_container_exec:
+    container: harbinger-web-1
+    argv:
+    - harbinger_create_user
+    - --username
+    - "{{ item }}"
+    - --password
+    - "{{ harbinger_password }}"
+  loop: "{{ harbinger_users }}"

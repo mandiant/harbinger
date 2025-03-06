@@ -1,0 +1,39 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+labels:
+  - id: cf5d2e4a-0cbc-4f5e-85ef-da9d116df85e
+    name: Initial Reconnaissance
+    category: Attack Lifecycle
+  - id: 65072ef0-7e98-404e-9ef0-001865a7c23a
+    name: Initial Compromise
+    category: Attack Lifecycle
+  - id: f498828e-e563-45ea-b91f-bf2c1a844c95
+    name: Establish Foothold
+    category: Attack Lifecycle
+  - id: 1492e045-d9eb-405b-8d74-f727327d36fb
+    name: Escalate Privileges
+    category: Attack Lifecycle
+  - id: ee0dad20-8774-449a-a4b4-ceac1ce01455
+    name: Internal Reconnaissance
+    category: Attack Lifecycle
+  - id: 6780578e-a200-4127-a2c8-78ae4ba8d72b
+    name: Move Laterally
+    category: Attack Lifecycle
+  - id: e542fe7d-1cff-4026-9b08-7a15a13db3ca
+    name: Maintain Presence
+    category: Attack Lifecycle
+  - id: fa3ffd5e-fa59-439e-bf06-26d10a045fec
+    name: Complete Mission
+    category: Attack Lifecycle

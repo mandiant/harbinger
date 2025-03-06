@@ -1,0 +1,51 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+labels:
+  - id: ceccea96-9c5a-434e-ad55-e15d7c63f6ac
+    name: downloaded
+    category: File
+  - id: 9a36716a-e41c-4398-a121-4611625c148f
+    name: Green
+    category: File
+    color: "#1AC5B0"
+  - id: a2e41186-15bb-4748-86ec-511e66dcb7dd
+    name: Yellow
+    category: File
+    color: "#FDF500"
+  - id: 56c57825-1c46-4113-8f89-14c40c8624f0
+    name: Red
+    category: File
+    color: "#CB0C59"
+  - id: 8ac84639-a0ec-4110-b748-e38cc0a53a88
+    name: Tool
+    category: File
+  - id: 34f0b6d4-8fcf-4296-b8e3-013a86363452
+    name: Potential credentials
+    category: File
+  - id: 3d373889-9d2a-47c3-ac92-190b192c962c
+    name: Operator upload
+    category: File
+  - id: 4f69f31b-1792-47b2-8c4c-dc7bce3686a4
+    name: Has credentials
+    category: File
+  - id: cc079c9e-3a92-41ca-9296-46ff64612d17
+    name: TruffleHog
+    category: File
+  - id: d4ace6dc-bd6b-4958-ba4a-8c47d8760c9f
+    name: NoseyParker
+    category: File
+  - id: 1cfc451f-4a4b-4ed8-aca1-544211058bdf
+    name: Gemini
+    category: File

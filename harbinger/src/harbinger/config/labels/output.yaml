@@ -1,0 +1,57 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+labels:
+  - id: 4bf0c79a-6994-4324-9cf6-0dfef6e37551
+    name: Kerberos Ticket
+    category: Output
+  - id: f198bd07-16ee-4fea-954b-5dad3bfb8455
+    name: Env
+    category: Output
+  - id: 40bcc903-5b4c-4aef-9ba3-f0d1fc61d4c0
+    name: IPConfig
+    category: Output
+  - id: 1343ada1-b187-44d5-bfd0-612e32af46c6
+    name: Whoami
+    category: Output
+  - id: 3560c81d-bd0b-4636-9d03-3918e630ffb9
+    name: Snaffler
+    category: Output
+  - id: 823afdbb-ef49-4cc1-9368-4e125606649c
+    name: Kerberoast
+    category: Output
+  - id: b360fffa-ef10-46aa-ba0b-056cf7405b8a
+    name: ASReproast
+    category: Output
+  - id: 9f30b8d6-5d30-492c-8856-c53465122e8f
+    name: LdapSearch
+    category: Output
+  - id: 1c2ef389-ccd3-46f7-bcaf-3d6b978b56ae
+    name: MachineAccountQuota
+    category: Output
+  - id: ef240704-0cf9-4cf4-9404-73ab08581f93
+    name: DomainInfo
+    category: Output
+  - id: 6849c996-f5ab-462a-96c3-8ae891134c56
+    name: NetView
+    category: Output
+  - id: 7af1ae71-851a-40d3-83c3-90a31f974172
+    name: Secretsdump
+    category: Output
+  - id: dc8cf07e-758e-4200-b59a-6f3682fe0a47
+    name: ADCS enum
+    category: Output
+  - id: e23ac488-0c39-49b6-897c-ab7bff23f69a
+    name: Net Shares
+    category: Output

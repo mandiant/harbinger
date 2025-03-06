@@ -1,0 +1,45 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+labels:
+  - id: 7686e20e-bae7-418a-b1d7-703c2355bfba
+    name: ESC1
+    category: Certificates
+  - id: c3de7372-002c-422d-808d-d591533437a0
+    name: ESC2
+    category: Certificates
+  - id: 3bcacbed-b1e6-49e7-869a-2cd52b53d7fc
+    name: ESC3
+    category: Certificates
+  - id: 21acdba9-0b9f-4285-80fe-30bb886e7544
+    name: ESC4
+    category: Certificates
+  - id: 24e02dde-ecdf-4e66-bba8-2dfbe41fe99c
+    name: ESC5
+    category: Certificates
+  - id: f122f4de-b272-4881-afb6-206d147f7dbb
+    name: ESC6
+    category: Certificates
+  - id: 2d4200ff-b5c7-42ca-8d38-f30625acf29d
+    name: ESC7
+    category: Certificates
+  - id: a01f08bf-8e77-4582-baea-1d29df7be67e
+    name: ESC8
+    category: Certificates
+  - id: 0469535a-0087-4e62-a9ba-24da361c6735
+    name: ESC9
+    category: Certificates
+  - id: cba19235-9950-41f8-a193-5f89f78f53da
+    name: ESC10
+    category: Certificates

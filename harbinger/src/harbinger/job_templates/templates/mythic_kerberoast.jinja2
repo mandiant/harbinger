@@ -1,0 +1,10 @@
+{% macro arguments() -%}
+kerberoast /nowrap /simple 
+{% if spn %}/spn:{{ spn }} {% endif %}
+{% if spns %}/spns:{{ spns }} {% endif %}
+{% if extra_args %}{{ extra_args }} {% endif %}
+{% if delay %}/delay:{{ delay }} {% endif %}
+{% if jitter %}/jitter:{{ jitter }} {% endif %}
+{% if aes %} /aes{% else %} /rc4opsec{% endif %}
+{%- endmacro %}
+{% set d1 = {'file': filename_id, 'arguments': arguments()} %}{{ d1 | tojson }}

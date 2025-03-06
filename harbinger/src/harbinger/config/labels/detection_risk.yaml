@@ -1,0 +1,35 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+labels:
+  - id: 01dcd930-e092-4409-b0e0-355fb8a1f9ed
+    name: Very Low
+    category: Detection Risk
+    color: "#00B050"
+  - id: 492b46ff-93a0-4936-8350-220f45c4248a
+    name: Low
+    category: Detection Risk
+    color: "#92D050"
+  - id: 7877818c-b66c-4f82-b3b5-e5f48f5d1d0b
+    name: Moderate
+    category: Detection Risk
+    color: "#FFFF00"
+  - id: bf2eb675-5b71-493d-8b05-334ff93d632d
+    name: High
+    category: Detection Risk
+    color: "#FFC000"
+  - id: d2bca65c-10e0-4f33-8313-3de3b43f2fa3
+    name: Very High
+    category: Detection Risk
+    color: "#FF0000"

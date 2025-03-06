@@ -1,0 +1,122 @@
+[project]
+name = "harbinger"
+version = "0.1.0"
+authors = [
+  { name="Matthijs Gielen", email="matthijsgielen@google.com" },
+]
+description = "Harbinger"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+  "fastapi[all]",
+  "sqlalchemy[asyncio]>=2.0.0",
+  "protobuf",
+  "asyncpg",
+  "alembic",
+  "pypykatz",
+  "Jinja2",
+  "aiobotocore",
+  "aiofiles",
+  "arsenic",
+  "fastapi-users[sqlalchemy]>=12.1.1",
+  "click",
+  "neo4j",
+  "jsonref",
+  "pytest",
+  "pytest-cov",
+  "pytest-mypy",
+  "fastapi-pagination[sqlalchemy]",
+  "backoff",
+  "mythic",
+  "pydantic",
+  "pydantic-settings",
+  "anyio",
+  "python-magic>=0.4.18",
+  "Pillow",
+  "tabulate",
+  "impacket",
+  "ADExplorerSnapshot @ https://github.com/c3c/ADExplorerSnapshot.py/archive/a98fa5c55897f4d057f0f9d0730cf565c8b08628.zip",
+  "oscrypto @ https://github.com/wbond/oscrypto/archive/1547f535001ba568b239b8797465536759c742a3.zip",
+  "pytest-env",
+  "uvicorn",
+  "aiodocker",
+  "aiohttp",
+  "websockets",
+  "protobuf==4.23.2",
+  "sqladmin",
+  "alive-progress",
+  "aiosmb",
+  "humanize",
+  "temporalio",
+  "pyexiftool",
+  "magika",
+  "redis[hiredis]",
+  "dpath",
+  "fastapi-filter[sqlalchemy]",
+  "types-pytz",
+  "types-aiofiles",
+  "types-tabulate",
+  "types-requests",
+  "fastapi-filter",
+  "rigging",
+  "grpcio",
+]
+
+[project.optional-dependencies]
+dev = [
+    "testcontainers",
+]
+
+[project.urls]
+
+[project.scripts]
+harbinger_create_user = "harbinger.config.create_user:create_user"
+harbinger_create_defaults = "harbinger.config.create_defaults:create_defaults"
+harbinger_migrate = "harbinger.config.migrate:run_migrations"
+harbinger_revision = "harbinger.config.migrate:auto_revision"
+harbinger_downgrade = "harbinger.config.migrate:downgrade"
+harbinger_worker = "harbinger.worker.run_worker:cli"
+harbinger_docker_worker = "harbinger.connectors.client:cli"
+harbinger_indexer = "harbinger.indexer.cli:cli"
+harbinger_files = "harbinger.files.cli:cli"
+harbinger_grpc = "harbinger.rpc.server:cli"
+
+[build-system]
+requires = ["setuptools==69.0.2"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+
+[tool.setuptools.package-data]
+"*" = ["*.yaml", "*.jinja2", "*.ttf"]
+
+[tool.pyright]
+pythonVersion = "3.10"
+
+[tool.pytest.ini_options]
+filterwarnings = ["ignore:::.*passlib*"]
+addopts = "--cov=harbinger"
+env = ["C2_SERVER_ID=11111111-2222-44444-55555-666666666666"]
+
+[tool.coverage.run]
+omit = ["*/router.py", "*/app.py"]
+
+[tool.mypy]
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+exclude = [
+  "src/harbinger/database/models.py"
+]
+
+[[tool.mypy.overrides]]
+module = "*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "src/*"
+ignore_missing_imports = true
