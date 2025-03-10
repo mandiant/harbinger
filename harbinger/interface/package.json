@@ -13,7 +13,7 @@
   "dependencies": {
     "@monaco-editor/loader": "^1.4.0",
     "@quasar/extras": "^1.16.13",
-    "axios": "^1.6.1",
+    "axios": "^1.8.2",
     "echarts": "^5.4.1",
     "mermaid": "^10.6.1",
     "monaco-editor": "^0.47.0",
