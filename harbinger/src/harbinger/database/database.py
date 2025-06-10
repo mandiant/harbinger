@@ -14,12 +14,17 @@
 
 from harbinger.config import get_settings
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.orm import declarative_base
 from typing import AsyncGenerator
 
 settings = get_settings()
 
-engine = create_async_engine(settings.pg_dsn)
+engine = create_async_engine(
+    settings.pg_dsn,
+    pool_size=20,  # Adjust pool size as needed
+    max_overflow=40,  # Adjust max overflow as needed
+)
+
 SessionLocal = async_sessionmaker(
     autocommit=False,
     autoflush=False,

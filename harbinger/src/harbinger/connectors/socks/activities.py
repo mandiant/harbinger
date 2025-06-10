@@ -47,11 +47,10 @@ log = structlog.get_logger()
 
 @activity.defn
 async def get_proxy_job(proxy_job_id: str) -> schemas.ProxyJob | None:
-    async with SessionLocal() as session:
-        proxy_job = await crud.get_proxy_job(session, proxy_job_id)
-        if proxy_job:
-            return schemas.ProxyJob.model_validate(proxy_job)
-        return None
+    proxy_job = await crud.get_proxy_job(proxy_job_id)
+    if proxy_job:
+        return schemas.ProxyJob.model_validate(proxy_job)
+    return None
 
 
 @activity.defn(name="update_proxy_job_status")

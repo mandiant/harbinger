@@ -84,6 +84,7 @@ class Event(str, Enum):
     highlight = "highlight"
     checklist = "checklist"
     objective = "objective"
+    playbook_template = "playbook_template"
 
 
 class EventType(str, Enum):
@@ -464,6 +465,7 @@ class ProxyChain(ProxyChainBase):
     status: str | None = None
     steps: int | None = None
     completed: int | None = None
+    arguments: dict | None = None
     time_created: datetime | None = None
     time_updated: datetime | None = None
     time_started: datetime | None = None
@@ -668,6 +670,9 @@ class Step(BaseModel):
     delay: int | None = None
     label: str | None = ""
     depends_on: str | None = ""
+    tmate: bool | None = True
+    asciinema: bool | None = True
+    proxychains: bool | None = True
     modifiers: list[PlaybookStepModifierBase] | None = None
 
 
@@ -690,6 +695,16 @@ class PlaybookTemplateBase(BaseModel):
     steps: str | None = ""
     yaml: str = ""
     add_depends_on: bool | None = None
+
+
+class PlaybookTemplateGenerated(BaseModel):
+    icon: str 
+    name: str
+    tactic: str
+    technique: str
+    args: list[Argument]
+    steps: str
+    add_depends_on: bool
 
 
 class PlaybookTemplateView(PlaybookTemplateBase):
@@ -851,6 +866,18 @@ class RequiredArgument(BaseModel):
     regex: str | None = ''
     default: str | int | None = None
     error: str | None = 'Please fill in this value'
+    type: str | None = None
+
+    def default_type(self) -> str | None:
+        match self.name:
+            case ArgumentNameEnum.ca_certificate | ArgumentNameEnum.certificate | ArgumentNameEnum.private_key:
+                return "textarea"
+            case ArgumentNameEnum.port:
+                return "number"
+            case ArgumentNameEnum.hostname | ArgumentNameEnum.username | ArgumentNameEnum.password | ArgumentNameEnum.token:
+                return "text"
+            case _:
+                return None
 
 
 class Implant(BaseModel):
@@ -866,7 +893,7 @@ class C2ServerTypeYaml(BaseModel):
     command: str
     icon_base64: str | None = ''
     required_arguments: List[RequiredArgument]
-    implants: List[Implant] | None = []
+    implants: List[Implant]
 
 
 class C2ServerTypeBase(BaseModel):
@@ -896,6 +923,7 @@ class HarbingerYaml(BaseModel):
     actions: List["ActionCreate"] | None = None
     setting_categories: List["SettingCategoryCreate"] | None = None
     playbooks: List["PlaybookTemplateCreate"] | None = None
+    c2_servers: List["C2ServerCreate"] | None = None
 
 
 class C2ServerArgumentsBase(BaseModel):
@@ -904,6 +932,7 @@ class C2ServerArgumentsBase(BaseModel):
     regex: str | None = None
     default: str | None = None
     error: str | None = None
+    type: str | None = None
     c2_server_type_id: str | UUID4 | None = None
     
 
@@ -1056,7 +1085,7 @@ class C2ImplantBase(BaseModel):
 
 
 class C2ImplantCreate(C2ImplantBase):
-    internal_id: str = Field(
+    internal_id: str | None = Field(
         validation_alias=AliasChoices("c2_uid", "ID", "internal_id"), default=None
     )
 
@@ -1313,8 +1342,8 @@ class TimeLine(BaseModel):
     arguments: str | None = Field(
         validation_alias=AliasChoices("arguments", "display_params"), default=""
     )
-    original_params: str | None = ""
-    argument_params: str | None = ""
+    original_params: str | list | None = ""
+    argument_params: str | list | None = ""
     operator: str | None = ""
     time_started: datetime | None = None
     time_completed: datetime | None = None
@@ -2149,6 +2178,16 @@ class Objective(ObjectiveBase):
     id: UUID4 | str
 
     labels: List["Label"] | None = None
+
+
+class ReadmeInput(BaseModel):
+    """Schema for receiving README content."""
+    readme: str = Field(..., description="The README content in markdown format.")
+
+
+class GeneratedYamlOutput(BaseModel):
+    """Schema for returning the AI-generated YAML."""
+    yaml: str = Field(..., description="The generated playbook template YAML string.")
 
 
 ManualTimelineTask.model_rebuild()

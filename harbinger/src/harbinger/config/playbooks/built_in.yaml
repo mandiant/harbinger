@@ -1,0 +1,82 @@
+playbooks:
+  - id: b13e64a7-5623-4d69-bb6e-5718b887658c
+    name: List multiple directories
+    icon: fas fa-sitemap
+    tactic: reconnaissance
+    technique: gather victim host information
+    add_depends_on: 'yes'
+    labels: ["Built-in"]
+    args:
+    - name: c2_implant_id
+      type: str
+    - name: directories
+      type: str
+      description: Directories to list, separated by '|'
+    steps: |
+      {% for directory in directories.split("|")%}
+      - type: c2
+        name: ls
+        args:
+        - name: folder
+          value: '{{directory}}'
+        - name: c2_implant_id
+          value: '{{ c2_implant_id }}'
+      {% endfor %}
+  - id: 9e416746-b03c-46ad-a10c-052a9dec0f18
+    name: Start socks proxy
+    icon: router
+    tactic: defense evasion
+    technique: socks
+    labels: ["Built-in"]
+    add_depends_on: 'no'
+    args:
+    - name: c2_implant_id
+      type: str
+    steps: |
+      - type: c2
+        name: socks
+        args:
+        - name: action
+          value: start
+        - name: port
+          value: 7001
+        - name: task_id
+          value: ''
+        - name: url
+          value: ''
+        - name: c2_implant_id
+          value: '{{ c2_implant_id }}'
+        label: A
+        depends_on: ''
+      - type: c2
+        name: sleep
+        args:
+        - name: sleep
+          value: 0
+        - name: jitter
+          value: 0
+        - name: c2_implant_id
+          value: '{{ c2_implant_id }}'
+        label: B
+        depends_on: A
+  - id: bc182f94-4f59-498c-abc8-bdf7d1bcb448
+    icon: download
+    tactic: collection
+    technique: data from local system
+    labels: ["Built-in"]
+    name: "Download a list of files"
+    add_depends_on: yes
+    args:
+      - name: c2_implant_id
+        type: str
+      - name: target_files
+        type: str
+        description: "Target files to download, provide a list of UNC paths separated by '|': for example: '\\\\server\\share\\file1.txt|\\\\server\\share\\file2.txt'"
+    steps: |
+      {% for target_file in target_files.split('|') %}
+      - type: c2 
+        name: download
+        args:
+          - name: path
+            value: '{{ target_file }}'
+      {% endfor %}

@@ -18,10 +18,9 @@ from typing import List
 from harbinger.config import get_settings
 from harbinger.job_templates.proxy.base import JobTemplateModel
 from harbinger.job_templates.schemas import env
-from pydantic import Field
+from pydantic import Field, field_validator, ValidationInfo
 from harbinger.database import crud
 from enum import Enum
-from harbinger.database import schemas
 from sqlalchemy.ext.asyncio import AsyncSession
 from harbinger.files.client import upload_file
 
@@ -79,8 +78,8 @@ class UploadFile(JobTemplateModel):
         template = "smbclient_upload.jinja2"
 
     async def resolve_objects(self, db: AsyncSession) -> dict:
-        cred = await crud.get_credential(db, credential_id=self.credential_id)
-        file = await crud.get_file(db, self.file_id)
+        cred = await crud.get_credential(credential_id=self.credential_id)
+        file = await crud.get_file(self.file_id)
         return dict(credential=cred, file=file)
 
 
@@ -89,7 +88,7 @@ class CredJobTemplateModel(JobTemplateModel):
     credential_id: str
 
     async def resolve_objects(self, db: AsyncSession) -> dict:
-        cred = await crud.get_credential(db, credential_id=self.credential_id)
+        cred = await crud.get_credential(credential_id=self.credential_id)
         return dict(credential=cred)
 
 
@@ -234,6 +233,12 @@ class Custom(JobTemplateModel):
     async def files(self, db: AsyncSession) -> List[str]:
         result = []
         for file in self.input_files or []:
-            if await crud.get_file(db, file):
+            if await crud.get_file(file):
                 result.append(file)
         return result
+
+    @field_validator('arguments')
+    @classmethod
+    def remove_newlines_from_arguments(cls, v: str, info: ValidationInfo) -> str:
+        """Removes newline characters from the arguments string."""
+        return v.replace('\n', ' ').replace('\r', '')

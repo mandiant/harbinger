@@ -69,12 +69,11 @@ log = structlog.get_logger()
 
 @activity.defn
 async def get_playbook(playbook_id: str) -> None | schemas.ProxyChain:
-    async with SessionLocal() as session:
-        playbook = await crud.get_playbook(session, playbook_id)
-        result = None
-        if playbook:
-            result = schemas.ProxyChain.model_validate(playbook)
-        return result
+    playbook = await crud.get_playbook(playbook_id)
+    result = None
+    if playbook:
+        result = schemas.ProxyChain.model_validate(playbook)
+    return result
 
 
 @activity.defn
@@ -89,24 +88,22 @@ async def get_playbook_steps(playbook_id: str) -> list[schemas.ChainStep]:
 
 @activity.defn
 async def get_c2_implant(c2_implant_id: str) -> None | schemas.C2Implant:
-    async with SessionLocal() as session:
-        implant = await crud.get_c2_implant(session, c2_implant_id)
-        if implant:
-            return schemas.C2Implant.model_validate(implant)
+    implant = await crud.get_c2_implant(c2_implant_id)
+    if implant:
+        return schemas.C2Implant.model_validate(implant)
     return None
 
 
 @activity.defn
 async def get_c2_job(job_id: str) -> None | schemas.C2Job:
-    async with SessionLocal() as session:
-        job = await crud.get_c2_job(session, job_id)
-        if job:
-            return schemas.C2Job.model_validate(job)
+    job = await crud.get_c2_job(job_id)
+    if job:
+        return schemas.C2Job.model_validate(job)
     return None
 
 
 @activity.defn
-async def get_c2_task_output(c2_task_id: str | UUID4) -> str:
+async def get_c2_task_output(c2_task_id: UUID4) -> str:
     async with SessionLocal() as session:
         text = []
         for entry in await crud.get_c2_task_output(
@@ -120,7 +117,7 @@ async def get_c2_task_output(c2_task_id: str | UUID4) -> str:
 @activity.defn
 async def get_proxy_job(job_id: str) -> schemas.ProxyJob:
     async with SessionLocal() as session:
-        job = await crud.get_proxy_job(session, job_id)
+        job = await crud.get_proxy_job(job_id)
         return schemas.ProxyJob.model_validate(job)
 
 
@@ -150,7 +147,7 @@ async def update_c2_job(replace: schemas.PlaybookStepModifierEntry) -> None:
         log.warning("c2 job id was not set.")
         return
     async with SessionLocal() as session:
-        c2_job = await crud.get_c2_job(session, replace.c2_job_id)
+        c2_job = await crud.get_c2_job(replace.c2_job_id)
         if not c2_job:
             log.warning("C2 job was not found.")
             return
@@ -180,7 +177,7 @@ async def update_proxy_job(replace: schemas.PlaybookStepModifierEntry) -> None:
         log.warning("Proxy job id was not set.")
         return
     async with SessionLocal() as session:
-        proxy_job = await crud.get_proxy_job(session, replace.proxy_job_id)
+        proxy_job = await crud.get_proxy_job(replace.proxy_job_id)
         if not proxy_job:
             log.warning("Proxy job was not found.")
             return
@@ -195,10 +192,9 @@ async def update_proxy_job(replace: schemas.PlaybookStepModifierEntry) -> None:
 @activity.defn
 async def get_file(file_id: str) -> schemas.File | None:
     if file_id:
-        async with SessionLocal() as session:
-            file = await crud.get_file(session, file_id)
-            if file:
-                return schemas.File.model_validate(file)
+        file = await crud.get_file(file_id)
+        if file:
+            return schemas.File.model_validate(file)
     return None
 
 
@@ -335,7 +331,7 @@ class FileParsing:
 
             async with SessionLocal() as session:
                 await crud.update_file(session, file.id, file_update)
-                file_db = await crud.get_file(session, file.id)
+                file_db = await crud.get_file(file.id)
                 if not file_db:
                     return None
                 return schemas.File.model_validate(file_db)
@@ -474,6 +470,7 @@ class FileParsing:
                     self.pool, self.extract_file_from_zip, data, harbinger_yaml
                 )
                 if result:
+                    log.info(f"Processing {harbinger_yaml}")
                     try:
                         for f in await process_harbinger_yaml(db, result) or []:
                             path = os.path.join("harbinger", str(f.id), f.name)
@@ -796,6 +793,8 @@ async def create_timeline(timeline: schemas.CreateTimeline):
 
                         if task.argument_params:
                             command = f"{command} {task.argument_params}"
+
+                        command = command.replace("\n", "")
 
                         cast_file = basedir / "screenshots" / f"output_{count}.cast"
                         cast_exists = False
@@ -1152,8 +1151,8 @@ async def save_task_output(
             output=c2_task_output.response_text or "",
         )
         if created and c2_task_output.processes and c2_task:
-            implant = await crud.get_c2_implant(db, c2_task.c2_implant_id)
-            if implant:
+            implant = await crud.get_c2_implant(c2_task.c2_implant_id)
+            if implant and implant.host_id:
                 result.host_id = implant.host_id
                 highest_number = await crud.get_highest_process_number(
                     db,
@@ -1481,7 +1480,7 @@ def sequence_to_string_list(
     return result
 
 
-def object_to_string(obj: DeclarativeBase, object_type: t.Type[BaseModel]) -> str:
+def object_to_string(obj: DeclarativeBase | BaseModel, object_type: t.Type[BaseModel]) -> str:
     result = object_type.model_validate(obj)
     return result.model_dump_json(exclude_unset=True, exclude_none=True)
 
@@ -1494,34 +1493,77 @@ def dict_to_string(obj: dict) -> str:
 
 def validate_playbook_callback(
     playbook_map: dict[str, models.PlaybookTemplate]
-) -> t.Callable[[rg.Message], tuple[bool, list[rg.Message]]]:
-    def validate_playbook(message: rg.Message) -> tuple[bool, list[rg.Message]]:
-        messages = [message]
+) -> t.Callable[[rg.Chat], t.Coroutine[t.Any, t.Any, rg.PipelineStepContextManager | None]]:
+    async def validate_playbook(
+        chat: rg.Chat,
+    ) -> rg.PipelineStepContextManager | None:
+        """
+        A rigging pipeline step that validates playbook actions and asks the LLM
+        to correct them if errors are found.
+
+        This function parses the last message for playbook actions, validates them,
+        and if any errors exist, it constructs a new prompt detailing the errors
+        and triggers another generation round.
+
+        Args:
+            chat: The current chat object in the rigging pipeline.
+
+        Returns:
+            A PipelineStepContextManager to trigger another LLM call if validation fails,
+            otherwise None to indicate success and continue the pipeline.
+        """
+        error_messages = []
         try:
-            actions = message.parse(genai.ActionList)
+            # Assuming rg.parse can handle parsing the content into the desired structure
+            actions = chat.last.parse(genai.ActionList)
             for action in actions.actions or []:
                 if action.playbook and action.playbook.playbook_id in playbook_map:
-                    playbook_template = playbook_map[action.playbook.playbook_id]
-                    chain = schemas.PlaybookTemplate(
-                        **yaml.safe_load(playbook_template.yaml)
-                    )
-                    arguments = json.loads(action.playbook.arguments or "{}")
                     try:
+                        playbook_template = playbook_map[action.playbook.playbook_id]
+                        chain = schemas.PlaybookTemplate(
+                            **yaml.safe_load(playbook_template.yaml)
+                        )
+                        arguments = json.loads(action.playbook.arguments or "{}")
+                        # This line performs the actual validation
                         chain.create_model()(**arguments)
                     except ValidationError as e:
-                        messages.append(rg.Message("user", e.json()))
-                elif (
-                    action.playbook
-                    and action.playbook.playbook_id
-                    == "ffffffff-ffff-ffff-ffff-ffffffffffff"
-                ):
-                    pass
-                else:
-                    print("not found or something: ", action)
+                        error_messages.append(
+                            f"Validation Error for playbook '{action.playbook.playbook_id}':\n{e.json()}"
+                        )
+                    except (json.JSONDecodeError, yaml.YAMLError) as e:
+                        error_messages.append(
+                            f"Error processing playbook '{action.playbook.playbook_id}': {e}"
+                        )
+                # You can add other checks for placeholder IDs or missing playbooks if needed
+                elif not action.playbook or not action.playbook.playbook_id:
+                    error_messages.append(f"Action is missing a playbook or playbook_id: {action}")
+                elif action.playbook.playbook_id not in playbook_map:
+                    error_messages.append(f"Playbook with ID '{action.playbook.playbook_id}' not found.")
+
+
         except ValidationError as e:
-            log.warning(f"ValidationError during validate playbook_callback: {e}")
-            messages.append(rg.Message("user", e.json()))
-        return len(messages) != 1, messages
+            log.warning(f"Major ValidationError during parsing: {e}")
+            error_messages.append(f"The overall structure of your response was incorrect: {e.json()}")
+
+        # --- This is the key change in logic ---
+        if error_messages:
+            # 1. Format the collected errors into a clear message for the model.
+            error_summary = "\n- ".join(error_messages)
+            correction_prompt = (
+                "Your previous attempt to generate a playbook action had errors. "
+                "Please review the errors below, correct them, and provide the full, valid action again.\n\n"
+                "Errors found:\n"
+                f"- {error_summary}"
+            )
+
+            # 2. Create a new chat object with the corrective prompt.
+            follow_up_chat = chat.continue_(correction_prompt)
+
+            # 3. Return the PipelineStepContextManager to trigger a new LLM call.
+            return follow_up_chat.step()
+
+        # 4. If there were no errors, return None to exit the loop.
+        return None
 
     return validate_playbook
 
@@ -1555,7 +1597,7 @@ async def load_data_for_ai(
     data = AIData()
     # label_filters = filters.LabelFilter(name__in=include_labels, name__not_in=skip_labels)
     if c2_implant_id:
-        c2_implant = await crud.get_c2_implant(db, c2_implant_id)
+        c2_implant = await crud.get_c2_implant(c2_implant_id)
         if c2_implant:
             labels = await crud.recurse_labels_c2_implant(db, c2_implant_id)
             c2_implant_dict = c2_implant.__dict__
@@ -1721,7 +1763,7 @@ async def create_c2_implant_suggestion(req: schemas.C2ImplantSuggestionRequest):
 
             pipeline = (
                 genai.generator.chat([{"role": "system", "content": ""}])
-                .until(validate_playbook_callback(data.playbook_map))
+                .then(validate_playbook_callback(data.playbook_map))
                 .watch(log_message)
             )
             run = genai.suggest_action_c2_implant.bind(pipeline)
@@ -1771,7 +1813,7 @@ async def create_domain_suggestion(req: schemas.SuggestionsRequest):
 
             pipeline = (
                 genai.generator.chat([{"role": "system", "content": ""}])
-                .until(validate_playbook_callback(data.playbook_map))
+                .then(validate_playbook_callback(data.playbook_map))
                 .watch(log_message)
             )
             run = genai.suggest_domain_action.bind(pipeline)
@@ -2248,7 +2290,7 @@ async def c2_job_detection_risk(req: schemas.C2JobDetectionRiskRequest) -> None:
             # )
             run = genai.c2_job_detection_risk.bind(pipeline)
 
-            c2_job = await crud.get_c2_job(db, req.c2_job_id)
+            c2_job = await crud.get_c2_job(req.c2_job_id)
 
             if not c2_job:
                 log.warning(f"Unable to find the c2_job for id: {req.c2_job_id}")
@@ -2256,7 +2298,7 @@ async def c2_job_detection_risk(req: schemas.C2JobDetectionRiskRequest) -> None:
 
             c2_job_str = object_to_string(c2_job, schemas.C2Job)
 
-            c2_implant = await crud.get_c2_implant(db, c2_job.c2_implant_id)
+            c2_implant = await crud.get_c2_implant(c2_job.c2_implant_id)
 
             if not c2_implant:
                 log.warning(
@@ -2305,5 +2347,54 @@ async def c2_job_detection_risk(req: schemas.C2JobDetectionRiskRequest) -> None:
                         playbook_id=c2_job.playbook_id,
                     ),
                 )
-                await crud.send_update_playbook(c2_job.playbook_id, "updated_chain")
+                await crud.send_update_playbook(str(c2_job.playbook_id), "updated_chain")
             await bar(1)
+
+
+@activity.defn
+async def kerberoasting_suggestions(req: schemas.SuggestionsRequest):
+    async def log_message(chats: list[rg.Chat]) -> None:
+        for chat in chats:
+            for message in chat.generated:
+                log.info(message)
+
+    async with SessionLocal() as db:
+        async with progress_bar.ProgressBar(
+            bar_id=str(uuid.uuid4()),
+            max=3,
+            description="Creating kerberoasting suggestions",
+        ) as bar:
+            async with get_async_neo4j_session_context() as session:
+                kerberoastable_users = await graph_crud.get_kerberoastable_groups(session)
+                if not kerberoastable_users:
+                    await bar(3)
+                    return
+
+                await bar(1)
+
+                data = await load_data_for_ai(db, req)
+                await bar(1)
+
+                pipeline = (
+                    genai.generator.chat([{"role": "system", "content": ""}])
+                    .then(validate_playbook_callback(data.playbook_map))
+                    .watch(log_message)
+                )
+                run = genai.kerberoasting.bind(pipeline)
+
+                results = await run(
+                    additional_prompt=req.additional_prompt,
+                    kerberoastable_users=[dict_to_string(user) for user in kerberoastable_users],
+                    implants_information=data.implants_information,
+                    proxies=data.proxies,
+                    executed_playbooks_list=data.playbooks,
+                    playbook_template_list=data.playbook_templates,
+                    previous_suggestions=data.previous_suggestions,
+                    socks_servers=data.socks_servers,
+                    credentials=data.credentials,
+                    situational_awareness=data.situational_awareness,
+                )
+
+                for result in results.actions or []:
+                    await save_result(db, result, None)
+                await bar(1)

@@ -17,6 +17,7 @@
 import { defineStore } from 'pinia';
 import { C2Implant } from 'src/models';
 import { api } from 'boot/axios';
+import { debounce } from 'quasar';
 
 export const useMythicImplantStore = defineStore('mythic_implant', {
   state: () => ({
@@ -61,12 +62,16 @@ export const useMythicImplantStore = defineStore('mythic_implant', {
       }
       return []
     },
-    async ReLoadAliveImplants() {
-        api
-        .get('/c2/implants/', {params: {alive_only: true}})
+    // Debounced version of ReLoadAliveImplants
+    debouncedReLoadAliveImplants: debounce(async function (this: ReturnType<typeof useMythicImplantStore>) {
+      api
+        .get('/c2/implants/', { params: { alive_only: true } })
         .then((response) => {
           this.aliveImplants = response.data.items;
         });
+    }, 1000, true), // Adjust the debounce delay (in milliseconds) as needed
+    ReLoadAliveImplants() {
+      this.debouncedReLoadAliveImplants();
     },
   }
 });

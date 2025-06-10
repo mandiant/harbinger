@@ -22,8 +22,11 @@ from harbinger.database import models
 
 from harbinger.graph.database import get_async_neo4j_session_context
 from harbinger.graph import crud, schemas
+from neo4j.exceptions import ServiceUnavailable
 from inspect import getdoc
+import logging
 
+logger = logging.getLogger('uvicorn.error')
 
 settings = get_settings()
 
@@ -39,14 +42,20 @@ async def read_graph_users(
 ):
     if size == 0:
         size = sys.maxsize
-    async with get_async_neo4j_session_context() as session:
-        user_count = await crud.count_users(session, search=search)
-        users = await crud.get_users(
-            session, search, skip=(page - 1) * size, limit=size
+    try:
+        async with get_async_neo4j_session_context() as session:
+            user_count = await crud.count_users(session, search=search)
+            users = await crud.get_users(
+                session, search, skip=(page - 1) * size, limit=size
+            )
+        return dict(
+            items=users, total=user_count, page=page, size=size, pages=user_count / size
         )
-    return dict(
-        items=users, total=user_count, page=page, size=size, pages=user_count / size
-    )
+    except ServiceUnavailable:
+        logger.warning("Unable to connect to Neo4j")
+        return dict(
+            items=[], total=0, page=0, size=0, pages=0
+        )
 
 
 @router.get("/groups/", response_model=schemas.GraphGroups, tags=["graph"])
@@ -56,20 +65,26 @@ async def read_graph_groups(
     search: str = "",
     user: models.User = Depends(current_active_user),
 ):
-    if size == 0:
-        size = sys.maxsize
-    async with get_async_neo4j_session_context() as session:
-        groups_count = await crud.count_groups(session, search=search)
-        groups = await crud.get_groups(
-            session, search, skip=(page - 1) * size, limit=size
+    try:
+        if size == 0:
+            size = sys.maxsize
+        async with get_async_neo4j_session_context() as session:
+            groups_count = await crud.count_groups(session, search=search)
+            groups = await crud.get_groups(
+                session, search, skip=(page - 1) * size, limit=size
+            )
+        return dict(
+            items=groups,
+            total=groups_count,
+            page=page,
+            size=size,
+            pages=groups_count / size,
         )
-    return dict(
-        items=groups,
-        total=groups_count,
-        page=page,
-        size=size,
-        pages=groups_count / size,
-    )
+    except ServiceUnavailable:
+        logger.warning("Unable to connect to Neo4j")
+        return dict(
+            items=[], total=0, page=0, size=0, pages=0
+        )
 
 
 @router.get("/computers/", response_model=schemas.GraphComputers, tags=["graph"])
@@ -81,18 +96,24 @@ async def read_graph_computers(
 ):
     if size == 0:
         size = sys.maxsize
-    async with get_async_neo4j_session_context() as session:
-        computer_count = await crud.count_computers(session, search=search)
-        computers = await crud.get_computers(
-            session, search, skip=(page - 1) * size, limit=size
+    try:
+        async with get_async_neo4j_session_context() as session:
+            computer_count = await crud.count_computers(session, search=search)
+            computers = await crud.get_computers(
+                session, search, skip=(page - 1) * size, limit=size
+            )
+        return dict(
+            items=computers,
+            total=computer_count,
+            page=page,
+            size=size,
+            pages=computer_count / size,
         )
-    return dict(
-        items=computers,
-        total=computer_count,
-        page=page,
-        size=size,
-        pages=computer_count / size,
-    )
+    except ServiceUnavailable:
+        logger.warning("Unable to connect to Neo4j")
+        return dict(
+            items=[], total=0, page=0, size=0, pages=0
+        )
 
 
 @router.get("/domain_controllers/", response_model=schemas.GraphComputers, tags=["graph"])
@@ -104,18 +125,24 @@ async def read_domain_controllers(
 ):
     if size == 0:
         size = sys.maxsize
-    async with get_async_neo4j_session_context() as session:
-        computer_count = await crud.count_domain_controllers(session, search=search)
-        computers = await crud.get_domain_controllers(
-            session, skip=(page - 1) * size, limit=size, search=search,
+    try:
+        async with get_async_neo4j_session_context() as session:
+            computer_count = await crud.count_domain_controllers(session, search=search)
+            computers = await crud.get_domain_controllers(
+                session, skip=(page - 1) * size, limit=size, search=search,
+            )
+        return dict(
+            items=computers,
+            total=computer_count,
+            page=page,
+            size=size,
+            pages=computer_count / size,
         )
-    return dict(
-        items=computers,
-        total=computer_count,
-        page=page,
-        size=size,
-        pages=computer_count / size,
-    )
+    except ServiceUnavailable:
+        logger.warning("Unable to connect to Neo4j")
+        return dict(
+            items=[], total=0, page=0, size=0, pages=0
+        )
 
 @router.post("/mark_owned", response_model=schemas.MarkResult, tags=["graph"])
 async def mark_owned(
@@ -123,11 +150,14 @@ async def mark_owned(
     user: models.User = Depends(current_active_user),
 ):
     count = 0
-    async with get_async_neo4j_session_context() as session:
-        for name in owned.names:
-            if await crud.mark_owned(session, name):
-                count += 1
-
+    try:
+        async with get_async_neo4j_session_context() as session:
+            for name in owned.names:
+                if await crud.mark_owned(session, name):
+                    count += 1
+    except ServiceUnavailable:
+        logger.warning("Unable to connect to Neo4j")
+        pass
     return dict(count=count)
 
 
@@ -137,11 +167,14 @@ async def unmark_owned(
     user: models.User = Depends(current_active_user),
 ):
     count = 0
-    async with get_async_neo4j_session_context() as session:
-        for name in owned.names:
-            if await crud.unmark_owned(session, name):
-                count += 1
-
+    try:
+        async with get_async_neo4j_session_context() as session:
+            for name in owned.names:
+                if await crud.unmark_owned(session, name):
+                    count += 1
+    except ServiceUnavailable:
+        logger.warning("Unable to connect to Neo4j")
+        pass
     return dict(count=count)
 
 
@@ -151,11 +184,14 @@ async def mark_high_value(
     user: models.User = Depends(current_active_user),
 ):
     count = 0
-    async with get_async_neo4j_session_context() as session:
-        for name in high_value.names:
-            if await crud.mark_high_value(session, name):
-                count += 1
-
+    try:
+        async with get_async_neo4j_session_context() as session:
+            for name in high_value.names:
+                if await crud.mark_high_value(session, name):
+                    count += 1
+    except ServiceUnavailable:
+        logger.warning("Unable to connect to Neo4j")
+        pass
     return dict(count=count)
 
 
@@ -165,11 +201,14 @@ async def unmark_high_value(
     user: models.User = Depends(current_active_user),
 ):
     count = 0
-    async with get_async_neo4j_session_context() as session:
-        for name in high_value.names:
-            if await crud.unmark_high_value(session, name):
-                count += 1
-
+    try:
+        async with get_async_neo4j_session_context() as session:
+            for name in high_value.names:
+                if await crud.unmark_high_value(session, name):
+                    count += 1
+    except ServiceUnavailable:
+        logger.warning("Unable to connect to Neo4j")
+        pass
     return dict(count=count)
 
 
@@ -177,20 +216,22 @@ async def unmark_high_value(
 async def get_stats(
     user: models.User = Depends(current_active_user),
 ):
-    async with get_async_neo4j_session_context() as session:
-        result = await crud.get_object_stats(session)
-
-    return result
+    try:
+        return await crud.get_object_stats()
+    except ServiceUnavailable:
+        logger.warning("Unable to connect to Neo4j")
+        return {"items": []}
 
 
 @router.get("/owned_stats/", response_model=schemas.StatisticsItems, tags=["graph"])
 async def get_owned_stats(
     user: models.User = Depends(current_active_user),
 ):
-    async with get_async_neo4j_session_context() as session:
-        result = await crud.get_owned_stats(session)
-    return result
-
+    try:
+        return await crud.get_owned_stats()
+    except ServiceUnavailable:
+        logger.warning("Unable to connect to Neo4j")
+        return {"items": []}
 
 @router.get(
     "/pre-defined-queries/", response_model=schemas.PreDefinedQueries, tags=["graph"]

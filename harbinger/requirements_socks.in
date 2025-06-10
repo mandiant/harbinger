@@ -1,3 +1,4 @@
+smbls
 impacket
 bloodhound
 certipy-ad
@@ -16,3 +17,7 @@ kerbrute
 sprayhound
 oscrypto @ https://github.com/wbond/oscrypto/archive/1547f535001ba568b239b8797465536759c742a3.zip
 minikerberos
+pysnaffler
+sccmhunter @ https://github.com/garrettfoster13/sccmhunter/archive/9e43f6483408cc69e067f9fe14dfb69bca8a916b.zip
+webclientservicescanner @ https://github.com/Hackndo/WebclientServiceScanner/archive/f0a73e67a35402d1dc7d342ed8889d129c96a48c.zip
+coercer

@@ -14,11 +14,14 @@
 
 from enum import Enum
 from typing import Dict, List, Optional, Type
+from harbinger.database.cache import redis_cache_neo4j_cm_fixed_key
 from neo4j import AsyncSession, graph, Query as Neo4jQuery
-from harbinger.database import models
+from harbinger.database import models, schemas
 from dataclasses import dataclass
 from neo4j.exceptions import Neo4jError
 import functools
+from harbinger.graph.database import get_async_neo4j_session_context
+
 
 
 def exception_handler(default):
@@ -237,14 +240,19 @@ stats_query = "MATCH (o:{object_type}) RETURN count(o) AS count"
 user_query = "MATCH (o:User) WHERE NOT o.name ENDS WITH '$' RETURN count(o) as count"
 
 
-@exception_handler(default=dict(items=[]))
+@exception_handler(default=schemas.StatisticsItems(items=[]))
+@redis_cache_neo4j_cm_fixed_key(
+    cache_key="neo4j_object_stats",
+    session_factory=get_async_neo4j_session_context,
+    schema=schemas.StatisticsItems,
+)
 async def get_object_stats(session: AsyncSession) -> dict:
     results = []
     for entry in GraphObjects:
         query = stats_query.format(object_type=entry.value)
         if entry == GraphObjects.user:
             query = user_query
-        result = await session.run(query)
+        result = await session.run(query) # type: ignore
         async for graph_entry in result:
             results.append(dict(key=entry.name, value=graph_entry.get("count")))
     return dict(items=results)
@@ -254,7 +262,12 @@ domains_query = "MATCH (d:Domain) RETURN d.name as name"
 total_query = "MATCH (n:Computer) WHERE n.domain = $domain and n.operatingsystem CONTAINS 'Server' and n.enabled = true return count(n) as count"
 admin_servers_query = "MATCH (u:Base {owned: true}) WHERE u.domain = $domain CALL apoc.path.subgraphNodes(u, {relationshipFilter:'>AdminTo|>AllowedToDelegate|>MemberOf|>ReadLAPSPassword', minLevel: 1, labelFilter:'-OU|-GPO|/User|/Computer'}) YIELD node as node UNWIND node as n WITH n WHERE n.enabled = true and 'Computer' in LABELS(n) and n.operatingsystem contains 'Server' and n.domain = $domain return count(n) as count"
 
-@exception_handler(default=dict(items=[]))
+@exception_handler(default=schemas.StatisticsItems(items=[]))
+@redis_cache_neo4j_cm_fixed_key(
+    cache_key="owned_stats",
+    session_factory=get_async_neo4j_session_context,
+    schema=schemas.StatisticsItems,
+)
 async def get_owned_stats(session: AsyncSession) -> dict:
     results = []
     domains = []
@@ -556,4 +569,27 @@ async def get_group_membership_for_name(session: AsyncSession, name: str) -> dic
                 )
             )
     result = dict(nodes=list(nodes.values()), relationships=relationsips)
+    return result
+
+
+kerberoastable_query = """MATCH (n:User)
+WHERE n.hasspn=true
+OPTIONAL MATCH (n)-[:MemberOf]->(g:Group)
+WITH collect(DISTINCT g.name) as groups, n as n
+CALL apoc.cypher.run("MATCH (u:User {objectid: '"+n.objectid+"'}) CALL apoc.path.subgraphNodes(u, {relationshipFilter: '>Enroll|>AddMember|>AdminTo|>AllExtendedRights|>AllowedToDelegate|>ForceChangePassword|>GenericAll|>GenericWrite|>GpLink|>MemberOf|>Owns|>ReadLAPSPassword|>WriteDacl|>WriteOwner|>Contains|>HasSession', minLevel: 1}) YIELD node AS n1 RETURN DISTINCT n1",null) yield value
+RETURN n,groups,count(value) as n2 ORDER by n2 DESC
+"""
+
+@exception_handler(default=list())
+async def get_kerberoastable_groups(session: AsyncSession) -> list:
+    result = []
+
+    resp = await session.run(kerberoastable_query)  # type: ignore
+    async for graph_entry in resp:
+        entry = {
+            'node': graph_entry['n'],
+            'groups': graph_entry['groups'],
+            'privileges': graph_entry['n2'],
+        }
+        result.append(entry)
     return result

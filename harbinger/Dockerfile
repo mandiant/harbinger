@@ -62,6 +62,12 @@ RUN python -m venv /opt/tools/bofhound_venv && /opt/tools/bofhound_venv/bin/pip 
 
 RUN wget https://github.com/asciinema/agg/releases/download/v1.4.3/agg-x86_64-unknown-linux-gnu -O /usr/bin/agg && chmod +x /usr/bin/agg
 
+RUN wget -qO adexplorersnapshot.tar.gz https://github.com/t94j0/adexplorersnapshot-rs/releases/download/v0.0.2/adexplorersnapshot-v0.0.2-x86_64-unknown-linux-gnu.tar.gz && \
+    echo "9b818dc869f9353bde9a19ad1d5c19877236ec33c915d961062d60e3cd395d65  adexplorersnapshot.tar.gz" | sha256sum -c - && \
+    tar xvf adexplorersnapshot.tar.gz -C /usr/local/bin --strip-components=1 adexplorersnapshot-v0.0.2-x86_64-unknown-linux-gnu/convertsnapshot && \
+    chmod +x /usr/local/bin/convertsnapshot && \
+    rm adexplorersnapshot.tar.gz
+
 COPY --from=trufflehog /usr/bin/trufflehog /opt/tools/trufflehog
 
 COPY --from=noseyparker /usr/local/bin/noseyparker /opt/tools/noseyparker

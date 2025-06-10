@@ -48,7 +48,7 @@ class Settings(BaseSettings):
 
     noseyparker: str = "/opt/tools/noseyparker"
 
-    gemini_model: str = "gemini/gemini-1.5-pro"
+    gemini_model: str = "gemini/gemini-2.5-flash-preview-05-20"
 
     gemini_enabled: bool = False
 

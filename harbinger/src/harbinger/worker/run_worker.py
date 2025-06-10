@@ -59,6 +59,7 @@ async def main():
             workflows.CreateFileSuggestion,
             workflows.CreateChecklist,
             workflows.PlaybookDetectionRisk,
+            workflows.PrivEscSuggestions,
         ],
         activities=[
             activities.get_playbook,
@@ -99,6 +100,7 @@ async def main():
             activities.create_dir_ls_suggestion,
             activities.create_share_list_suggestion,
             activities.create_domain_checklist,
+            activities.kerberoasting_suggestions,
             activities.c2_job_detection_risk,
             activities.get_c2_task_output,
             activities.create_share_root_list_suggestion,

@@ -52,7 +52,7 @@ const $q = useQuasar();
 const loading = ref(false);
 const $router = useRouter();
 
-const choices = ref(['c2_implant', 'domain', 'files']);
+const choices = ref(['c2_implant', 'domain', 'files', 'privilege_escalation']);
 const type = ref('domain')
 
 interface Form {

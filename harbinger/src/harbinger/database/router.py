@@ -36,6 +36,7 @@ from harbinger.worker.workflows import (
     CreateFileSuggestion,
     CreateChecklist,
     PlaybookDetectionRisk,
+    PrivEscSuggestions,
 )
 from harbinger.connectors.socks.workflows import RunSocks, RunWindowsSocks
 from harbinger.connectors.workflows import C2ServerCommand
@@ -75,6 +76,15 @@ from harbinger.worker.client import get_client
 from harbinger.config import constants
 from . import crud, models, schemas, progress_bar
 from temporalio import exceptions
+import logging
+from paramiko import SSHClient, AutoAddPolicy, AuthenticationException, SSHException, RSAKey
+import re
+from typing import AsyncGenerator
+
+# Basic logging configuration
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 settings = get_settings()
 
@@ -94,7 +104,7 @@ def get_db(request: Request) -> AsyncSession:
 async def list_domains(
     filters: filters.DomainFilter = FilterDepends(filters.DomainFilter),
     db: AsyncSession = Depends(get_db),
-    user: models.User = Depends(current_active_user)
+    user: models.User = Depends(current_active_user),
 ):
     return await crud.get_domains_paged(db, filters)
 
@@ -120,10 +130,9 @@ async def domains_filters(
 )
 async def get_domain(
     id: UUID4,
-    db: AsyncSession = Depends(get_db),
     user: models.User = Depends(current_active_user),
 ):
-    return await crud.get_domain(db, id)
+    return await crud.get_domain(id)
 
 
 @router.post("/domains/", response_model=schemas.Domain, tags=["crud", "domains"])
@@ -132,8 +141,7 @@ async def create_domain(
     db: AsyncSession = Depends(get_db),
     user: models.User = Depends(current_active_user),
 ):
-    _, resp = await crud.create_domain(db, domains)
-    return resp
+    return await crud.create_domain(db, domains)
 
 
 @router.put(
@@ -198,10 +206,9 @@ async def read_kerberos(
 )
 async def get_kerberos(
     kerberos_id: UUID4,
-    db: AsyncSession = Depends(get_db),
     user: models.User = Depends(current_active_user),
 ):
-    return await crud.get_kerberos(db, kerberos_id)
+    return await crud.get_kerberos(kerberos_id)
 
 
 @router.get(
@@ -240,10 +247,9 @@ async def credentials_filters(
 )
 async def read_credential(
     credential_id: str,
-    db: AsyncSession = Depends(get_db),
     user: models.User = Depends(current_active_user),
 ):
-    return await crud.get_credential(db, credential_id)
+    return await crud.get_credential(credential_id)
 
 
 @router.post(
@@ -293,10 +299,9 @@ async def proxys_filters(
 )
 async def read_proxy(
     proxy_id: str,
-    db: AsyncSession = Depends(get_db),
     user: models.User = Depends(current_active_user),
 ):
-    return await crud.get_proxy(db, proxy_id)
+    return await crud.get_proxy(proxy_id)
 
 
 @router.post("/proxies/", response_model=schemas.Proxy, tags=["proxies", "crud"])
@@ -351,10 +356,9 @@ async def update_proxy_job(
 )
 async def get_proxy_job(
     job_id: str,
-    db: AsyncSession = Depends(get_db),
     user: models.User = Depends(current_active_user),
 ):
-    return await crud.get_proxy_job(db, job_id=job_id)
+    return await crud.get_proxy_job(job_id=job_id)
 
 
 @router.post(
@@ -364,11 +368,9 @@ async def get_proxy_job(
 )
 async def kill_proxy_job(
     job_id: str,
-    db: AsyncSession = Depends(get_db),
     user: models.User = Depends(current_active_user),
 ):
-    proxy_job = await crud.get_proxy_job(db, job_id=job_id)
-    return proxy_job
+    return await crud.get_proxy_job(job_id=job_id)
 
 
 @router.post(
@@ -379,10 +381,9 @@ async def kill_proxy_job(
 async def start_proxy_job(
     job_id: str,
     response: Response,
-    db: AsyncSession = Depends(get_db),
     user: models.User = Depends(current_active_user),
 ):
-    proxy_job = await crud.get_proxy_job(db, job_id=job_id)
+    proxy_job = await crud.get_proxy_job(job_id=job_id)
     if proxy_job and proxy_job.status != schemas.Status.created:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return dict(error="This job cannot be started, the status is not created.")
@@ -480,7 +481,6 @@ async def websocket_job_output(job_id: str, websocket: WebSocket):
                         output_pb2,
                         preserving_proto_field_name=True,
                         indent=0,
-                        including_default_value_fields=True,
                     )
                 )
 
@@ -554,21 +554,20 @@ async def export_files(
     "/files/{file_id}", response_model=Optional[schemas.File], tags=["files", "crud"]
 )
 async def read_file(
-    file_id: str,
-    db: AsyncSession = Depends(get_db),
+    file_id: UUID4,
     user: models.User = Depends(current_active_user),
 ):
-    return await crud.get_file(db, file_id=file_id)
+    return await crud.get_file(file_id=file_id)
 
 
 @router.get("/files/{file_id}/download", tags=["files", "crud"])
 async def download_file_endpoint(
-    file_id: str,
+    file_id: UUID4,
     response: Response,
     db: AsyncSession = Depends(get_db),
     user: models.User = Depends(current_active_user),
 ):
-    file = await crud.get_file(db, file_id=file_id)
+    file = await crud.get_file(file_id=file_id)
     if file:
         data = await download_file(file.path, file.bucket)
         return Response(
@@ -592,8 +591,7 @@ async def update_file(
     user: models.User = Depends(current_active_user),
 ):
     await crud.update_file_type(db, file_id, file.filetype)
-    file = await crud.get_file(db, file_id)
-    return file
+    return await crud.get_file(file_id)
 
 
 @router.post(
@@ -603,10 +601,9 @@ async def update_file(
 )
 async def parse_file(
     file_id: str,
-    db: AsyncSession = Depends(get_db),
     user: models.User = Depends(current_active_user),
 ):
-    file = await crud.get_file(db, file_id)
+    file = await crud.get_file(file_id)
     client = await get_client()
     if file:
         client = await get_client()
@@ -628,10 +625,9 @@ async def parse_file(
 async def file_content(
     file_id: str,
     response: Response,
-    db: AsyncSession = Depends(get_db),
     user: models.User = Depends(current_active_user),
 ):
-    file = await crud.get_file(db, file_id=file_id)
+    file = await crud.get_file(file_id=file_id)
     if file:
         data = await download_file(file.path, file.bucket)
         return schemas.FileContent(text=data.decode("utf-8", "ignore"))
@@ -678,7 +674,7 @@ async def get_chain(
     db: AsyncSession = Depends(get_db),
     user: models.User = Depends(current_active_user),
 ):
-    chain = await crud.get_playbook(db, playbook_id)
+    chain = await crud.get_playbook(playbook_id)
     if chain:
         chain.graph, chain.correct = await create_graph(playbook_id=playbook_id, db=db)
         return chain
@@ -697,10 +693,10 @@ async def create_graph(
     for step in steps:
         label = f"({step.label})"
         if step.proxy_job_id:
-            if job := await crud.get_proxy_job(db, step.proxy_job_id):
+            if job := await crud.get_proxy_job(step.proxy_job_id):
                 label = f"({step.label}: {job.command})"
         elif step.c2_job_id:
-            if job := await crud.get_c2_job(db, step.c2_job_id):
+            if job := await crud.get_c2_job(step.c2_job_id):
                 label = f"({step.label}:{job.command})"
         if step.depends_on:
             depends_on = step.depends_on.split(",")
@@ -764,10 +760,9 @@ async def update_chain(
 async def start_chain(
     playbook_id: UUID4,
     response: Response,
-    db: AsyncSession = Depends(get_db),
     user: models.User = Depends(current_active_user),
 ):
-    chain = await crud.get_playbook(db, playbook_id)
+    chain = await crud.get_playbook(playbook_id)
     if chain and chain.status != schemas.Status.created:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return dict(error="This chain cannot be started, the status is not created.")
@@ -794,7 +789,7 @@ async def clone_chain(
     db: AsyncSession = Depends(get_db),
     user: models.User = Depends(current_active_user),
 ):
-    chain = await crud.get_playbook(db, playbook_id)
+    chain = await crud.get_playbook(playbook_id)
     if not chain:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return dict(error="Chain could not be found.")
@@ -837,7 +832,7 @@ async def create_template_from_chain(
     db: AsyncSession = Depends(get_db),
     user: models.User = Depends(current_active_user),
 ):
-    chain = await crud.get_playbook(db, playbook_id)
+    chain = await crud.get_playbook(playbook_id)
     if not chain:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return dict(error="Chain could not be found.")
@@ -854,7 +849,7 @@ async def create_template_from_chain(
         step_dict = collections.OrderedDict()
         if step.c2_job_id:
             add_c2_implant = True
-            c2_job = await crud.get_c2_job(db, step.c2_job_id)
+            c2_job = await crud.get_c2_job(step.c2_job_id)
             if c2_job:
                 step_dict["type"] = schemas.C2Type.c2.value
                 step_dict["name"] = c2_job.command
@@ -886,7 +881,7 @@ async def create_template_from_chain(
 
         elif step.proxy_job_id:
             add_proxy_server = True
-            proxy_job = await crud.get_proxy_job(db, step.proxy_job_id)
+            proxy_job = await crud.get_proxy_job(step.proxy_job_id)
             if proxy_job:
                 step_dict["type"] = schemas.C2Type.proxy.value
                 step_dict["name"] = "custom"
@@ -962,7 +957,6 @@ async def websocket_chain_output(playbook_id: str, websocket: WebSocket):
                             msg_pb2,
                             preserving_proto_field_name=True,
                             indent=0,
-                            including_default_value_fields=True,
                         )
                     )
 
@@ -974,6 +968,225 @@ async def websocket_chain_output(playbook_id: str, websocket: WebSocket):
             task.cancel()
         finally:
             await pubsub.unsubscribe()
+
+
+def parse_tmate_ssh_username(output: str, readonly: bool = False) -> str:
+    """
+    Parses the tmate SSH connection string from the job output and returns just the username.
+    Returns an empty string if the username cannot be found.
+    """
+    # Regex to capture the username part: ssh -p<port> <username>@...
+    username_pattern = r"ssh -p\d+\s+([a-zA-Z0-9_-]+)@"
+
+    if readonly:
+        match = re.search(r"ssh session read only: " + username_pattern, output)
+    else:
+        match = re.search(r"ssh session: " + username_pattern, output)
+
+    if match:
+        return match.group(1)  # Return the captured username
+    return ""
+
+
+async def get_db_ws() -> AsyncGenerator[AsyncSession, None]:
+    async with SessionLocal() as session:
+        yield session
+
+
+async def get_current_active_user(
+    websocket: WebSocket,
+):
+    """
+    Authenticates the user using the fastapiusersauth cookie.
+    This is a simplified example; a real-world scenario might involve
+    more robust token validation and user retrieval.
+    """
+    try:
+        cookie = websocket._cookies.get("fastapiusersauth", None)
+        if not cookie:
+            logging.warning("Authentication cookie 'fastapiusersauth' not found.")
+            await websocket.close(code=1008, reason="Authentication required")
+            return
+        strat = get_redis_strategy()
+        async with SessionLocal() as session:
+            db = await anext(get_user_db(session))
+            manager = await anext(get_user_manager(db))
+            token = await strat.read_token(cookie, manager)
+
+        if not token:
+            logging.warning("Invalid or expired authentication token.")
+            await websocket.close(code=1008, reason="Authentication failed")
+            return None
+
+        logging.info(f"User authenticated successfully for WebSocket.")
+        return token
+
+    except Exception as e:
+        logging.error(f"Authentication error: {e}")
+        await websocket.close(code=1011, reason=f"Authentication error: {e}")
+        return None
+    
+dummy_key = RSAKey.generate(2048)
+async def handle_ssh_websocket(
+    websocket: WebSocket,
+    username: str,
+):
+    """
+    Handles the SSH websocket communication.
+    """
+
+    logging.info(f"Attempting SSH connection to {username}@tmate:2200 for user")
+
+    ssh_client = None
+    channel = None
+
+    try:
+        await websocket.accept()  # Accept connection after successful authentication and details retrieval
+
+        ssh_client = SSHClient()
+        ssh_client.load_system_host_keys()
+        ssh_client.set_missing_host_key_policy(AutoAddPolicy())
+
+        try:
+
+            dummy_key_str = io.StringIO()
+            dummy_key.write_private_key(dummy_key_str)
+            dummy_key_str.seek(0)
+            pkey = RSAKey.from_private_key(dummy_key_str)
+            logging.info("Generated dummy SSH key for tmate connection attempt.")
+        except Exception as e:
+            logging.error(f"Failed to generate dummy SSH key for tmate connection: {e}")
+            pkey = None # Proceed without it if generation fails, though connection might fail
+
+        ssh_client.connect(
+            hostname="tmate",
+            port=2200,
+            username=username,
+            pkey=pkey, # Pass the dummy key to force publickey auth negotiation
+            password=None,
+            timeout=10,
+            compress=True,
+            allow_agent=False,  # Disable looking for SSH agent keys
+            look_for_keys=False,  # Disable looking for ~/.ssh/id_rsa, etc.
+        )
+        logging.info(f"SSH connection established to for {username}.")
+
+        channel = ssh_client.invoke_shell(term="xterm", width=80, height=24)
+        channel.setblocking(0)  # Make channel non-blocking
+
+        async def ssh_to_websocket():
+            while True:
+                try:
+                    if channel.recv_ready():
+                        data = channel.recv(4096).decode("utf-8", errors="ignore")
+                        if data:
+                            await websocket.send_text(data)
+                    else:
+                        await asyncio.sleep(0.01)  # Small delay to prevent busy-waiting
+                except Exception as e:
+                    logging.error(f"Error in ssh_to_websocket for user {username}: {e}")
+                    break
+            logging.info(f"ssh_to_websocket task finished for user {username}.")
+
+        async def websocket_to_ssh():
+            while True:
+                try:
+                    message = await websocket.receive_text()
+                    if message:
+                        if message.startswith("RESIZE:"):
+                            try:
+                                _, cols_str, rows_str = message.split(":")
+                                cols = int(cols_str)
+                                rows = int(rows_str)
+                                channel.resize_pty(width=cols, height=rows)
+                                logging.info(
+                                    f"Resized PTY to cols={cols}, rows={rows} for user {username}"
+                                )
+                            except ValueError as ve:
+                                logging.warning(
+                                    f"Failed to parse resize message: {message} - {ve}"
+                                )
+                        else:
+                            channel.send(message.encode("utf-8"))
+                except WebSocketDisconnect:
+                    logging.info(
+                        f"WebSocket disconnected from client for user {username}."
+                    )
+                    break
+                except Exception as e:
+                    logging.error(f"Error in websocket_to_ssh for user {username}: {e}")
+                    break
+            logging.info(f"websocket_to_ssh task finished for user {username}.")
+
+        await asyncio.gather(ssh_to_websocket(), websocket_to_ssh())
+
+    except AuthenticationException:
+        logging.error(
+            f"SSH authentication failed for user {username} to {username}@tmate:2200."
+        )
+        await websocket.send_text(
+            "SSH authentication failed. Please check the job output details."
+        )
+    except SSHException as e:
+        logging.error(f"SSH connection or channel error for user {username}: {e}")
+        try:
+            await websocket.send_text(f"SSH error: {e}")
+        except RuntimeError:
+            pass  # WebSocket might already be closed
+    except Exception as e:
+        logging.error(
+            f"Unexpected error in SSH connection handler for user {username}: {e}"
+        )
+        try:
+            await websocket.send_text(f"An unexpected error occurred: {e}")
+        except RuntimeError:
+            pass  # WebSocket might already be closed
+    finally:
+        if channel:
+            channel.close()
+            logging.info(f"SSH channel closed for user {username}.")
+        if ssh_client:
+            ssh_client.close()
+            logging.info(f"SSH client closed for user {username}.")
+        logging.info(f"WebSocket connection handler finished for user {username}.")
+
+
+@router.websocket("/ws/ssh/readonly/{job_id}")
+async def websocket_ssh_readonly_endpoint(
+    websocket: WebSocket,
+    job_id: str,
+):
+    user = await get_current_active_user(websocket)
+    if not user:
+        return  # get_current_active_user already closed the websocket
+    logging.info(
+        f"Attempting read-only SSH connection for job_id: {job_id} and user: {user.email}"
+    )
+    async with SessionLocal() as db:
+        job_output = "\n".join(
+            [entry.output for entry in await crud.get_proxy_job_output(db, job_id)]
+        )
+    username = parse_tmate_ssh_username(job_output, readonly=True)
+    await handle_ssh_websocket(websocket, username)
+
+
+@router.websocket("/ws/ssh/interactive/{job_id}")
+async def websocket_ssh_interactive_endpoint(
+    websocket: WebSocket,
+    job_id: str,
+):
+    user = await get_current_active_user(websocket)
+    if not user:
+        return  # get_current_active_user already closed the websocket
+    logging.info(
+        f"Attempting read-only SSH connection for job_id: {job_id} and user: {user.email}"
+    )
+    async with SessionLocal() as db:
+        job_output = "\n".join(
+            [entry.output for entry in await crud.get_proxy_job_output(db, job_id)]
+        )
+    username = parse_tmate_ssh_username(job_output, readonly=False)
+    await handle_ssh_websocket(websocket, username)
 
 
 @router.get("/steps/", response_model=Page[schemas.ChainStep], tags=["chains", "crud"])
@@ -1094,6 +1307,35 @@ async def update_step_modifier(
 
 
 @router.get(
+    "/c2_servers/filters",
+    response_model=list[schemas.Filter],
+    tags=["c2_servers", "crud"],
+)
+async def c2_servers_filters(
+    filters: filters.C2ServerFilter = FilterDepends(filters.C2ServerFilter),
+    db: AsyncSession = Depends(get_db),
+    user: models.User = Depends(current_active_user),
+):
+    return await crud.get_c2_servers_filters(
+        db,
+        filters,
+    )
+
+
+@router.get(
+    "/c2_servers/{id}",
+    response_model=Optional[schemas.C2Server],
+    tags=["crud", "c2_servers"],
+)
+async def get_c2_server(
+    id: UUID4,
+    user: models.User = Depends(current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    return await crud.get_c2_server(db, id)
+
+
+@router.get(
     "/c2/servers/",
     response_model=Page[schemas.C2Server],
     tags=["c2", "implants", "crud"],
@@ -1107,7 +1349,7 @@ async def read_c2_servers(
 
 @router.post(
     "/c2/servers/",
-    response_model=schemas.C2Server,
+    response_model=schemas.C2Server | None,
     tags=["c2", "implants", "crud"],
 )
 async def create_c2_server(
@@ -1116,6 +1358,8 @@ async def create_c2_server(
     user: models.User = Depends(current_active_user),
 ):
     server = await crud.create_c2_server(db, c2_server=server)
+    if not server:
+        return None
     command = schemas.C2ServerCommand(
         command=schemas.Command.create, id=server.id, c2_server=server
     )
@@ -1134,10 +1378,8 @@ async def create_c2_server(
     response_model=schemas.StatisticsItems,
     tags=["crud", "statistics"],
 )
-async def get_c2_server_statistics(
-    db: AsyncSession = Depends(get_db), user: models.User = Depends(current_active_user)
-):
-    return await crud.get_c2_server_statistics(db)
+async def get_c2_server_statistics(user: models.User = Depends(current_active_user)):
+    return await crud.get_c2_server_statistics()
 
 
 @router.post(
@@ -1214,10 +1456,9 @@ async def c2_implant_filters(
 )
 async def read_c2_implant(
     implant_id: str,
-    db: AsyncSession = Depends(get_db),
     user: models.User = Depends(current_active_user),
 ):
-    return await crud.get_c2_implant(db, c2_implant_id=implant_id)
+    return await crud.get_c2_implant(c2_implant_id=implant_id)
 
 
 @router.get(
@@ -1253,10 +1494,9 @@ async def c2_task_filters(
 )
 async def read_c2_task(
     task_id: str,
-    db: AsyncSession = Depends(get_db),
     user: models.User = Depends(current_active_user),
 ):
-    return await crud.get_c2_task(db, c2_task_id=task_id)
+    return await crud.get_c2_task(c2_task_id=task_id)
 
 
 @router.get(
@@ -1324,10 +1564,9 @@ async def c2_output_filters(
 )
 async def get_c2_output(
     id: UUID4,
-    db: AsyncSession = Depends(get_db),
     user: models.User = Depends(current_active_user),
 ):
-    return await crud.get_c2_output(db, id)
+    return await crud.get_c2_output(id)
 
 
 @router.get(
@@ -1394,7 +1633,7 @@ async def update_c2_job(
             f"Invalid arguments: {e}", status_code=status.HTTP_422_UNPROCESSABLE_ENTITY
         )
 
-    return await crud.update_c2_job(db=db, c2_job_id=job_id, job=job)
+    return await crud.update_c2_job(db, c2_job_id=job_id, job=job)
 
 
 @router.get(
@@ -1407,7 +1646,7 @@ async def get_c2_job(
     db: AsyncSession = Depends(get_db),
     user: models.User = Depends(current_active_user),
 ):
-    return await crud.get_c2_job(db, job_id=job_id)
+    return await crud.get_c2_job(job_id=job_id)
 
 
 @router.post(
@@ -1421,7 +1660,7 @@ async def start_c2_job(
     db: AsyncSession = Depends(get_db),
     user: models.User = Depends(current_active_user),
 ):
-    job = await crud.get_c2_job(db=db, job_id=job_id)
+    job = await crud.get_c2_job(job_id=job_id)
     if job and job.status != schemas.Status.created:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return dict(error="This job cannot be started, the status is not created.")
@@ -1434,7 +1673,7 @@ async def start_c2_job(
         task_queue=constants.WORKER_TASK_QUEUE,
     )
 
-    return await crud.get_c2_job(db=db, job_id=job_id)
+    return await crud.get_c2_job(job_id=job_id)
 
 
 @router.post(
@@ -1474,10 +1713,9 @@ async def host_filters(
 @router.get("/hosts/{host_id}", response_model=schemas.Host, tags=["hosts", "crud"])
 async def get_host(
     host_id: str,
-    db: AsyncSession = Depends(get_db),
     user: models.User = Depends(current_active_user),
 ):
-    return await crud.get_host(db, host_id)
+    return await crud.get_host(host_id)
 
 
 @router.put("/hosts/{host_id}", response_model=schemas.Host, tags=["hosts", "crud"])
@@ -1540,17 +1778,16 @@ async def get_process_numbers(
     response_model=schemas.StatisticsItems,
     tags=["crud", "statistics"],
 )
-async def get_job_statistics(
-    db: AsyncSession = Depends(get_db), user: models.User = Depends(current_active_user)
-):
-    return await crud.get_job_statistics(db)
+async def get_job_statistics(user: models.User = Depends(current_active_user)):
+    return await crud.get_job_statistics()
 
 
 @router.websocket("/events")
 async def websocket_events(websocket: WebSocket):
     cookie = websocket._cookies.get("fastapiusersauth", None)
     if not cookie:
-        await websocket.close()
+        logging.warning("Authentication cookie 'fastapiusersauth' not found.")
+        await websocket.close(code=1008, reason="Authentication required")
         return
     strat = get_redis_strategy()
     async with SessionLocal() as session:
@@ -1574,10 +1811,9 @@ async def websocket_events(websocket: WebSocket):
                                 msg,
                                 preserving_proto_field_name=True,
                                 indent=0,
-                                including_default_value_fields=True,
                             )
                         )
-                    except TypeError:
+                    except TypeError as e:
                         pass
 
         task = asyncio.create_task(inner())
@@ -1597,10 +1833,8 @@ async def websocket_events(websocket: WebSocket):
     response_model=schemas.StatisticsItems,
     tags=["crud", "statistics"],
 )
-async def get_implant_statistics(
-    db: AsyncSession = Depends(get_db), user: models.User = Depends(current_active_user)
-):
-    return await crud.get_implant_statistics(db)
+async def get_implant_statistics(user: models.User = Depends(current_active_user)):
+    return await crud.get_implant_statistics()
 
 
 @router.get(
@@ -1797,7 +2031,7 @@ async def update_situational_awareness(
         sa_id=sa_id,
         sa=sa,
     )
-    return crud.get_situational_awareness(db, sa_id=sa_id)
+    return crud.get_situational_awareness(sa_id=sa_id)
 
 
 @router.delete(
@@ -1821,10 +2055,8 @@ async def delete_situational_awareness(
     response_model=schemas.StatisticsItems,
     tags=["crud", "statistics"],
 )
-async def get_sa_statistics(
-    db: AsyncSession = Depends(get_db), user: models.User = Depends(current_active_user)
-):
-    return await crud.get_sa_statistics(db)
+async def get_sa_statistics(user: models.User = Depends(current_active_user)):
+    return await crud.get_sa_statistics()
 
 
 @router.get(
@@ -1860,10 +2092,9 @@ async def shares_filters(
 )
 async def get_share(
     share_id: UUID4,
-    db: AsyncSession = Depends(get_db),
     user: models.User = Depends(current_active_user),
 ):
-    return await crud.get_share(db, share_id)
+    return await crud.get_share(share_id)
 
 
 @router.get(
@@ -1902,10 +2133,9 @@ async def share_files_filters(
 )
 async def get_share_file(
     id: UUID4,
-    db: AsyncSession = Depends(get_db),
     user: models.User = Depends(current_active_user),
 ):
-    return await crud.get_share_file(db, id)
+    return await crud.get_share_file(id)
 
 
 @router.get(
@@ -1913,10 +2143,8 @@ async def get_share_file(
     response_model=schemas.StatisticsItems,
     tags=["crud", "statistics"],
 )
-async def get_share_statistics(
-    db: AsyncSession = Depends(get_db), user: models.User = Depends(current_active_user)
-):
-    return await crud.get_share_statistics(db)
+async def get_share_statistics(user: models.User = Depends(current_active_user)):
+    return await crud.get_share_statistics()
 
 
 @router.get(
@@ -1953,8 +2181,8 @@ async def export_hashes(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/hashes/{hash_id}", response_model=schemas.Hash, tags=["crud", "hashes"])
-async def get_hash(hash_id: UUID4, db: AsyncSession = Depends(get_db)):
-    return await crud.get_hash(db, hash_id)
+async def get_hash(hash_id: UUID4):
+    return await crud.get_hash(hash_id)
 
 
 @router.get(
@@ -1988,10 +2216,9 @@ async def read_parse_results(
 )
 async def get_parse_result(
     parse_id: UUID4,
-    db: AsyncSession = Depends(get_db),
     user: models.User = Depends(current_active_user),
 ):
-    return await crud.get_parse_result(db, parse_id)
+    return await crud.get_parse_result(parse_id)
 
 
 @router.get(
@@ -2030,10 +2257,9 @@ async def highlights_filters(
 )
 async def get_highlight(
     id: UUID4,
-    db: AsyncSession = Depends(get_db),
     user: models.User = Depends(current_active_user),
 ):
-    return await crud.get_highlight(db, id)
+    return await crud.get_highlight(id)
 
 
 add_pagination(router)
@@ -2095,10 +2321,9 @@ async def socks_server_filters(
 )
 async def get_socks_server(
     server_id: UUID4,
-    db: AsyncSession = Depends(get_db),
     user: models.User = Depends(current_active_user),
 ):
-    return await crud.get_socks_server(db, server_id)
+    return await crud.get_socks_server(server_id)
 
 
 @router.post(
@@ -2119,10 +2344,8 @@ async def create_socks_server(
     response_model=schemas.StatisticsItems,
     tags=["crud", "statistics"],
 )
-async def get_server_statistics(
-    db: AsyncSession = Depends(get_db), user: models.User = Depends(current_active_user)
-):
-    return await crud.get_c2_server_statistics(db)
+async def get_server_statistics(user: models.User = Depends(current_active_user)):
+    return await crud.get_c2_server_statistics()
 
 
 @router.get(
@@ -2151,6 +2374,18 @@ async def action_filters(
         filters,
     )
 
+@router.get(
+    "/actions/{id}",
+    response_model=Optional[schemas.Action],
+    tags=["crud", "actions"],
+)
+async def get_action(
+    id: UUID4,
+    db: AsyncSession = Depends(get_db),
+    user: models.User = Depends(current_active_user),
+):
+    return await crud.get_action(db, id)
+
 
 @router.get(
     "/certificate_templates/",
@@ -2161,12 +2396,24 @@ async def get_certificate_templates(
     filters: filters.CertificateTemplateFilter = FilterDepends(
         filters.CertificateTemplateFilter
     ),
-    enrollment_permissions: str = "",
+    enroll_permissions: str = "",
+    owner_permissions: str = "",
+    writeowner_permissions: str = "",
+    fullcontrol_permissions: str = "",
+    writedacl_permissions: str = "",
+    writeproperty_permissions: str = "",
     db: AsyncSession = Depends(get_db),
     user: models.User = Depends(current_active_user),
 ):
     return await crud.get_certificate_templates_paged(
-        db, filters, enrollment_permissions
+        db,
+        filters,
+        enroll_permissions=enroll_permissions,
+        owner_permissions=owner_permissions,
+        writeowner_permissions=writeowner_permissions,
+        fullcontrol_permissions=fullcontrol_permissions,
+        writedacl_permissions=writedacl_permissions,
+        writeproperty_permissions=writeproperty_permissions,
     )
 
 
@@ -2179,12 +2426,24 @@ async def certificate_templates_filters(
     filters: filters.CertificateTemplateFilter = FilterDepends(
         filters.CertificateTemplateFilter
     ),
-    enrollment_permissions: str = "",
+    enroll_permissions: str = "",
+    owner_permissions: str = "",
+    writeowner_permissions: str = "",
+    fullcontrol_permissions: str = "",
+    writedacl_permissions: str = "",
+    writeproperty_permissions: str = "",
     db: AsyncSession = Depends(get_db),
     user: models.User = Depends(current_active_user),
 ):
     return await crud.get_certificate_templates_filters(
-        db, filters, enrollment_permissions
+        db,
+        filters,
+        enroll_permissions=enroll_permissions,
+        owner_permissions=owner_permissions,
+        writeowner_permissions=writeowner_permissions,
+        fullcontrol_permissions=fullcontrol_permissions,
+        writedacl_permissions=writedacl_permissions,
+        writeproperty_permissions=writeproperty_permissions,
     )
 
 
@@ -2422,10 +2681,9 @@ async def suggestions_filters(
 )
 async def get_suggestion(
     id: UUID4,
-    db: AsyncSession = Depends(get_db),
     user: models.User = Depends(current_active_user),
 ):
-    return await crud.get_suggestion(db, id)
+    return await crud.get_suggestion(id)
 
 
 @router.post(
@@ -2464,6 +2722,7 @@ async def create_ai_suggestion(
         task_queue=constants.WORKER_TASK_QUEUE,
     )
     return schemas.StatusResponse(message="Scheduled")
+
 
 @router.post(
     "/suggestions/files",
@@ -2523,6 +2782,25 @@ async def c2_task_detection(
 
 
 @router.post(
+    "/suggestions/privilege_escalation",
+    response_model=schemas.StatusResponse,
+    tags=["crud", "suggestions"],
+)
+async def privilege_escalation_suggestions(
+    req: schemas.SuggestionsRequest,
+    user: models.User = Depends(current_active_user),
+):
+    client = await get_client()
+    await client.start_workflow(
+        PrivEscSuggestions.run,
+        req,
+        id=str(uuid.uuid4()),
+        task_queue=constants.WORKER_TASK_QUEUE,
+    )
+    return schemas.StatusResponse(message="Scheduled")
+
+
+@router.post(
     "/suggestions/",
     response_model=schemas.SuggestionCreated,
     tags=["crud", "suggestions"],
@@ -2558,13 +2836,15 @@ async def update_suggestion(
 async def list_checklists(
     filters: filters.ChecklistFilter = FilterDepends(filters.ChecklistFilter),
     db: AsyncSession = Depends(get_db),
-    user: models.User = Depends(current_active_user)
+    user: models.User = Depends(current_active_user),
 ):
     return await crud.get_checklists_paged(db, filters)
 
 
 @router.get(
-    "/checklists/filters", response_model=list[schemas.Filter], tags=["checklists", "crud"]
+    "/checklists/filters",
+    response_model=list[schemas.Filter],
+    tags=["checklists", "crud"],
 )
 async def checklists_filters(
     filters: filters.ChecklistFilter = FilterDepends(filters.ChecklistFilter),
@@ -2590,7 +2870,9 @@ async def get_checklist(
     return await crud.get_checklist(db, id)
 
 
-@router.post("/checklists/", response_model=schemas.ChecklistCreated, tags=["crud", "checklists"])
+@router.post(
+    "/checklists/", response_model=schemas.ChecklistCreated, tags=["crud", "checklists"]
+)
 async def create_checklist(
     checklists: schemas.ChecklistCreate,
     db: AsyncSession = Depends(get_db),
@@ -2622,13 +2904,15 @@ async def update_checklist(
 async def list_objectives(
     filters: filters.ObjectivesFilter = FilterDepends(filters.ObjectivesFilter),
     db: AsyncSession = Depends(get_db),
-    user: models.User = Depends(current_active_user)
+    user: models.User = Depends(current_active_user),
 ):
     return await crud.get_objectives_paged(db, filters)
 
 
 @router.get(
-    "/objectives/filters", response_model=list[schemas.Filter], tags=["objectives", "crud"]
+    "/objectives/filters",
+    response_model=list[schemas.Filter],
+    tags=["objectives", "crud"],
 )
 async def objectives_filters(
     filters: filters.ObjectivesFilter = FilterDepends(filters.ObjectivesFilter),
@@ -2654,7 +2938,9 @@ async def get_objectives(
     return await crud.get_objective(db, id)
 
 
-@router.post("/objectives/", response_model=schemas.ObjectiveCreated, tags=["crud", "objectives"])
+@router.post(
+    "/objectives/", response_model=schemas.ObjectiveCreated, tags=["crud", "objectives"]
+)
 async def create_objectives(
     objective: schemas.ObjectiveCreate,
     db: AsyncSession = Depends(get_db),

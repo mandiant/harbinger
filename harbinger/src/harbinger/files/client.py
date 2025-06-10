@@ -116,7 +116,7 @@ async def cancel_multipart_upload(
 
 async def upload_file(
     key: str, data: bytes, bucket: str = settings.minio_default_bucket
-):
+) -> None:
     session = get_session()
     async with session.create_client(
         "s3",

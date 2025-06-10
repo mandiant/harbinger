@@ -261,10 +261,12 @@ class ShareFileFilter(Filter):
         search_model_fields = ['type', 'unc_path', 'name']
 
 
-class DomainFilter(Filter):
+class DomainFilter(Filter): 
+    order_by: list[str] | None = ["-time_created"]
     search: str | None = None
     short_name: str | None = None
     long_name: str | None = None
+    labels: LabelFilter | None = FilterDepends(with_prefix("label", LabelFilter))
 
     class Constants(Filter.Constants):
         model = models.Domain
@@ -398,18 +400,6 @@ class ProxyFilter(Filter):
         search_model_fields = ['host', 'type', 'status', 'note', 'remote_hostname']
 
 
-class DomainFilter(Filter): 
-    order_by: list[str] | None = ["-time_created"]
-    search: str | None = None
-    short_name: str | None = None
-    long_name: str | None = None
-    labels: LabelFilter | None = FilterDepends(with_prefix("label", LabelFilter))
-
-    class Constants(Filter.Constants):
-        model = models.Domain
-        search_model_fields = ['short_name', 'long_name']
-
-
 class ChecklistFilter(Filter): 
     order_by: list[str] | None = ["-time_created"]
     search: str | None = None
@@ -436,3 +426,14 @@ class ObjectivesFilter(Filter):
     class Constants(Filter.Constants):
         model = models.Objectives
         search_model_fields = ['name', 'description', 'status']
+
+
+class C2ServerFilter(Filter): 
+    order_by: list[str] | None = ["-time_created"]
+    search: str | None = None
+    type: str | None = None
+    labels: LabelFilter | None = FilterDepends(with_prefix("label", LabelFilter))
+
+    class Constants(Filter.Constants):
+        model = models.C2Server
+        search_model_fields = ['name', 'hostname', 'username']

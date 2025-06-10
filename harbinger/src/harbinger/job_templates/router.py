@@ -31,6 +31,7 @@ from fastapi_pagination import Page, add_pagination
 from fastapi_filter import FilterDepends
 from harbinger.database import filters
 from pydantic import UUID4
+from harbinger.worker import genai
 
 
 settings = get_settings()
@@ -93,10 +94,10 @@ async def chain_templates_schema(
 ):
     default_arguments = {}
     if suggestion_id:
-        suggestion = await crud.get_suggestion(db, suggestion_id)
+        suggestion = await crud.get_suggestion(suggestion_id)
         if suggestion:
             default_arguments = suggestion.arguments
-    schema = await crud.get_playbook_template(db, uuid)
+    schema = await crud.get_playbook_template(uuid)
     if schema:
         schema_templ = schemas.PlaybookTemplate(**yaml.safe_load(schema.yaml))
         return jsonref.loads(json.dumps(schema_templ.create_model(default_arguments).model_json_schema()))
@@ -113,7 +114,7 @@ async def get_playbook_template(
     db: AsyncSession = Depends(get_db),
     user: models.User = Depends(current_active_user),
 ):
-    return await crud.get_playbook_template(db, id)
+    return await crud.get_playbook_template(id)
 
 
 @router.get("/{c2_type}/{name}/schema", tags=["proxy_jobs", "crud"])
@@ -140,7 +141,7 @@ async def create_chain_preview_from_template(
     user: models.User = Depends(current_active_user),
 ):
     body = await request.json()
-    schema = await crud.get_playbook_template(db, uuid)
+    schema = await crud.get_playbook_template(uuid)
     if schema:
         try:
             chain = schemas.PlaybookTemplate(**yaml.safe_load(schema.yaml))
@@ -195,7 +196,7 @@ async def preview(
     args = await template.generate_arguments(db)
     command = await template.generate_command()
     if c2_type == schemas.C2Type.proxy:
-        socks_server = await crud.get_socks_server(db, template.socks_server_id)  # type: ignore
+        socks_server = await crud.get_socks_server(template.socks_server_id)  # type: ignore
         return schemas.ProxyJobPreview(
             command=command,
             arguments=args,
@@ -247,6 +248,44 @@ async def create_proxy_job(
 
 
 @router.post(
+    "/playbooks/ai", # Path as used in the frontend
+    response_model=schemas.GeneratedYamlOutput, # Use the new output schema
+    tags=["templates", "ai"], # Add relevant tags for docs
+    summary="Generate Playbook Template YAML from README",
+    description="Accepts README markdown content and uses an AI model to generate a playbook template YAML.",
+    status_code=status.HTTP_200_OK, # Explicitly set success code (200 is default for POST often 201, but here we return generated content)
+)
+async def generate_playbook_template_from_ai(
+    input_data: schemas.ReadmeInput, # Use the new input schema
+    # db: AsyncSession = Depends(get_db), # Keep DB if needed for logging or other checks
+    user: models.User = Depends(current_active_user), # Ensure user is authenticated
+):
+    """
+    Receives README content and attempts to generate a playbook YAML using an AI service.
+    """
+    if not settings.gemini_enabled:
+        return Response(
+            f"Gemini is not enabled, please configure the gemini api key and set GEMINI_ENABLED=True",
+            status_code=status.HTTP_400_BAD_REQUEST
+        )
+    try:
+        # Call the AI generation service function
+        generated_yaml = await genai.generate_playbook_yaml(input_data.readme)
+
+        # The validation is now handled inside generate_playbook_yaml_from_readme
+        # If it returns, we assume it's valid enough
+
+        # Return the generated YAML in the expected format
+        return schemas.GeneratedYamlOutput(yaml=generated_yaml.yaml_content)
+
+    except Exception as e:
+        # Catch any other unexpected errors during the process
+        print(f"Unexpected error during AI playbook generation: {e}")
+        return Response(f"Unexpected error during AI playbook generation", status_code=status.
+        HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@router.post(
     "/playbooks/{uuid}",
     response_model=Union[
         schemas.C2Job, schemas.ProxyJob, schemas.ProxyChain, schemas.ErrorResponse
@@ -261,7 +300,7 @@ async def create_chain_from_template(
     user: models.User = Depends(current_active_user),
 ):
     body = await request.json()
-    schema = await crud.get_playbook_template(db, uuid)
+    schema = await crud.get_playbook_template(uuid)
     if schema:
         try:
             chain = schemas.PlaybookTemplate(**yaml.safe_load(schema.yaml))

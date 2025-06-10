@@ -31,7 +31,7 @@ settings = get_settings()
 
 async def create_all():
     async with SessionLocal() as db:
-        for directory in ["connectors", "labels", "settings"]:
+        for directory in ["connectors", "labels", "settings", "playbooks"]:
             base = pathlib.Path(__file__).parent.resolve() / directory
             print(f"Checking {base}")
             files = [x for x in base.iterdir()]

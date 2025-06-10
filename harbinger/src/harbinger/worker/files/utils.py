@@ -21,6 +21,7 @@ from pydantic import ValidationError
 import collections
 from sqlalchemy.ext.asyncio import AsyncSession
 import structlog
+from yaml.scanner import ScannerError
 
 settings = get_settings()
 
@@ -69,8 +70,8 @@ yaml.add_representer(type(None), none_representer)
 async def process_harbinger_yaml(
     db: AsyncSession, yaml_data: bytes | str
 ) -> list[schemas.FileConfig] | None:
-    entry = yaml.safe_load(yaml_data)
     try:
+        entry = yaml.safe_load(yaml_data)
         config = schemas.HarbingerYaml(**entry)
         for server in config.c2_server_types or []:
             created, obj = await crud.create_c2_server_type(
@@ -97,6 +98,11 @@ async def process_harbinger_yaml(
                             if argument.error
                             else "Please fill in this value"
                         ),
+                        type=(
+                            argument.type
+                            if argument.type
+                            else argument.default_type()
+                        ),
                         c2_server_type_id=obj.id,
                     ),
                 )
@@ -109,8 +115,6 @@ async def process_harbinger_yaml(
                 )
             except IntegrityError:
                 await db.rollback()
-        for action in config.actions or []:
-            await crud.create_action(db, action)
         for category in config.setting_categories or []:
             c_db = await crud.create_setting_category(db, category)
             for setting in category.settings:
@@ -142,9 +146,15 @@ async def process_harbinger_yaml(
 
             playbook.yaml = yaml.dump(ordered)
             await crud.create_playbook_template(db, playbook)
+        for action in config.actions or []:
+            await crud.create_action(db, action)
+        for c2_server in config.c2_servers or []:
+            await crud.create_c2_server(db, c2_server)
         return config.files
     except ValidationError as e:
         log.warning(e)
     except TypeError as e:
+        log.warning(e)
+    except ScannerError as e:
         log.warning(e)
     return None

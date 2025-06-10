@@ -245,7 +245,7 @@ class EnvParser(SimpleMatchParser):
             if not c2_implant_id:
                 return
 
-            implant = await crud.get_c2_implant(self.db, c2_implant_id)
+            implant = await crud.get_c2_implant(c2_implant_id)
             if implant and implant.domain != userdomain:
                 implant = await crud.update_c2_implant(
                     self.db,
@@ -266,8 +266,8 @@ class EnvParser(SimpleMatchParser):
                 )
 
             await self.db.refresh(implant)
-            if implant:
-                host = await crud.get_host(self.db, implant.host_id)
+            if implant and implant.host_id:
+                host = await crud.get_host(implant.host_id)
                 if host and not host.domain_id:
                     log.info("Domain not set on this host, setting now.")
                     host = await crud.update_host(
@@ -827,9 +827,9 @@ class MachineAccountQuotaParser(SimpleMatchParser):
     ) -> None:
         domain_id = None
         if c2_implant_id:
-            implant = await crud.get_c2_implant(self.db, c2_implant_id)
-            if implant:
-                host = await crud.get_host(self.db, implant.host_id)
+            implant = await crud.get_c2_implant(c2_implant_id)
+            if implant and implant.host_id:
+                host = await crud.get_host(implant.host_id)
                 if host:
                     domain_id = host.domain_id
         try:
@@ -915,7 +915,7 @@ class NetViewParser(SimpleMatchParser):
 
 
 class RubeusKirbiParser(SimpleMatchParser):
-    needle = ["doIG"]
+    needle = ["doI"]
     labels = ["4bf0c79a-6994-4324-9cf6-0dfef6e37551"]
 
     async def parse(

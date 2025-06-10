@@ -16,6 +16,7 @@
 
 // app global css in SCSS form
 
+@import '@xterm/xterm/css/xterm.css'; // Add this line
 
 @font-face {
     font-family: mono-font;

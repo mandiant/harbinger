@@ -176,7 +176,7 @@ steps: |
 
 For socks you can pick one of the predefined steps or use the `custom` task name. This task takes a `command` and `arguments` parameter.
 
-```
+```yaml
 id: b6bc6a59-94b8-418d-b418-36c82692617c
 icon: add
 name: Test socks proxy playbook
@@ -193,6 +193,10 @@ args:
 steps: |
   - type: socks
     name: custom
+    # These are all default true, in case you want to disable one of them.
+    tmate: true
+    asciinema: true
+    proxychains: true
     args:
       - name: command
         value: {{ argument0 }}
@@ -208,9 +212,13 @@ Certain fields are automatically converted to components that select specific da
 | ------------------------ | --------------------------------------------------------------- |
 | target_computer          | Search / Dropdown to select a computer name from neo4j          |
 | target_domain_controller | Search / Dropdown to select a domain controller name from neo4j |
-| c2_implant               | Shows a dropdown to select an implant                           |
+| c2_implant_id            | Shows a dropdown to select an implant                           |
 | target_user              | Search / dropdown to select a user name from neo4j              |
 | target_group             | Search / dropdown to select a group name from neo4j             |
 | credential_id            | Shows a dropdown to select a credential                         |
 | file_id                  | Shows a dropdown to select a file                               |
 | proxy_id                 | Shows a dropdown to select a proxy                              |
+
+For the `c2_implant_id`, `credential_id`, `file_id` and `proxy_id` you can have multiple parameters that should start with that option. Each of the components will load the selected entry and you can access it in the steps template by removing the `_id` value. So `credential_id5` will have load the credential from the database and provide you with a `credential5` object in the template.
+
+For domain objects (for example in a credential) you can access the `long_name` or `short_name` with `.name`. This is a shortcut that will provide first the `long_name` if it's set, otherwise the `short_name` of the domain object.

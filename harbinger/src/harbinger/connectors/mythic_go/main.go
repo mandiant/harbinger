@@ -279,22 +279,26 @@ func (w *Worker) download_file(ctx context.Context, msg mythic.FileDownload) err
 
 	stream, err := w.Client.UploadFile(ctx)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Unable to upload file: %v\n", err)
 		return err
 	}
 
 	response, err := StreamFile(file.Name(), stream)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Unable to stream file: %v\n", err)
 		return err
 	}
-	w.Client.SaveFile(ctx, &messagesv1.FileRequest{
+	_, err = w.Client.SaveFile(ctx, &messagesv1.FileRequest{
 		Filename:          msg.Filename_Utf8,
 		InternalTaskId:    fmt.Sprintf("%d", msg.Task_Id),
 		InternalImplantId: fmt.Sprintf("%d", msg.Task.Callback.Id),
 		C2ServerId:        w.C2ServerId,
 		UploadFileId:      response.UploadFileId,
 	})
+	if err != nil {
+		log.Println(err)
+		return err
+	}
 	log.Printf("Completed file %s\n", msg.Filename_Utf8)
 	return nil
 }

@@ -17,7 +17,7 @@
 <template>
   <span>
     <q-card-section>
-      <q-btn label="Add action" @click="modal = true" icon="add" flat />
+      <q-btn label="Add action" @click="modal = true" icon="add" color="secondary" flat />
       <q-dialog v-model="modal">
         <q-card style="width: 700px; max-width: 80vw">
           <q-card-section>

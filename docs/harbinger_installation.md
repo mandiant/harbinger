@@ -29,6 +29,10 @@ harbinger_server:
       ansible_user: debian
       ansible_host: 10.10.10.1
       ansible_password: debian
+      # Optionally upload config files into harbinger
+      harbinger_files_to_upload:
+      - src_path: "~/config.yaml"
+        filetype: "harbinger_yaml"
   vars:
     users:
     - user1
@@ -67,20 +71,4 @@ Run the ansible playbook:
 ansible-playbook -i inventory.yaml complete.harbinger.yaml
 ```
 
-This should take some time, afterwards ssh into harbinger and port forward 8443:
-
-```
-ssh -L 8443:localhost:8443 debian@10.10.10.1
-```
-
-Even better create a ssh config:
-
-```.ssh/config
-Host harbinger
-    Hostname 10.10.10.1
-    User debian
-    LocalForward 8443 localhost:8443
-    LocalForward 2200 localhost:2200
-```
-
-Afterwards login to your server on [https://localhost:8443](https://localhost:8443). Make sure to use a hostname to connect, if you connect by IP it will not work. Login with the password from `site/harbinger1/harbinger_password.txt`
+Afterwards login to your server on [https://harbinger1:8443](https://harbinger1:8443). Make sure to use your specified hostname to connect. Login with the password from `site/harbinger1/harbinger_password.txt` with the user you've specified in your inventory file.

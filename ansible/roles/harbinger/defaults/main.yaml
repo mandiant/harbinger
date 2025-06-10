@@ -37,6 +37,7 @@ harbinger_neo4j_password:
 harbinger_docker_build_args: 
 harbinger_password:
 harbinger_users:
+harbinger_jwt_secret_key:
 harbinger_temporal_host: temporal:7233
 harbinger_harbinger_version: latest
 harbinger_grpc_host: grpc:50051

@@ -134,7 +134,7 @@ class Harbinger(messages_pb2_grpc.HarbingerServicer):
 
             while not self.file_queue.empty():
                 file = self.file_queue.get_nowait()
-                log.debug(file)
+                log.info(f"New file: {file.filename}")
                 try:
                     file_db = await activities.save_file(file)
                     if file_db:
@@ -145,7 +145,7 @@ class Harbinger(messages_pb2_grpc.HarbingerServicer):
                             task_queue=constants.FILE_PROCESSING_TASK_QUEUE,
                         )
                 except Exception as e:
-                    log.error(f"Error saving file file: {e}")
+                    log.error(f"Error saving file: {e}")
                     log.info(file)
                 self.file_queue.task_done()
             await asyncio.sleep(1)

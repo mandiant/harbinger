@@ -2,6 +2,14 @@
 
 Harbinger has functionality upload files and parse them. This functionality is used to import harbinger specific data. You can upload one a file with the type `harbinger_yaml` or create a zip file with one or more files called `*harbinger.yaml` to automatically import and configure harbinger.
 
+You can upload one or more files from the terminal using the `harbinger_files` command line tool:
+
+```bash
+harbinger_files upload harbinger.zip
+```
+
+You can also add a section to your ansible inventory to automatically load files into harbinger for processing. See [installing harbinger](./harbinger_installation.md) for more information.
+
 The following data can be loaded by harbinger from these files:
 
 * Playbook templates
@@ -9,6 +17,7 @@ The following data can be loaded by harbinger from these files:
 * Actions
 * Labels
 * Files
+* C2 Servers
 
 Each harbinger yaml file can contain one or more of the following keys, each with potential multiple items:
 
@@ -17,6 +26,7 @@ Each harbinger yaml file can contain one or more of the following keys, each wit
 * actions
 * labels
 * files
+* c2_servers
 
 Always make sure your `id` fields in the yaml files are unique `UUID4` identifiers. These are used to deduplicate data and to reference other items. If they are not defined or unknown it can mess up the import process.
 
@@ -78,6 +88,12 @@ c2_server_types:
       - name: hostname
       - name: port
         default: 7443
+    implants:
+      - name: Apollo
+        icon_base64:
+        commands:
+          - ps
+          - pwd
 ```
 
 See [custom connectors](custom_connectors.md) on how to make your custom c2 connector.
@@ -140,3 +156,16 @@ files:
 
 Make sure the `id` field is unique and the `path` field points to the file in the zip. The `name` is shown in the interface and the `type` field is used to determine what kind of file it is.
 
+## C2 Servers
+
+You can create C2 Servers directly from a file. You can define c2 servers like this:
+
+```yaml
+c2_servers:
+  - type: mythic
+    name: mythic1
+    hostname: localhost
+    username: mythic_admin
+    password: mythic_password
+    port: 7443
+```

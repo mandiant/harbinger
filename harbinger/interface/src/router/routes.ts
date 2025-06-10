@@ -114,6 +114,16 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: 'playbooks/add_template_ai',
+        name: 'add_playbook_template_ai',
+        component: () => import('src/pages/CreatePlaybookTemplateAI.vue'),
+        meta: {
+          icon: 'fas fa-robot',
+          parent: 'playbooks',
+          display_name: 'Add a playbook template with AI',
+        },
+      },
+      {
         path: 'credentials',
         name: 'credentials',
         component: () => import('src/pages/CredentialsPage.vue'),

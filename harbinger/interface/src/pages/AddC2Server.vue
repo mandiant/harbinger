@@ -26,8 +26,9 @@
             <div class="text-h6">{{ tab.name }}</div>
             <q-input filled v-model="form.name" label="name" lazy-rules />
             <template v-for="argument in tab.arguments" v-bind:key="argument.name">
-              <q-input type="number" v-if="argument.name === 'port'" filled v-model="form.port" label="port" :error="!form.port" lazy-rules />
-              <q-input v-else filled v-model="form[argument.name]" :label="argument.name" :error="!form[argument.name]" lazy-rules :rules="[ val => checkValue(argument.regex || '', val) || argument.error]" />
+              <q-input :type="argument.type" filled v-model="form[argument.name]" :label="argument.name"
+                :error="!form[argument.name]" lazy-rules
+                :rules="[val => checkValue(argument.regex || '', val) || argument.error]" />
             </template>
           </template>
           <div v-if="tab">

@@ -15,6 +15,7 @@
 ---
 - name: "Configuring Harbinger servers"
   hosts: harbinger_server
+  become: true
   vars:
     installation_path: "/opt/harbinger"
 

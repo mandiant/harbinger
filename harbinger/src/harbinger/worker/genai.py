@@ -17,6 +17,12 @@ import rigging as rg
 from harbinger.config import get_settings
 from pydantic import field_validator
 import typing as t
+import yaml
+import re
+import uuid
+from pydantic import ValidationError as PydanticValidationError # Alias to avoid name clash
+from harbinger.database import schemas
+from harbinger.worker import prompt_vars
 
 settings = get_settings()
 
@@ -107,8 +113,8 @@ generator = rg.get_generator(
 
 
 class Credential(rg.Model):
-    password: str = rg.element(default="")
-    username: str = rg.element(default="")
+    password: str = rg.element()
+    username: str = rg.element()
     domain: str = rg.element(default="")
 
 
@@ -376,7 +382,9 @@ class Domain(rg.Model):
 
 
 class CheckList(rg.Model):
+    # checklist: list[Phase] = rg.element(name="checklist")
     domain_checklist: list[Domain] = rg.element(name="domain_checklist")
+    # implants: list[Implant] = rg.element(name="implants")
 
     @classmethod
     def xml_example(cls) -> str:
@@ -581,6 +589,33 @@ class DetectionRisk(rg.Model):
         raise ValueError("value should be between 1 and 5")
 
 
+def replace_id(yaml_string: str) -> str:
+    try:
+        new_id = str(uuid.uuid4())
+        # Match the whole line starting with 'id:'
+        pattern = r"^id:\s*.*$" # Added $ to match end of line explicitly
+        # Replace with a simple f-string
+        replacement = f"id: {new_id}"
+        if not isinstance(yaml_string, str):
+             print(f"Error: Input was not a string, but {type(yaml_string)}")
+             return yaml_string
+
+        updated_yaml_string_re, replacements_made = re.subn(
+            pattern,
+            replacement,
+            yaml_string,
+            count=1,
+            flags=re.MULTILINE
+        )
+        if replacements_made == 0:
+            print("Warning: Line starting with 'id:' not found. Original string kept.")
+            return yaml_string
+        return updated_yaml_string_re
+    except Exception as e:
+        print(f"Error during regex substitution: {e}")
+    return yaml_string
+
+
 @generator.prompt
 async def c2_job_detection_risk(
     additional_prompt: str,
@@ -600,3 +635,121 @@ async def c2_job_detection_risk(
 
     {{ additional_prompt }}
     """
+
+
+@generator.prompt
+async def kerberoasting(
+    additional_prompt: str,
+    kerberoastable_users: list[str],
+    proxies: list[str],
+    implants_information: list[str],
+    executed_playbooks_list: list[str],
+    playbook_template_list: list[str],
+    previous_suggestions: list[str],
+    socks_servers: list[str],
+    credentials: list[str],
+    situational_awareness: list[str],
+) -> ActionList:
+    """Hi, You are a cyber security expert, you will get a list of users that are kerberoastable, can you please select the best users to target. Be specific and make sure you only kerberoast everyone if all targets are a good target or no data is available.
+
+    Use the following information:
+    * Users in high privileged groups are valuable.
+    * Use the number or privileges as more privileges is better
+    * Check the last logon and password changed values.
+
+    {{ additional_prompt }}
+    """
+
+# # --- Pydantic schema for basic YAML structure validation ---
+# # Define this according to the essential fields your playbook requires.
+# class BasicPlaybookStructure(BaseModel):
+#     id: uuid.UUID | str # Allow string initially if AI might not generate perfect UUID
+#     name: str
+#     icon: t.Optional[str] = None
+#     step_delay: t.Optional[int] = None
+#     args: t.Optional[list] = None
+#     steps: str # Check if 'steps' key exists and is a string (multiline YAML)
+
+#     # Add other mandatory fields as needed for basic validation
+
+# --- Output Model for Rigging ---
+# This model defines the expected output structure for the rigging generator.
+# In this case, it's just a single field containing the generated YAML.
+class PlaybookYamlOutput(rg.Model):
+    # Define the single field using Annotated and rg.Ctx like the example
+    yaml_content: str = rg.element()
+
+    # Add validation directly within the rigging model using a validator.
+    # This validator runs *after* the LLM generates the content for yaml_content.
+    @field_validator("yaml_content", mode="before")
+    @classmethod
+    def validate_yaml_content(cls, v: t.Any) -> str:
+        """
+        Validates the generated string ('v') to ensure it is valid YAML
+        and conforms to the BasicPlaybookStructure.
+        Raises ValueError on failure, which rigging typically handles.
+        """
+        if not isinstance(v, str):
+            # Should already be a string based on type hint, but safety check
+            raise ValueError(f"Expected string output for yaml_content, but got {type(v)}")
+
+        generated_yaml = v.strip()
+        if not generated_yaml:
+             raise ValueError("Generated YAML content cannot be empty.")
+        
+        generated_yaml = generated_yaml.replace("```yaml", '')
+        generated_yaml = generated_yaml.replace("```", '')
+
+        try:
+            # 1. Validate YAML syntax
+            parsed_yaml = yaml.safe_load(generated_yaml)
+            if not isinstance(parsed_yaml, dict):
+                raise ValueError("Generated output is not a valid YAML dictionary/mapping.")
+            schemas.PlaybookTemplateGenerated(**parsed_yaml)
+            return replace_id(generated_yaml)
+
+        except (yaml.YAMLError, PydanticValidationError, ValueError) as e:
+            # If any validation step fails, raise a ValueError.
+            # Rigging's error handling mechanism should catch this.
+            # Include details for debugging.
+            error_message = f"Generated YAML failed validation: {e}. Content received:\n---\n{generated_yaml}\n---"
+            print(f"Validation Error: {error_message}") # Optional: log the error server-side
+            raise ValueError(error_message) # Raise ValueError to signal validation failure
+        except Exception as e:
+             # Catch any other unexpected validation errors
+             error_message = f"Unexpected validation error ({type(e).__name__}): {e}. Content received:\n---\n{generated_yaml}\n---"
+             print(f"Validation Error: {error_message}")
+             raise ValueError(error_message)
+
+
+@generator.prompt # Use your specific configured generator instance
+async def generate_playbook_yaml(
+    readme_content: str,
+    playbook_format_description: str = prompt_vars.PLAYBOOK_FORMAT_DESCRIPTION,
+    yaml_examples: str = prompt_vars.PLAYBOOK_EXAMPLES,
+) -> PlaybookYamlOutput: # type: ignore
+    """You are an expert system specializing in cybersecurity automation and creating structured playbook templates in YAML format.
+Your goal is to generate a valid playbook YAML based *only* on the provided README documentation, adhering strictly to the specified format and drawing inspiration from the examples.
+
+Where possible try to use the Credential object in your playbooks by setting a credential_id and using the fields as shown below:
+
+class Credential(BaseModel):
+    domain: Domain | None = None
+    password: Password | None = None
+    kerberos: Kerberos | None = None
+    labels: List["Label"] | None = None
+
+class Password(BaseModel):
+    password: str | None = None
+    nt: str | None = None
+    aes256_key: str | None = None
+    aes128_key: str | None = None
+
+class Domain(BaseModel):
+    short_name: str | None = None
+    long_name: str | None = None
+
+If you use a credential object don't include the credential related fields.
+
+If more steps are required you can include multiple steps in the output. 
+"""

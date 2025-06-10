@@ -17,9 +17,7 @@ from temporalio import workflow, common
 from datetime import timedelta
 from graphlib import TopologicalSorter, CycleError
 import asyncio
-import anyio
 import structlog
-import dpath
 import re
 
 from harbinger.worker import activities
@@ -41,7 +39,7 @@ class ProgressBarMixin:
             activities.delete_progress_bar,
             self.bar,
             task_queue=constants.WORKER_TASK_QUEUE,
-            schedule_to_close_timeout=timedelta(seconds=10),
+            schedule_to_close_timeout=timedelta(seconds=120),
         )
 
     async def increase(self, step: int = 1) -> None:
@@ -50,7 +48,7 @@ class ProgressBarMixin:
             activities.update_progress_bar,
             self.bar,
             task_queue=constants.WORKER_TASK_QUEUE,
-            schedule_to_close_timeout=timedelta(seconds=10),
+            schedule_to_close_timeout=timedelta(seconds=120),
         )
 
     async def create_bar(self, bar: schemas.ProgressBar) -> None:
@@ -59,7 +57,7 @@ class ProgressBarMixin:
             activities.create_progress_bar,
             self.bar,
             task_queue=constants.WORKER_TASK_QUEUE,
-            schedule_to_close_timeout=timedelta(seconds=10),
+            schedule_to_close_timeout=timedelta(seconds=120),
         )
 
 
@@ -129,7 +127,7 @@ class RunPlaybook(ProgressBarMixin):
                     playbook_id=step.playbook_id,
                     status=schemas.Status.scheduled,
                 ),
-                schedule_to_close_timeout=timedelta(seconds=10),
+                schedule_to_close_timeout=timedelta(seconds=120),
             )
             log.info(f"Waiting for {step.delay.total_seconds()} for step {step.id}")
             await asyncio.sleep(step.delay.total_seconds())
@@ -141,7 +139,7 @@ class RunPlaybook(ProgressBarMixin):
                 playbook_id=step.playbook_id,
                 status=schemas.Status.starting,
             ),
-            schedule_to_close_timeout=timedelta(seconds=10),
+            schedule_to_close_timeout=timedelta(seconds=120),
         )
 
         queue = f"{implant.c2_server_id}_jobs"
@@ -165,7 +163,7 @@ class RunPlaybook(ProgressBarMixin):
                 c2_job_id=c2_job.id,
                 c2_task_id=resp.id,
             ),
-            schedule_to_close_timeout=timedelta(seconds=10),
+            schedule_to_close_timeout=timedelta(seconds=120),
         )
 
         workflow_result_raw = await workflow.execute_activity(
@@ -184,7 +182,7 @@ class RunPlaybook(ProgressBarMixin):
                 playbook_id=step.playbook_id,
                 status=workflow_result.status,
             ),
-            schedule_to_close_timeout=timedelta(seconds=10),
+            schedule_to_close_timeout=timedelta(seconds=120),
         )
         result_queue.put_nowait(workflow_result)
 
@@ -209,7 +207,7 @@ class RunPlaybook(ProgressBarMixin):
                     playbook_id=step.playbook_id,
                     status=schemas.Status.scheduled,
                 ),
-                schedule_to_close_timeout=timedelta(seconds=10),
+                schedule_to_close_timeout=timedelta(seconds=120),
             )
             log.info(f"Waiting for {step.delay.total_seconds()} for step {step.id}")
             await asyncio.sleep(step.delay.total_seconds())
@@ -221,7 +219,7 @@ class RunPlaybook(ProgressBarMixin):
                 playbook_id=step.playbook_id,
                 status=schemas.Status.starting,
             ),
-            schedule_to_close_timeout=timedelta(seconds=10),
+            schedule_to_close_timeout=timedelta(seconds=120),
         )
 
         workflow_name = RunSocks.run
@@ -258,7 +256,7 @@ class RunPlaybook(ProgressBarMixin):
                     playbook_id=step.playbook_id,
                     status=schemas.Status.scheduled,
                 ),
-                schedule_to_close_timeout=timedelta(seconds=10),
+                schedule_to_close_timeout=timedelta(seconds=120),
             )
             log.info(f"Waiting for {step.delay.total_seconds()} for step {step.id}")
             await asyncio.sleep(step.delay.total_seconds())
@@ -276,7 +274,7 @@ class RunPlaybook(ProgressBarMixin):
         await workflow.execute_activity(
             activities.update_playbook_status,
             schemas.ProxyChain(id=playbook_id, status=schemas.Status.running, steps=0),
-            schedule_to_close_timeout=timedelta(seconds=10),
+            schedule_to_close_timeout=timedelta(seconds=120),
         )
         steps: list[schemas.ChainStep] = await workflow.execute_activity(
             activities.get_playbook_steps,
@@ -313,100 +311,99 @@ class RunPlaybook(ProgressBarMixin):
                 schemas.ProxyChain(
                     id=playbook_id, status=schemas.Status.error, steps=0
                 ),
-                schedule_to_close_timeout=timedelta(seconds=10),
+                schedule_to_close_timeout=timedelta(seconds=120),
             )
 
         result_queue: asyncio.Queue[schemas.WorkflowStepResult] = asyncio.Queue()
         count = 0
         results_dict: dict[str, dict] = {}
         try:
-            async with anyio.create_task_group() as tg:
-                while ts.is_active():
-                    for node_label in ts.get_ready():
-                        log.info(f"[{playbook_id}] Node label: {node_label}")
-                        try:
-                            node = steps_dict[node_label]
-                            if node.step_modifiers:
-                                for s in node.step_modifiers:
-                                    log.info("Modifying job based on previous results.")
-                                    try:
-                                        data = results_dict[s.input_path]
-                                        output = ""
-                                        for i in range(3):
-                                            output = await workflow.start_activity(
-                                                activities.get_c2_task_output,
-                                                data['id'],
-                                                schedule_to_close_timeout=timedelta(seconds=10),
+            while ts.is_active():
+                for node_label in ts.get_ready():
+                    log.info(f"[{playbook_id}] Node label: {node_label}")
+                    try:
+                        node = steps_dict[node_label]
+                        if node.step_modifiers:
+                            for s in node.step_modifiers:
+                                log.info("Modifying job based on previous results.")
+                                try:
+                                    data = results_dict[s.input_path]
+                                    output = ""
+                                    for i in range(3):
+                                        output = await workflow.start_activity(
+                                            activities.get_c2_task_output,
+                                            data['id'],
+                                            schedule_to_close_timeout=timedelta(seconds=120),
+                                        )
+                                        if not output:
+                                            log.info(f"Did not receive output, waiting for {i*2 + 1} seconds")
+                                            await asyncio.sleep(i*2 + 1)
+                                    if s.regex:
+                                        t = re.compile(s.regex)
+                                        match = t.search(output)
+                                        if match:
+                                            output = match.group(0)
+                                        else:
+                                            log.warning(
+                                                "Unable to match the regex..."
                                             )
-                                            if not output:
-                                                log.info(f"Did not receive output, waiting for {i*2 + 1} seconds")
-                                                await anyio.sleep(i*2 + 1)
-                                        if s.regex:
-                                            t = re.compile(s.regex)
-                                            match = t.search(output)
-                                            if match:
-                                                output = match.group(0)
-                                            else:
-                                                log.warning(
-                                                    "Unable to match the regex..."
-                                                )
-                                                continue
-                                        await self.update_step(
-                                            node,
-                                            output,
-                                            s.output_path,
-                                        )
-                                    except KeyError:
-                                        log.warning(
-                                            f"Could not find {s.input_path} in results_dict"
-                                        )
-                                        continue
-                                    except ValueError:
-                                        log.warning(f"ValueError on {s.input_path}")
-                                        continue
-                            if node.c2_job_id:
-                                tg.start_soon(self.run_c2_step, node, result_queue)
-                            elif node.proxy_job_id:
-                                tg.start_soon(self.run_proxy_step, node, result_queue)
-                            else:
-                                tg.start_soon(self.run_empty_step, node, result_queue)
-                        except KeyError:
-                            result_queue.put_nowait(
-                                schemas.WorkflowStepResult(
-                                    id="", label=node_label, status=schemas.Status.error
-                                )
+                                            continue
+                                    await self.update_step(
+                                        node,
+                                        output,
+                                        s.output_path,
+                                    )
+                                except KeyError:
+                                    log.warning(
+                                        f"Could not find {s.input_path} in results_dict"
+                                    )
+                                    continue
+                                except ValueError:
+                                    log.warning(f"ValueError on {s.input_path}")
+                                    continue
+                        if node.c2_job_id:
+                            asyncio.create_task(self.run_c2_step(node, result_queue))
+                        elif node.proxy_job_id:
+                            asyncio.create_task(self.run_proxy_step(node, result_queue))
+                        else:
+                            asyncio.create_task(self.run_empty_step(node, result_queue))
+                    except KeyError:
+                        result_queue.put_nowait(
+                            schemas.WorkflowStepResult(
+                                id="", label=node_label, status=schemas.Status.error
                             )
-                    finished_node = await result_queue.get()
-                    ts.done(finished_node.label)
-                    await self.increase(1)
-                    results_dict[finished_node.label] = finished_node.model_dump()
-                    count += 1
-                    await workflow.start_activity(
-                        activities.update_playbook_status,
-                        schemas.ProxyChain(
-                            id=playbook_id, status=schemas.Status.running, steps=count
-                        ),
-                        schedule_to_close_timeout=timedelta(seconds=10),
+                        )
+                finished_node = await result_queue.get()
+                ts.done(finished_node.label)
+                await self.increase(1)
+                results_dict[finished_node.label] = finished_node.model_dump()
+                count += 1
+                await workflow.start_activity(
+                    activities.update_playbook_status,
+                    schemas.ProxyChain(
+                        id=playbook_id, status=schemas.Status.running, steps=count
+                    ),
+                    schedule_to_close_timeout=timedelta(seconds=120),
+                )
+                result_queue.task_done()
+                if finished_node.id:
+                    step = schemas.ChainStep(
+                        id=finished_node.id,  # type: ignore
+                        status=finished_node.status,
+                        playbook_id=playbook_id,
                     )
-                    result_queue.task_done()
-                    if finished_node.id:
-                        step = schemas.ChainStep(
-                            id=finished_node.id,  # type: ignore
-                            status=finished_node.status,
-                            playbook_id=playbook_id,
-                        )
-                        await workflow.start_activity(
-                            activities.update_playbook_step_status,
-                            step,
-                            schedule_to_close_timeout=timedelta(seconds=10),
-                        )
+                    await workflow.start_activity(
+                        activities.update_playbook_step_status,
+                        step,
+                        schedule_to_close_timeout=timedelta(seconds=120),
+                    )
         except ValueError:
             await workflow.execute_activity(
                 activities.update_playbook_status,
                 schemas.ProxyChain(
                     id=playbook_id, status=schemas.Status.error, steps=len(steps)
                 ),
-                schedule_to_close_timeout=timedelta(seconds=10),
+                schedule_to_close_timeout=timedelta(seconds=120),
             )
         else:
             await workflow.execute_activity(
@@ -414,7 +411,7 @@ class RunPlaybook(ProgressBarMixin):
                 schemas.ProxyChain(
                     id=playbook_id, status=schemas.Status.completed, steps=len(steps)
                 ),
-                schedule_to_close_timeout=timedelta(seconds=10),
+                schedule_to_close_timeout=timedelta(seconds=120),
             )
         await self.delete_bar()
         log.info(f"[{playbook_id}] completed!")
@@ -470,7 +467,7 @@ class RunC2Job:
 
 
 # All the files that do not need multiple steps or are the final step.
-BASIC_PARSING_MAP: dict[schemas.FileType, str] = {
+BASIC_PARSING_MAP: dict[schemas.FileType | str, str] = {
     schemas.FileType.pypykatz_json: "process_pypykatz",
     schemas.FileType.process_list_json: "process_proces_list",
     schemas.FileType.dir2json: "process_dir2json",
@@ -481,7 +478,7 @@ BASIC_PARSING_MAP: dict[schemas.FileType, str] = {
 }
 
 # All the files that will potentially yield a new filetype.
-BASE_FILETYPE_PARSING_MAP: dict[schemas.FileType, str] = {
+BASE_FILETYPE_PARSING_MAP: dict[schemas.FileType | str, str] = {
     schemas.FileType.text: "process_text",
     schemas.FileType.zip: "process_zip",
     schemas.FileType.json: "process_json",
@@ -489,7 +486,7 @@ BASE_FILETYPE_PARSING_MAP: dict[schemas.FileType, str] = {
 }
 
 # All the files that will yield new files.
-FILE_YIELDING_PARSING_MAP: dict[schemas.FileType, str] = {
+FILE_YIELDING_PARSING_MAP: dict[schemas.FileType | str, str] = {
     schemas.FileType.nanodump: "process_nanodump",
     schemas.FileType.lsass: "process_lsass",
     schemas.FileType.ad_snapshot: "process_ad_snapshot",
@@ -959,8 +956,6 @@ class PlaybookDetectionRisk:
             req.playbook_id,
             schedule_to_close_timeout=timedelta(seconds=5),
         )
-        # Disabled due to rate limiting
-        # async with anyio.create_task_group() as tg:
         for step in steps:
             if step.c2_job_id:
                 c2_req  = schemas.C2JobDetectionRiskRequest(
@@ -969,3 +964,15 @@ class PlaybookDetectionRisk:
                 )
                 # tg.start_soon(self.c2_job_detection_risk, c2_req)
                 await self.c2_job_detection_risk(c2_req)
+
+
+@workflow.defn(sandboxed=False)
+class PrivEscSuggestions:
+
+    @workflow.run
+    async def run(self, req: schemas.SuggestionsRequest) -> None:
+        await workflow.execute_activity(
+            activities.kerberoasting_suggestions,
+            req,
+            schedule_to_close_timeout=timedelta(hours=1),
+        )

@@ -6,11 +6,11 @@ The docker_image should automatically start and will get the following set in th
 * `HARBINGER_GRPC_HOST`: The harbinger grpc server, where you can retrieve the server settings.
 * `TEMPORAL_HOST`: We use [temporal](https://temporal.io/) to schedule tasks on the c2 connector.
 
-For a reference implementation check the source code of our [mythic connector](../harbinger/src/harbinger/connectors/mythic_go/).
+For a reference implementation check the source code of our [mythic connector](../harbinger/src/harbinger/connectors/mythic_go/main.go).
 
 ## GRPC server
 
-See the [protobuf files](../proto/v1/message.proto) for the specific grpc servers that are exposed.
+See the [protobuf files](../proto/v1/messages.proto) for the specific grpc servers that are exposed.
 
 For example to get the settings for th c2 server:
 
@@ -50,6 +50,26 @@ log.Printf("Connected to server")
 
 ```
 
+## Connector Data Synchronization Recommendations
+
+To ensure comprehensive data integration, your connector should synchronize the following data points. A minimal setup should include:
+
+**Essential Data Synchronization:**
+
+* **Implants (SaveImplant):** Capture details about each compromised system, including its configuration and status.
+* **Tasks (SaveTask):** Record all tasks issued to implants, including parameters and execution status.
+* **Task Output (SaveTaskOutput):** Store the results of executed tasks, including standard output and error streams.
+
+Synchronizing these core entities enables effective tracking and correlation of task outputs to their originating tasks, providing essential operational context.
+
+**Optional Data Synchronization (Enhancements):**
+
+For a more detailed and feature-rich integration, consider synchronizing the following optional data:
+
+* **File Downloads (CheckFileExists, UploadFile, SaveFile, DownloadFile):** Track file transfers, including existence checks, uploads, saves, and downloads.
+* **Proxy Details (SaveProxy):** Record information about proxies used for communication, including host, port, and status.
+* **Directory Listings (file_list field of TaskOutput):** Capture directory structures and file metadata from task outputs.
+* **Process Information (processes field of TaskOutput):** Store process details from task outputs, including process IDs, names, and command-line arguments.
 
 ## Temporal
 
