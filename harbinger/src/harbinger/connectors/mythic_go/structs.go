@@ -89,3 +89,24 @@ type FileResponse struct {
 	ParentPath   string      `json:"parent_path"`
 	Files        []FileEntry `json:"files"`
 }
+
+type HarbingerArguments struct {
+	Sleep       *int   `json:"sleep,omitempty"`
+	Jitter      *int   `json:"jitter,omitempty"`
+	File        string `json:"file,omitempty"`
+	Remotename  string `json:"remotename,omitempty"`
+	Path        string `json:"path,omitempty"`
+	Host        string `json:"host,omitempty"`
+	Arguments   string `json:"arguments_str,omitempty"`
+	Safe        bool   `json:"safe,omitempty"`
+	Source      string `json:"source,omitempty"`
+	Dest        string `json:"dest,omitempty"`
+	Port        int    `json:"port,omitempty"`
+	Action      string `json:"action,omitempty"`
+	Command     string `json:"command,omitempty"`
+	Folder      string `json:"folder,omitempty"`
+	Destination string `json:"destination,omitempty"`
+	Filename    string `json:"filename,omitempty"`
+	Cmdline     string `json:"cmdline,omitempty"`
+	Hwbp        bool   `json:"hwbp,omitempty"`
+}

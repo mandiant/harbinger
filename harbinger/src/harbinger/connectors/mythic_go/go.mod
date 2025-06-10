@@ -1,7 +1,8 @@
 module github.com/mndt-proactive/Harbinger/mythic_go
 
-go 1.22.4
-toolchain go1.24.1
+go 1.23.0
+
+toolchain go1.24.4
 
 require (
 	github.com/hasura/go-graphql-client v0.13.0
