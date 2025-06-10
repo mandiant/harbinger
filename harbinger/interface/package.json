@@ -13,6 +13,9 @@
   "dependencies": {
     "@monaco-editor/loader": "^1.4.0",
     "@quasar/extras": "^1.16.13",
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/addon-webgl": "^0.18.0",
+    "@xterm/xterm": "^5.5.0",
     "axios": "^1.8.2",
     "echarts": "^5.4.1",
     "mermaid": "^10.6.1",
@@ -39,7 +42,7 @@
     "eslint-config-prettier": "^8.1.0",
     "eslint-plugin-vue": "^9.0.0",
     "prettier": "^2.5.1",
-    "typescript": "^4.5.4",
+    "typescript": "^5.4.0",
     "vite-plugin-monaco-editor": "^1.1.0"
   },
   "engines": {

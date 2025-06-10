@@ -31,7 +31,6 @@ dependencies = [
   "pytest-mypy",
   "fastapi-pagination[sqlalchemy]",
   "backoff",
-  "mythic",
   "pydantic",
   "pydantic-settings",
   "anyio",
@@ -39,7 +38,6 @@ dependencies = [
   "Pillow",
   "tabulate",
   "impacket",
-  "ADExplorerSnapshot @ https://github.com/c3c/ADExplorerSnapshot.py/archive/a98fa5c55897f4d057f0f9d0730cf565c8b08628.zip",
   "oscrypto @ https://github.com/wbond/oscrypto/archive/1547f535001ba568b239b8797465536759c742a3.zip",
   "pytest-env",
   "uvicorn",
@@ -62,8 +60,9 @@ dependencies = [
   "types-tabulate",
   "types-requests",
   "fastapi-filter",
-  "rigging",
+  "rigging==3.0.0",
   "grpcio",
+  "paramiko",
 ]
 
 [project.optional-dependencies]
@@ -86,7 +85,7 @@ harbinger_files = "harbinger.files.cli:cli"
 harbinger_grpc = "harbinger.rpc.server:cli"
 
 [build-system]
-requires = ["setuptools==78.1.1"]
+requires = ["setuptools==69.0.2"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]

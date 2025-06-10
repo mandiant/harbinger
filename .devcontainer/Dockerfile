@@ -16,7 +16,7 @@ FROM trufflesecurity/trufflehog:3.73.0 as trufflehog
 
 FROM ghcr.io/praetorian-inc/noseyparker:v0.17.0 as noseyparker
 
-FROM python:3.11
+FROM python:3.12
 
 ARG USERNAME=user
 ARG USER_UID=1000
