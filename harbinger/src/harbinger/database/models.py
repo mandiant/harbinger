@@ -84,6 +84,14 @@ class Domain(Base):
         "Label", secondary="labeled_item", lazy="joined", viewonly=True
     )
 
+    @property
+    def name(self) -> str:
+        if self.long_name:
+            return self.long_name
+        elif self.short_name:
+            return self.short_name
+        return ""
+
 
 class Password(Base):
     __tablename__ = "passwords"
@@ -1018,6 +1026,7 @@ class C2ServerArguments(Base):
     regex = mapped_column(String)
     error = mapped_column(String)
     default = mapped_column(String)
+    type = mapped_column(String)
     c2_server_type_id = mapped_column(ForeignKey("c2_server_types.id"), nullable=False)
 
     time_created = mapped_column(DateTime(timezone=True), server_default=func.now())

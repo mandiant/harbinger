@@ -64,7 +64,7 @@ async def load_credential(
     credential_id: str | UUID4, dc_ip: str = ""
 ) -> NTLMCredential | KerberosCredential | None:
     async with SessionLocal() as session:
-        cred_db = await crud.get_credential(session, credential_id)
+        cred_db = await crud.get_credential(credential_id)
         if not cred_db:
             return None
         if cred_db.kerberos:
@@ -93,7 +93,7 @@ async def load_credential(
 
 async def load_proxy(proxy_id: str | UUID4) -> UniProxyTarget | None:
     async with SessionLocal() as session:
-        proxy_db = await crud.get_proxy(session, proxy_id=proxy_id)
+        proxy_db = await crud.get_proxy(proxy_id=proxy_id)
         if not proxy_db:
             return None
         proxy = UniProxyTarget()
@@ -109,11 +109,10 @@ async def load_proxy(proxy_id: str | UUID4) -> UniProxyTarget | None:
 
 
 async def get_file(file_id: str | UUID4) -> bytes | None:
-    async with SessionLocal() as session:
-        file_db = await crud.get_file(session, file_id)
-        if not file_db:
-            return None
-        return await download_file(file_db.path, file_db.bucket)
+    file_db = await crud.get_file(file_id)
+    if not file_db:
+        return None
+    return await download_file(file_db.path, file_db.bucket)
 
 
 @cli.command()

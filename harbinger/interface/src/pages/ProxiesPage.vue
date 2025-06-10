@@ -22,25 +22,30 @@
       <q-btn color="secondary" icon="refresh" @click="store.LoadData()">Refresh</q-btn>
     </div>
     <q-table :rows-per-page-options="[ 5, 10, 15, 20, 25, 50, 100 ]" title="Socks Proxies" :rows="data" row-key="id" :columns="columns" :loading="loading"
-      v-model:pagination="pagination" @request="store.onRequest">
-      <template v-slot:top>
-        <div class="col-2 q-table__title">Socks Proxies</div>
-        <q-space />
-        <filter-view object-type="proxies" v-model="filters" v-on:updateFilters="store.updateFilters" />
-        <q-select v-model="visible" multiple borderless dense options-dense :display-value="$q.lang.table.columns"
-        emit-value map-options :options="columns" option-value="name" style="min-width: 150px">
-        <template v-slot:option="{ itemProps, opt, selected, toggleOption }">
-            <q-item v-bind="itemProps">
-            <q-item-section>
-                <q-item-label :class="$q.dark.isActive ? 'text-white' : 'text-black'">{{ opt.label }}</q-item-label>
-            </q-item-section>
-            <q-item-section side>
-                <q-toggle :model-value="selected" @update:model-value="toggleOption(opt)" />
-            </q-item-section>
-            </q-item>
-        </template>
-        </q-select>
-    </template>
+      v-model:pagination="pagination" @request="store.onRequest" :visible-columns="visible">
+      <template v-slot:top> 
+        <div class="row items-center" style="width: 100%;">
+          <div class="col-auto q-table__title">Socks Proxies</div>
+          <q-space />
+          <q-select v-model="visible" multiple borderless dense options-dense :display-value="$q.lang.table.columns"
+            emit-value map-options :options="columns" option-value="name" style="min-width: 150px">
+            <template v-slot:option="{ itemProps, opt, selected, toggleOption }">
+              <q-item v-bind="itemProps">
+                <q-item-section>
+                  <q-item-label :class="$q.dark.isActive ? 'text-white' : 'text-black'">{{ opt.label }}</q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <q-toggle :model-value="selected" @update:model-value="toggleOption(opt)" />
+                </q-item-section>
+              </q-item>
+            </template>
+          </q-select>
+        </div>
+        <div class="row" style="width: 100%;">
+          <filter-view object-type="proxies" v-model="filters" @updateFilters="store.updateFilters"
+            class="full-width" />
+        </div>
+      </template>
       <template v-slot:body="props">
         <q-tr :props="props">
           <q-td key="id" :props="props">
@@ -89,14 +94,17 @@ import { Truncate } from 'src/truncate';
 import { defineTypedStore } from 'src/stores/datastore';
 import { storeToRefs } from 'pinia'
 import FilterView from '../components/FilterView.vue';
+import { ref } from 'vue';
 
 const counter_store = useCounterStore();
 
 counter_store.clear('proxy');
 
+const visible = ref(['host', 'port', 'type', 'status', 'remote_hostname'])
+
 const useStore = defineTypedStore<Proxy>('proxies');
 const store = useStore();
-const { loading, data, pagination } = storeToRefs(store);
+const { loading, data, pagination, filters } = storeToRefs(store);
 store.Load();
 
 const columns: QTableProps['columns'] = [

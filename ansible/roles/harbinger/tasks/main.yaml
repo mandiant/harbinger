@@ -152,3 +152,56 @@
     - --password
     - "{{ harbinger_password }}"
   loop: "{{ harbinger_users }}"
+
+- name: Upload and process harbinger files  
+  when: harbinger_files_to_upload is defined and harbinger_files_to_upload | length > 0
+  block:
+    - name: Create a temporary directory for file uploads on the remote server
+      ansible.builtin.tempfile:
+        state: directory
+        prefix: harbinger_upload_
+      register: temp_upload_dir_info
+
+    - name: Copy file to remote server
+      ansible.builtin.copy:
+        src: "{{ item.src_path }}"
+        # Calculate filename directly here using basename filter on item.src_path
+        dest: "{{ temp_upload_dir_info.path }}/{{ item.src_path | ansible.builtin.basename }}"
+        mode: '0644'
+      loop: "{{ harbinger_files_to_upload }}"
+      loop_control:
+        # label can directly access item.src_path
+        label: "Copying {{ item.src_path | ansible.builtin.basename }}"
+      # Removed the vars block for filename from here
+
+    - name: Copy file into harbinger-web-1 container
+      # Use docker_container_copy_into as you changed it
+      community.docker.docker_container_copy_into:
+        path: "{{ temp_upload_dir_info.path }}/{{ item.src_path | ansible.builtin.basename }}" # Use 'path' for the source on the remote server
+        container: harbinger-web-1         # Use 'container' instead of 'container_id'
+        container_path: "/tmp/{{ item.src_path | ansible.builtin.basename }}" # Use 'container_path' instead of 'dest'
+      loop: "{{ harbinger_files_to_upload }}"
+      loop_control:
+        label: "Copying {{ item.src_path | ansible.builtin.basename }} into container"
+      # Removed the vars block for filename from here
+
+    - name: Run harbinger_files upload command
+      community.docker.docker_container_exec:
+        container: harbinger-web-1
+        argv:
+        - harbinger_files
+        - upload
+        - "/tmp/{{ item.src_path | ansible.builtin.basename }}" # Path inside the container
+        - --filetype
+        - "{{ item.filetype }}"
+      loop: "{{ harbinger_files_to_upload }}"
+      loop_control:
+        label: "Uploading {{ item.src_path | ansible.builtin.basename }} with type {{ item.filetype }}"
+      # Removed the vars block for filename from here
+
+  always:
+    - name: Clean up temporary directory on remote server
+      ansible.builtin.file:
+        path: "{{ temp_upload_dir_info.path }}"
+        state: absent
+      when: temp_upload_dir_info.path is defined

@@ -1,4 +1,4 @@
-venv/
+venv*
 gen/proto/v1
 *.db
 __pycache__
@@ -22,3 +22,6 @@ ansible/site/*
 gen/
 inventory*.yaml
 *.log
+cicd
+stuff*
+.coverage

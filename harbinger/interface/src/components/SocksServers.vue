@@ -20,11 +20,15 @@
   </div>
   <q-table :rows-per-page-options="[ 5, 10, 15, 20, 25, 50, 100 ]" title="Socks Servers" :rows="data" row-key="id" :columns="columns" :loading="loading"
     v-model:pagination="pagination" @request="store.onRequest">
-    <template v-slot:top>
-        <div class="col-2 q-table__title">Socks servers</div>
-        <q-space />
-        <filter-view object-type="socks/servers" v-model="filters" v-on:updateFilters="store.updateFilters" />
-      </template>
+    <template v-slot:top> 
+      <div class="row items-center" style="width: 100%;">
+        <div class="col-auto q-table__title">Socks Servers</div>
+      </div>
+      <div class="row" style="width: 100%;">
+        <filter-view object-type="socks/servers" v-model="filters" @updateFilters="store.updateFilters"
+          class="full-width" />
+      </div>
+    </template>
     <template v-slot:body="props">
       <q-tr :props="props">
         <q-td key="id" :props="props">

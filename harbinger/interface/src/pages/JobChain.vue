@@ -77,6 +77,9 @@
     </q-banner>
 
     <q-card flat>
+      <q-card-section>
+        <div class="text-h6">Playbook Steps</div>
+      </q-card-section>
       <q-tabs v-model="tab" dense class="text-grey" active-color="primary" indicator-color="primary" align="justify"
         narrow-indicator>
         <q-tab name="nodes" label="Nodes view" :class="$q.dark.isActive ? 'text-white' : 'text-black'" />
@@ -114,6 +117,9 @@
                 </div>
               </q-card-section>
               <q-card-section>
+                <q-expansion-item expand-separator icon="settings"
+                      caption="Settings">
+
                 <div class="row-equal-width">
                   <div class="row">
                     <div class="col">
@@ -153,13 +159,14 @@
                     <q-btn flat label="Save" icon="save" v-if="!readonly" @click="saveStep(step)" color="secondary" />
                   </div>
                 </div>
+                </q-expansion-item>
               </q-card-section>
               <proxy-job :readonly="readonly" v-if="step.proxy_job_id" :job_id="step.proxy_job_id"
-                @delete="onDelete(step.id)" @clone="clone(step.id)" />
+                @delete="onDelete(step.id)" @clone="clone(step.id)" :key="proxyReloadKey" />
               <c2-job v-else-if="step.c2_job_id" :dialog="true" :readonly="readonly" :job_id="step.c2_job_id"
-                @delete="onDelete(step.id)" @clone="clone(step.id)" />
+                @delete="onDelete(step.id)" @clone="clone(step.id)" :key="c2ReloadKey" />
               <empty-chain-step :step="step" v-on:refresh="loadData" @delete="onDelete(step.id)"
-                v-else-if="!readonly" />
+                v-else-if="!readonly"/>
             </q-card>
           </template>
           <q-btn icon="add" @click="addStep()" color="secondary" v-if="!readonly" />
@@ -222,9 +229,12 @@ const { id } = toRefs(props);
 const playbook = ref<Chain>({} as Chain);
 const { cache } = storeToRefs(store);
 
+const proxyReloadKey = ref(0);
+const c2ReloadKey = ref(0);
+
 watch(cache, () => {
   const test = cache.value[id.value]
-  if (test){
+  if (test) {
     playbook.value = test
   }
 }, { deep: true })
@@ -250,6 +260,8 @@ loadData()
 
 const debounced_load = debounce(function () {
   loadData()
+  proxyReloadKey.value++
+  c2ReloadKey.value++
 }, 10, false)
 
 function onSave() {
@@ -541,6 +553,7 @@ watch(current, (old_value, new_value) => {
 });
 
 watch(route, () => {
+  AddFilter({ playbook_id: id.value });
   loadData();
 });
 

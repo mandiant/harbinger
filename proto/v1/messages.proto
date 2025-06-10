@@ -125,7 +125,9 @@ message TaskRequest {
   string internal_id = 1;
   string c2_server_id = 2;
   string status = 3;
+  // This field should contain the internal representation of whatever parameters you have set. 
   string original_params = 4;
+  // This field should contain the human readable representation of the parameters, if available.
   string display_params = 5;
   string time_started = 6;
   string time_completed = 7;

@@ -717,6 +717,7 @@ export interface C2ServerArguments {
   name: string;
   regex: string;
   error: string;
+  type: string;
 }
 
 export interface C2ServerType {

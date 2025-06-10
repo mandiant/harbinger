@@ -253,6 +253,7 @@ def upgrade() -> None:
     sa.Column('regex', sa.String(), nullable=True),
     sa.Column('error', sa.String(), nullable=True),
     sa.Column('default', sa.String(), nullable=True),
+    sa.Column('type', sa.String(), nullable=True),
     sa.Column('c2_server_type_id', sa.UUID(), nullable=False),
     sa.Column('time_created', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
     sa.Column('time_updated', sa.DateTime(timezone=True), nullable=True),

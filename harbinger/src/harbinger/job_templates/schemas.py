@@ -19,6 +19,7 @@ from harbinger.database import crud
 from harbinger.job_templates import schemas
 from jinja2 import PackageLoader
 from jinja2.sandbox import SandboxedEnvironment
+from jinja2.ext import do
 from pydantic import UUID4, BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from enum import Enum
@@ -27,6 +28,7 @@ env = SandboxedEnvironment(
     loader=PackageLoader("harbinger.job_templates", "templates"),
     autoescape=False,
     enable_async=True,
+    extensions=[do],
 )
 
 
@@ -114,6 +116,7 @@ class Command(str, Enum):
     disableetw = "disableetw"
     disableamsi = "disableamsi"
     unhook = "unhook"
+    custom = "custom"
 
 
 class C2ImplantTemplateModel(BaseTemplateModel):
@@ -297,6 +300,18 @@ class Unhook(C2ImplantTemplateModel):
         return [self.file_id]
 
 
+class Custom(C2ImplantTemplateModel):
+    command: str = ""
+    arguments_str: str = ""
+    file_id: str = ""
+
+    class Settings:
+        command = Command.custom
+
+    async def files(self, db: AsyncSession) -> List[str]:
+        return [self.file_id] if self.file_id else []
+
+
 class MythicParameter(BaseModel):
     name: str
     from_value: str | None = None
@@ -340,6 +355,7 @@ LIST: list[Type[schemas.C2ImplantTemplateModel]] = [
     schemas.DisableAmsi,
     schemas.DisableEtw,
     schemas.Unhook,
+    schemas.Custom,
 ]
 
 C2_JOB_BASE_MAP: Dict[str, Type[schemas.C2ImplantTemplateModel]] = {

@@ -25,7 +25,7 @@ RUN git clone https://github.com/NH-RED-TEAM/RustHound.git .
 
 RUN make install
 
-FROM python:3.11
+FROM python:3.12
 
 RUN apt-get update && apt-get install -y proxychains4 tmate nmap nano unzip libldap2-dev libsasl2-dev libssl-dev && \
   mkdir /tools && \

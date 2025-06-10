@@ -20,23 +20,28 @@
     <q-table :rows-per-page-options="[5, 10, 15, 20, 25, 50, 100]" title="Certificate Authorities" :rows="data"
       row-key="id" :columns="columns" :loading="loading" v-model:pagination="pagination" @request="onRequest"
       :visible-columns="visible">
-      <template v-slot:top>
-        <div class="col-2 q-table__title">Certificate Authorities</div>
-        <q-space />
-        <filter-view object-type="certificate_authorities" v-model="filters" v-on:updateFilters="updateFilters" />
-        <q-select v-model="visible" multiple borderless dense options-dense :display-value="$q.lang.table.columns"
-          emit-value map-options :options="columns" option-value="name" style="min-width: 150px">
-          <template v-slot:option="{ itemProps, opt, selected, toggleOption }">
-            <q-item v-bind="itemProps">
-              <q-item-section>
-                <q-item-label :class="$q.dark.isActive ? 'text-white' : 'text-black'">{{ opt.label }}</q-item-label>
-              </q-item-section>
-              <q-item-section side>
-                <q-toggle :model-value="selected" @update:model-value="toggleOption(opt)" />
-              </q-item-section>
-            </q-item>
-          </template>
-        </q-select>
+      <template v-slot:top> 
+        <div class="row items-center" style="width: 100%;">
+          <div class="col-auto q-table__title">Certificate Authorities</div>
+          <q-space />
+          <q-select v-model="visible" multiple borderless dense options-dense :display-value="$q.lang.table.columns"
+            emit-value map-options :options="columns" option-value="name" style="min-width: 150px">
+            <template v-slot:option="{ itemProps, opt, selected, toggleOption }">
+              <q-item v-bind="itemProps">
+                <q-item-section>
+                  <q-item-label :class="$q.dark.isActive ? 'text-white' : 'text-black'">{{ opt.label }}</q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <q-toggle :model-value="selected" @update:model-value="toggleOption(opt)" />
+                </q-item-section>
+              </q-item>
+            </template>
+          </q-select>
+        </div>
+        <div class="row" style="width: 100%;">
+          <filter-view object-type="certificate_authorities" v-model="filters" @updateFilters="updateFilters"
+            class="full-width" />
+        </div>
       </template>
       <template v-slot:body="props">
         <q-tr :props="props" class="cursor-pointer">

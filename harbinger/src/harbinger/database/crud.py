@@ -20,6 +20,7 @@ import jinja2
 import yaml
 import random
 import string
+import re
 
 
 from harbinger.database.redis_pool import redis
@@ -30,18 +31,33 @@ from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from fastapi_users.db import SQLAlchemyUserDatabase
 from sqlalchemy import delete, desc, or_, select, update, and_, exc, Select
-from sqlalchemy.orm import joinedload, InstrumentedAttribute
+from sqlalchemy.orm import joinedload, InstrumentedAttribute, aliased
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import func
 from sqlalchemy.dialects.postgresql import insert
 from jinja2.sandbox import SandboxedEnvironment
 from jinja2 import PackageLoader
+from jinja2.ext import do
 from sqlalchemy.exc import IntegrityError
 import json
 from pydantic import TypeAdapter, UUID4, ValidationError
 from harbinger.database import filters
+from harbinger.database.database import SessionLocal
+from harbinger.database.cache import (
+    redis_cache,
+    redis_cache_invalidate,
+    invalidate_cache_entry,
+    redis_cache_fixed_key,
+)
 
 from . import models, schemas
+
+import logging
+
+CACHE_DECORATORS_AVAILABLE = True
+DEFAULT_CACHE_TTL = 3600  # 1 hour
+
+logger = logging.getLogger(__name__)
 
 
 async def send_event(object_type: str, name: str, object_id: str | UUID4) -> None:
@@ -55,6 +71,13 @@ async def send_event(object_type: str, name: str, object_id: str | UUID4) -> Non
     await redis.xadd(schemas.Streams.events, dict(message=event))  # type: ignore
 
 
+@redis_cache(
+    key_prefix="domain",
+    session_factory=SessionLocal,
+    schema=schemas.Domain,
+    key_param_name="domain_id",
+    ttl_seconds=DEFAULT_CACHE_TTL,
+)
 async def get_domain(
     db: AsyncSession, domain_id: str | UUID4
 ) -> Optional[models.Domain]:
@@ -238,7 +261,6 @@ async def get_domains(
     return result.scalars().unique().all()
 
 
-
 async def get_domains_filters(db: AsyncSession, filters: filters.DomainFilter):
     result: list[schemas.Filter] = []
     q: Select = (
@@ -264,10 +286,14 @@ async def create_domain(
     return db_domain
 
 
+@redis_cache_invalidate(
+    key_prefix="domain",
+    key_param_name="domain_id",
+)
 async def update_domain(
     db: AsyncSession, domain_id: str | UUID4, domain: schemas.DomainCreate
 ) -> Optional[models.Domain]:
-    domain_db = await get_domain(db, domain_id=domain_id)
+    domain_db = await db.get(models.Domain, domain_id)
     if domain_db:
         try:
             q = (
@@ -285,6 +311,13 @@ async def update_domain(
     return None
 
 
+@redis_cache(
+    key_prefix="password",
+    session_factory=SessionLocal,
+    schema=schemas.Password,
+    key_param_name="password_id",
+    ttl_seconds=DEFAULT_CACHE_TTL,
+)
 async def get_password(
     db: AsyncSession, password_id: str | UUID4
 ) -> Optional[models.Password]:
@@ -321,12 +354,26 @@ async def get_kerberos_paged(
     return await paginate(db, q.order_by(models.Kerberos.time_created.desc()))
 
 
+@redis_cache(
+    key_prefix="kerberos",
+    session_factory=SessionLocal,
+    schema=schemas.Kerberos,
+    key_param_name="kerberos_id",
+    ttl_seconds=DEFAULT_CACHE_TTL,
+)
 async def get_kerberos(
     db: AsyncSession, kerberos_id: str | UUID4
 ) -> Optional[models.Kerberos]:
     return await db.get(models.Kerberos, kerberos_id)
 
 
+@redis_cache(
+    key_prefix="credential",
+    session_factory=SessionLocal,
+    schema=schemas.Credential,
+    key_param_name="credential_id",
+    ttl_seconds=DEFAULT_CACHE_TTL,
+)
 async def get_credential(
     db: AsyncSession, credential_id: str | UUID4
 ) -> Optional[models.Credential]:
@@ -444,6 +491,13 @@ async def get_credentials_filters(db: AsyncSession, filters: filters.CredentialF
     return result
 
 
+@redis_cache(
+    key_prefix="proxy",
+    session_factory=SessionLocal,
+    schema=schemas.Proxy,
+    key_param_name="proxy_id",
+    ttl_seconds=DEFAULT_CACHE_TTL,
+)
 async def get_proxy(db: AsyncSession, proxy_id: str | UUID4) -> models.Proxy | None:
     return await db.get(models.Proxy, proxy_id)
 
@@ -486,7 +540,7 @@ async def get_proxy_filters(db: AsyncSession, filters: filters.ProxyFilter):
     lb_entry = await get_labels_for_q(db, q)
     result.extend(lb_entry)
 
-    for field in ['host', 'type', 'status', 'remote_hostname']:
+    for field in ["host", "type", "status", "remote_hostname"]:
         res = await create_filter_for_column(
             db, q, getattr(models.Proxy, field), field, field
         )
@@ -504,12 +558,23 @@ async def create_proxy(db: AsyncSession, proxy: schemas.ProxyCreate) -> models.P
     return db_proxy
 
 
+@redis_cache(
+    key_prefix="proxy_job",
+    session_factory=SessionLocal,
+    schema=schemas.ProxyJob,
+    key_param_name="job_id",
+    ttl_seconds=DEFAULT_CACHE_TTL,
+)
 async def get_proxy_job(
     db: AsyncSession, job_id: str | UUID4
 ) -> Optional[models.ProxyJob]:
     return await db.get(models.ProxyJob, job_id)
 
 
+@redis_cache_invalidate(
+    key_prefix="proxy_job",
+    key_param_name="job_id",
+)
 async def update_proxy_job(
     db: AsyncSession, job_id: str | UUID4, job: schemas.ProxyJobCreate
 ) -> Optional[models.ProxyJob]:
@@ -521,15 +586,17 @@ async def update_proxy_job(
     await delete_input_files(db, proxy_job_id=job_id)
     for input_file in input_files:
         await create_input_file(db, input_file, proxy_job_id=job_id)
-    proxy_job = await get_proxy_job(db, job_id)
+    proxy_job = await db.get(models.ProxyJob, job_id)
+    await send_event(schemas.Event.proxy_job, schemas.EventType.update, proxy_job.id)
     if proxy_job and proxy_job.playbook_id:
-        msg = messages_pb2.Event(event="updated_proxy_job", id=str(proxy_job.id))
-        await redis.publish(
-            f"playbook_stream_{proxy_job.playbook_id}", msg.SerializeToString()
-        )
+        await send_update_playbook(proxy_job.playbook_id, "updated_proxy_job", str(proxy_job.id))
     return proxy_job
 
 
+@redis_cache_invalidate(
+    key_prefix="proxy_job",
+    key_param_name="job_id",
+)
 async def update_proxy_job_status(
     db: AsyncSession, status: str | None, job_id: str | UUID4, exit_code: int = 0
 ) -> Optional[models.ProxyJob]:
@@ -727,22 +794,39 @@ async def add_file(
     return file
 
 
+@redis_cache_invalidate(
+    key_prefix="file",
+    key_param_name="file_id",
+)
 async def update_file(
     db: AsyncSession, file_id: str | uuid.UUID, file: schemas.FileUpdate
 ) -> None:
     q = update(models.File).where(models.File.id == file_id).values(**file.model_dump())
     await db.execute(q)
     await db.commit()
+    await send_event(schemas.Event.file, schemas.EventType.update, str(file_id))
 
 
+@redis_cache_invalidate(
+    key_prefix="file",
+    key_param_name="file_id",
+)
 async def update_file_path(
     db: AsyncSession, file_id: str | uuid.UUID, path: str
 ) -> None:
     q = update(models.File).where(models.File.id == file_id).values(path=path)
     await db.execute(q)
     await db.commit()
+    await send_event(schemas.Event.file, schemas.EventType.update, str(file_id))
 
 
+@redis_cache(
+    key_prefix="file",
+    session_factory=SessionLocal,
+    schema=schemas.File,
+    key_param_name="file_id",
+    ttl_seconds=DEFAULT_CACHE_TTL,
+)
 async def get_file(db: AsyncSession, file_id: str | uuid.UUID) -> Optional[models.File]:
     return await db.get(models.File, file_id)
 
@@ -874,12 +958,17 @@ async def search_files(
     return result.scalars().unique().all()
 
 
+@redis_cache_invalidate(
+    key_prefix="file",
+    key_param_name="file_id",
+)
 async def update_file_type(
     db: AsyncSession, file_id: str | uuid.UUID, filetype: schemas.FileType | str | None
 ) -> Optional[models.File]:
     q = update(models.File).where(models.File.id == file_id).values(filetype=filetype)
     await db.execute(q)
     await db.commit()
+    await send_event(schemas.Event.file, schemas.EventType.update, str(file_id))
 
 
 async def update_or_create_proxy(
@@ -937,6 +1026,7 @@ env = SandboxedEnvironment(
     enable_async=True,
     autoescape=False,
     loader=PackageLoader("harbinger.job_templates", "templates"),
+    extensions=[do],
 )
 env.filters["shuffle"] = filter_shuffle
 
@@ -949,22 +1039,7 @@ async def preview_chain_from_template(
         c2_implant_id=arguments.get("c2_implant", None),
         retrieve_parents=True,
     )
-    arguments_list = list(arguments.keys())
-    for argument in arguments_list:
-        if argument.startswith("credential_id"):
-            credential = await get_credential(db, arguments[argument])
-            if credential:
-                arguments[argument.replace("_id", "")] = credential
-
-        if argument.startswith("c2_implant_id"):
-            c2_implant = await get_c2_implant(db, arguments[argument])
-            if c2_implant:
-                arguments[argument.replace("_id", "")] = c2_implant
-
-        if argument.startswith("kerberos_id"):
-            kerberos = await get_kerberos(db, arguments[argument])
-            if kerberos:
-                arguments[argument.replace("_id", "")] = kerberos
+    await _process_dynamic_argument_ids(db, arguments)
 
     result = dict(steps="", valid=False, errors="", steps_errors="")
     try:
@@ -991,6 +1066,37 @@ async def preview_chain_from_template(
     return result
 
 
+async def _process_dynamic_argument_ids(db: AsyncSession, arguments: dict[str, Any]):
+    """
+    Helper function to dynamically process arguments ending with '_id<number>'
+    and replace them with the corresponding model instance, preserving the number.
+    """
+    
+    # Define a mapping of base prefixes to their corresponding models
+    # This dictionary now contains only the base names without numbers
+    model_mappings = {
+        "credential": models.Credential,
+        "c2_implant": models.C2Implant,
+        "kerberos": models.Kerberos,
+        "file": models.File,
+    }
+
+    arguments_to_process = list(arguments.keys()) # Create a copy to iterate safely
+    
+    for arg_key in arguments_to_process:
+        for base_prefix, model_class in model_mappings.items():
+            # Use regex to match patterns like "credential_id", "credential_id1", "file_id5", etc.
+            match = re.fullmatch(rf"{base_prefix}_id(\d*)", arg_key)
+            if match:
+                suffix = match.group(1) # This will be "" for "credential_id" or "1" for "credential_id1"
+                item_id = arguments[arg_key]
+                item = await db.get(model_class, item_id)
+                if item:
+                    new_key = f"{base_prefix}{suffix}"
+                    arguments[new_key] = item
+                break
+
+
 async def create_chain_from_template(
     db: AsyncSession, chain: schemas.PlaybookTemplate, arguments: dict
 ) -> models.Playbook:
@@ -999,22 +1105,7 @@ async def create_chain_from_template(
         c2_implant_id=arguments.get("c2_implant", None),
         retrieve_parents=True,
     )
-    arguments_list = list(arguments.keys())
-    for argument in arguments_list:
-        if argument.startswith("credential_id"):
-            credential = await get_credential(db, arguments[argument])
-            if credential:
-                arguments[argument.replace("_id", "")] = credential
-
-        if argument.startswith("c2_implant_id"):
-            c2_implant = await get_c2_implant(db, arguments[argument])
-            if c2_implant:
-                arguments[argument.replace("_id", "")] = c2_implant
-
-        if argument.startswith("kerberos_id"):
-            kerberos = await get_kerberos(db, arguments[argument])
-            if kerberos:
-                arguments[argument.replace("_id", "")] = kerberos
+    await _process_dynamic_argument_ids(db, arguments)
 
     value_template = env.from_string(chain.steps or "")
     steps_str = await value_template.render_async(**arguments, labels=labels)
@@ -1048,8 +1139,8 @@ async def create_chain_from_template(
 
         if step.type == schemas.C2Type.proxy:
             from harbinger.job_templates.proxy import PROXY_JOB_BASE_MAP
-
-            proxy_job = PROXY_JOB_BASE_MAP[step.name](**arguments, **extra_args)
+            args = {**arguments, **extra_args}
+            proxy_job = PROXY_JOB_BASE_MAP[step.name](**args)
             job_db = await create_proxy_job(
                 db,
                 schemas.ProxyJobCreate(
@@ -1058,6 +1149,9 @@ async def create_chain_from_template(
                     arguments=await proxy_job.generate_arguments(db),
                     input_files=await proxy_job.files(db),
                     socks_server_id=proxy_job.socks_server_id,
+                    tmate=step.tmate,
+                    asciinema=step.asciinema,
+                    proxychains=step.proxychains,
                     # add_labels=getattr(job.Settings, "add_labels", None),
                 ),
             )
@@ -1121,7 +1215,9 @@ async def create_chain(
     return db_chain
 
 
-async def clone_chain(db: AsyncSession, chain: models.Playbook) -> models.Playbook:
+async def clone_chain(
+    db: AsyncSession, chain: models.Playbook | schemas.ProxyChainGraph
+) -> models.Playbook:
     new_chain = models.Playbook(
         playbook_name=f"Clone of {chain.playbook_name}",
         description=chain.description,
@@ -1150,7 +1246,9 @@ async def get_playbooks(
     limit: int = 0,
 ) -> Iterable[models.Playbook]:
     q: Select = (
-        select(models.Playbook).outerjoin(models.Playbook.labels).group_by(models.Playbook.id)
+        select(models.Playbook)
+        .outerjoin(models.Playbook.labels)
+        .group_by(models.Playbook.id)
     )
     q = q.outerjoin(models.Playbook.labels)
     q = filters.filter(q)  # type: ignore
@@ -1160,10 +1258,14 @@ async def get_playbooks(
     return result.scalars().unique().all()
 
 
+@redis_cache_invalidate(
+    key_prefix="playbook",
+    key_param_name="playbook_id",
+)
 async def update_chain(
     db: AsyncSession, playbook_id: str, chain: schemas.ProxyChainCreate
 ) -> Optional[models.Playbook]:
-    db_chain = await get_playbook(db, playbook_id)
+    db_chain = await db.get(models.Playbook, id)
     if db_chain:
         db_chain.playbook_name = chain.playbook_name  # type: ignore
         db_chain.description = chain.description  # type: ignore
@@ -1175,7 +1277,7 @@ async def update_chain(
     return db_chain
 
 
-async def send_update_playbook(playbook_id: str, event_name: str, id: str = ''):
+async def send_update_playbook(playbook_id: str, event_name: str, id: str = ""):
     msg = messages_pb2.Event(event=event_name, id=id)
     await redis.publish(f"playbook_stream_{playbook_id}", msg.SerializeToString())
 
@@ -1212,6 +1314,13 @@ async def get_playbooks_filters(db: AsyncSession, filters: filters.PlaybookFilte
     return result
 
 
+@redis_cache(
+    key_prefix="playbook",
+    session_factory=SessionLocal,
+    schema=schemas.ProxyChainGraph,  # Ensure this schema exists and matches model
+    key_param_name="id",  # Key parameter is named 'id' here
+    ttl_seconds=DEFAULT_CACHE_TTL,
+)
 async def get_playbook(db: AsyncSession, id: UUID4 | str) -> Optional[models.Playbook]:
     return await db.get(models.Playbook, id)
 
@@ -1311,15 +1420,14 @@ async def clone_chain_step(
                 ),
             )
     if playbook_id:
-        msg = messages_pb2.Event(event="new_step", id=str(new_step.id))
-        await redis.publish(f"playbook_stream_{playbook_id}", msg.SerializeToString())
+        await send_update_playbook(playbook_id, "new_step", id=str(new_step.id))
     return new_step
 
 
 async def clone_c2_job(
     db: AsyncSession, c2_job_id: str, playbook_id: str | None = None
 ) -> models.C2Job | None:
-    c2_job = await get_c2_job(db, c2_job_id)
+    c2_job = await db.get(models.C2Job, c2_job_id)
     if c2_job:
         new_c2_job = await create_c2_job(
             db,
@@ -1338,7 +1446,7 @@ async def clone_c2_job(
 async def clone_proxy_job(
     db: AsyncSession, proxy_job_id: str, playbook_id: str | None = None
 ) -> models.ProxyJob | None:
-    proxy_job = await get_proxy_job(db, proxy_job_id)
+    proxy_job = await db.get(models.ProxyJob, proxy_job_id)
     if proxy_job:
         new_proxy_job = await create_proxy_job(
             db,
@@ -1359,6 +1467,10 @@ async def clone_proxy_job(
         return new_proxy_job
 
 
+@redis_cache_invalidate(
+    key_prefix="playbook",
+    key_param_name="playbook_id",
+)
 async def update_chain_status(
     db: AsyncSession, status: str, playbook_id: str | UUID4, completed: int
 ) -> Optional[models.Playbook]:
@@ -1401,6 +1513,10 @@ async def update_action_status(
     await db.commit()
 
 
+@redis_cache_invalidate(
+    key_prefix="playbook_step",
+    key_param_name="step_id",
+)
 async def update_step_status(
     db: AsyncSession, status: str, step_id: str | uuid.UUID
 ) -> Optional[models.PlaybookStep]:
@@ -1423,7 +1539,7 @@ async def update_step_status(
         await redis.publish(
             f"playbook_stream_{step.playbook_id}", msg.SerializeToString()
         )
-        
+
         return step
 
 
@@ -1450,9 +1566,8 @@ async def get_chain_step_by_c2_job_id(
     except exc.NoResultFound:
         return None
 
-
 async def update_playbook_steps(db: AsyncSession, playbook_id: str | uuid.UUID) -> None:
-    playbook = await get_playbook(db, playbook_id)
+    playbook = await get_playbook(playbook_id)
     if playbook:
         count = 0
         steps = await get_playbook_steps(db, 0, 100000, playbook_id)
@@ -1460,8 +1575,8 @@ async def update_playbook_steps(db: AsyncSession, playbook_id: str | uuid.UUID) 
             count += 1
             step.number = count
             db.add(step)
-        playbook.steps = count
-        db.add(playbook)
+
+        await db.execute(update(models.Playbook).where(models.Playbook.id == playbook_id).values(steps=count))
         await db.commit()
         await send_event(schemas.Event.playbook, schemas.EventType.update, playbook_id)
 
@@ -1488,10 +1603,7 @@ async def delete_step(db: AsyncSession, step_id: str) -> None:
         await db.commit()
         if playbook_id:
             await update_playbook_steps(db, playbook_id)
-            msg = messages_pb2.Event(event="deleted_step", id=str(step_id))
-            await redis.publish(
-                f"playbook_stream_{playbook_id}", msg.SerializeToString()
-            )
+            await send_update_playbook(playbook_id, "deleted_step", str(step_id))
 
 
 def divmod_excel(n: int) -> Tuple[int, int]:
@@ -1537,14 +1649,15 @@ async def add_step(
     await db.refresh(db_step)
     if step.playbook_id:
         await update_playbook_steps(db, step.playbook_id)
-        msg = messages_pb2.Event(event="new_step", id=str(db_step.id))
-        await redis.publish(
-            f"playbook_stream_{step.playbook_id}", msg.SerializeToString()
-        )
+        await send_update_playbook(step.playbook_id, "new_step", str(db_step.id))
     await send_event(schemas.Event.playbook_step, schemas.EventType.new, db_step.id)
     return db_step
 
 
+@redis_cache_invalidate(
+    key_prefix="playbook_step",
+    key_param_name="step_id",
+)
 async def update_step(
     db: AsyncSession, step_id: str, step: schemas.ChainStepCreate
 ) -> Optional[models.PlaybookStep]:
@@ -1562,13 +1675,13 @@ async def update_step(
         await db.commit()
         if step.playbook_id:
             await update_playbook_steps(db, step.playbook_id)
-            msg = messages_pb2.Event(event="updated_step", id=str(db_step.id))
-            await redis.publish(
-                f"playbook_stream_{step.playbook_id}", msg.SerializeToString()
-            )
+            await send_update_playbook(step.playbook_id, "updated_step", str(db_step.id))
         await db.refresh(db_step)
-        await send_event(schemas.Event.playbook_step, schemas.EventType.update, db_step.id)
+        await send_event(
+            schemas.Event.playbook_step, schemas.EventType.update, db_step.id
+        )
         return db_step
+    return None
 
 
 async def get_c2_jobs_paged(
@@ -1629,10 +1742,21 @@ async def create_c2_job(db: AsyncSession, job: schemas.C2JobCreate) -> models.C2
     return db_obj
 
 
+@redis_cache(
+    key_prefix="c2_job",
+    session_factory=SessionLocal,
+    schema=schemas.C2Job,  # Ensure this schema exists
+    key_param_name="job_id",
+    ttl_seconds=DEFAULT_CACHE_TTL,
+)
 async def get_c2_job(db: AsyncSession, job_id: str | UUID4) -> Optional[models.C2Job]:
     return await db.get(models.C2Job, job_id)
 
 
+@redis_cache_invalidate(
+    key_prefix="c2_job",
+    key_param_name="c2_job_id",
+)
 async def update_c2_job(
     db: AsyncSession, c2_job_id: str | UUID4, job: schemas.C2JobCreate
 ) -> Optional[models.C2Job]:
@@ -1645,16 +1769,17 @@ async def update_c2_job(
     for input_file in input_files:
         await create_input_file(db, input_file, c2_job_id=c2_job_id)
 
-    c2_job = await get_c2_job(db, c2_job_id)
+    c2_job = await db.get(models.C2Job, c2_job_id)
     if c2_job and c2_job.playbook_id:
-        msg = messages_pb2.Event(event="updated_c2_job", id=str(c2_job_id))
-        await redis.publish(
-            f"playbook_stream_{c2_job.playbook_id}", msg.SerializeToString()
-        )
+        await send_update_playbook(c2_job.playbook_id, "updated_c2_job", str(c2_job_id))
     await send_event(schemas.Event.c2_job, schemas.EventType.update, c2_job_id)
     return c2_job
 
 
+@redis_cache_invalidate(
+    key_prefix="c2_job",
+    key_param_name="c2_job_id",
+)
 async def update_c2_job_status(
     db: AsyncSession,
     c2_job_id: str | UUID4,
@@ -1853,6 +1978,13 @@ async def get_labels_for_q(db: AsyncSession, q) -> list[schemas.Filter]:
     return [lb_entry]
 
 
+@redis_cache(
+    key_prefix="host",
+    session_factory=SessionLocal,
+    schema=schemas.Host,  # Ensure this schema exists
+    key_param_name="host_id",
+    ttl_seconds=DEFAULT_CACHE_TTL,
+)
 async def get_host(db: AsyncSession, host_id: str | uuid.UUID) -> Optional[models.Host]:
     return await db.get(models.Host, host_id)
 
@@ -1910,6 +2042,10 @@ async def get_or_create_host(
     return created, host
 
 
+@redis_cache_invalidate(
+    key_prefix="host",
+    key_param_name="host_id",
+)
 async def update_host(
     db: AsyncSession, host_id: str | uuid.UUID, host: schemas.HostBase
 ) -> Optional[models.Host]:
@@ -1925,9 +2061,14 @@ async def update_host(
     await db.execute(q)
     await db.commit()
     await send_event(schemas.Event.host, schemas.EventType.update, host_id)
-    return await get_host(db, host_id)
+    return await db.get(models.Host, host_id)
 
 
+@redis_cache_fixed_key(
+    cache_key="job_statistics",
+    session_factory=SessionLocal,  # Use your SessionLocal
+    schema=schemas.StatisticsItems,
+)
 async def get_job_statistics(db: AsyncSession) -> dict:
     stats = {}
     q = select(models.ProxyJob.status, func.count(models.ProxyJob.id)).group_by(
@@ -1950,6 +2091,11 @@ async def get_job_statistics(db: AsyncSession) -> dict:
     return dict(items=[dict(key=key, value=value) for key, value in stats.items()])
 
 
+@redis_cache_fixed_key(
+    cache_key="implant_statistics",
+    session_factory=SessionLocal,  # Use your SessionLocal
+    schema=schemas.StatisticsItems,
+)
 async def get_implant_statistics(db: AsyncSession) -> dict:
     stats = {}
     q = select(models.C2Implant.payload_type, func.count(models.C2Implant.id)).group_by(
@@ -1968,6 +2114,13 @@ async def get_implant_statistics(db: AsyncSession) -> dict:
     )
 
 
+@redis_cache(
+    key_prefix="playbook_template",
+    session_factory=SessionLocal,
+    schema=schemas.PlaybookTemplateView,  # Ensure this schema exists and matches model
+    key_param_name="template_id",
+    ttl_seconds=DEFAULT_CACHE_TTL,
+)
 async def get_playbook_template(
     db: AsyncSession, template_id: str | uuid.UUID
 ) -> Optional[models.PlaybookTemplate]:
@@ -2038,7 +2191,7 @@ def create_random_color():
 async def create_playbook_template(
     db: AsyncSession, playbook_template: schemas.PlaybookTemplateCreate
 ) -> models.PlaybookTemplate:
-    template = await get_playbook_template(db, playbook_template.id)
+    template = await get_playbook_template(playbook_template.id)
     exists = False
     if not template:
         template = models.PlaybookTemplate(
@@ -2066,7 +2219,10 @@ async def create_playbook_template(
             )
         )
         await db.commit()
-        await db.refresh(template)
+        template = await db.get(models.PlaybookTemplate, playbook_template.id)
+        orm_template_instance = await db.get(models.PlaybookTemplate, playbook_template.id)
+        if orm_template_instance:
+            template = orm_template_instance
 
     if exists:
         await delete_label_item(
@@ -2176,11 +2332,53 @@ async def send_label_events(
 ) -> None:
     dumped_label = label.model_dump(exclude_unset=True)
     dumped_label.pop("label_id", None)
+
     for key, value in dumped_label.items():
-        key = key.replace("_id", "")
-        event = getattr(schemas.Event, key, None)
-        if event:
-            await send_event(event, schemas.EventType.update, value)
+        # Ensure value is not None and key ends with _id (conventional FK name)
+        if value is not None and key.endswith("_id"):
+            # Derive the object type/cache prefix from the key name
+            # e.g., 'host_id' -> 'host', 'c2_implant_id' -> 'c2_implant'
+            key_prefix = key.replace("_id", "")
+
+            # --- Added Cache Invalidation Call ---
+            logger.info(
+                f"Invalidating cache for {key_prefix=}, {value=} due to label change."
+            )
+            try:
+                # Call the standalone invalidation function
+                invalidated = await invalidate_cache_entry(
+                    key_prefix=key_prefix, key_value=value
+                )
+                if not invalidated:
+                    logger.warning(
+                        f"Cache entry for {key_prefix}:{value} may not have existed or Redis error occurred during invalidation."
+                    )
+            except Exception as e:
+                # Catch potential errors from the invalidation function itself
+                logger.error(
+                    f"Error during cache invalidation call for {key_prefix}:{value}: {e}",
+                    exc_info=True,
+                )
+            # --- End Added Call ---
+
+            # Existing event sending logic
+            event = getattr(
+                schemas.Event, key_prefix, None
+            )  # Use derived prefix for event type
+            logger.error(f"Sending event: {event}")
+            if event:
+                # Assuming send_event is defined and imported correctly
+                await send_event(event, schemas.EventType.update, value)
+            else:
+                logger.warning(
+                    f"No matching schemas.Event found for key_prefix '{key_prefix}' derived from '{key}'. Cannot send generic event."
+                )
+
+    # for key, value in dumped_label.items():
+    #     key = key.replace("_id", "")
+    #     event = getattr(schemas.Event, key, None)
+    #     if event:
+    #         await send_event(event, schemas.EventType.update, value)
 
 
 async def create_label_item(
@@ -2328,6 +2526,13 @@ async def get_c2_implants(
     return result.scalars().unique().all()
 
 
+@redis_cache(
+    key_prefix="c2_implant",
+    session_factory=SessionLocal,
+    schema=schemas.C2Implant,  # Ensure this schema exists
+    key_param_name="c2_implant_id",
+    ttl_seconds=DEFAULT_CACHE_TTL,
+)
 async def get_c2_implant(
     db: AsyncSession, c2_implant_id: str | uuid.UUID
 ) -> Optional[models.C2Implant]:
@@ -2441,6 +2646,13 @@ async def get_c2_output_filters(
     return result
 
 
+@redis_cache(
+    key_prefix="c2_output",
+    session_factory=SessionLocal,
+    schema=schemas.C2Output,  # Ensure this schema exists
+    key_param_name="c2_output_id",
+    ttl_seconds=DEFAULT_CACHE_TTL,
+)
 async def get_c2_output(
     db: AsyncSession, c2_output_id: str | UUID4
 ) -> Optional[models.C2Output]:
@@ -2453,9 +2665,30 @@ async def get_c2_server(
     return await db.get(models.C2Server, c2_server_id)
 
 
+async def get_c2_servers_filters(db: AsyncSession, filters: filters.C2ServerFilter):
+    result: list[schemas.Filter] = []
+    q: Select = (
+        select(func.count(models.C2Server.id.distinct()).label("count_1"))
+        .outerjoin(models.LabeledItem)
+        .outerjoin(models.Label)
+    )
+    q = filters.filter(q)  # type: ignore
+
+    lb_entry = await get_labels_for_q(db, q)
+    result.extend(lb_entry)
+
+    for field in ["type", "name", "hostname", "username"]:
+        res = await create_filter_for_column(
+            db, q, getattr(models.C2Server, field), field, field
+        )
+        result.append(res)
+
+    return result
+
+
 async def update_c2_server(
     db: AsyncSession, c2_server_id: str, c2_server: schemas.C2ServerCreate
-) -> models.C2Server:
+) -> models.C2Server | None:
     q = (
         update(models.C2Server)
         .where(models.C2Server.id == c2_server_id)
@@ -2464,20 +2697,24 @@ async def update_c2_server(
     await db.execute(q)
     await db.commit()
     await send_event(schemas.Event.c2_server, schemas.EventType.update, c2_server_id)
-    return await get_c2_server(db, c2_server_id)
+    return await db.get(models.C2Server, c2_server_id)
 
 
 async def create_c2_server(
     db: AsyncSession, c2_server: schemas.C2ServerCreate
-) -> models.C2Server:
+) -> models.C2Server | None:
     db_c2_server = models.C2Server(**c2_server.model_dump())
     db.add(db_c2_server)
     await db.commit()
     await db.refresh(db_c2_server)
     await send_event(schemas.Event.c2_server, schemas.EventType.new, db_c2_server.id)
-    return await get_c2_server(db, db_c2_server.id)
+    return db_c2_server
 
 
+@redis_cache_invalidate(
+    key_prefix="c2_implant",
+    key_param_name="c2_implant_id",
+)
 async def update_c2_implant(
     db: AsyncSession, c2_implant_id: str | UUID4, implant: schemas.C2ImplantUpdate
 ) -> Optional[models.C2Implant]:
@@ -2487,12 +2724,12 @@ async def update_c2_implant(
     )
     # If the dict is empty, performing the query will raise an exception.
     if not data:
-        return await get_c2_implant(db, c2_implant_id)
+        return await db.get(models.C2Implant, c2_implant_id)
     q = q.values(**data)
     await db.execute(q)
     await db.commit()
     await send_event(schemas.Event.c2_implant, schemas.EventType.update, c2_implant_id)
-    return await get_c2_implant(db, c2_implant_id)
+    return await db.get(models.C2Implant, c2_implant_id)
 
 
 async def create_or_update_c2_implant(
@@ -2521,6 +2758,7 @@ async def create_or_update_c2_implant(
         )
         await db.execute(q)
         await db.commit()
+        await invalidate_cache_entry("c2_implant", db_implant.id)
         await send_event(
             schemas.Event.c2_implant, schemas.EventType.update, db_implant.id
         )
@@ -2558,6 +2796,7 @@ async def create_or_update_c2_task(
         q = q.values(**data)
         await db.execute(q)
         await db.commit()
+        await invalidate_cache_entry("c2_task", db_task.id)
         await send_event(schemas.Event.c2_task, schemas.EventType.update, db_task.id)
     else:
         db_task = models.C2Task(**data)
@@ -2569,7 +2808,9 @@ async def create_or_update_c2_task(
     return new, db_task
 
 
-async def create_c2_task_output(db: AsyncSession, c2_outputs: schemas.C2OutputCreate) -> Tuple[bool, models.C2Output]:
+async def create_c2_task_output(
+    db: AsyncSession, c2_outputs: schemas.C2OutputCreate
+) -> Tuple[bool, models.C2Output]:
     data = c2_outputs.model_dump()
     data.pop("internal_task_id", None)
     data.pop("processes", [])
@@ -2579,7 +2820,7 @@ async def create_c2_task_output(db: AsyncSession, c2_outputs: schemas.C2OutputCr
     data.pop("file_list", "")
 
     q = insert(models.C2Output).values(**data).values(time_created=func.now())
-    data['time_updated'] = func.now()
+    data["time_updated"] = func.now()
     update_stmt = q.on_conflict_do_update("c2_output_uc", set_=data)
     result = await db.scalars(
         update_stmt.returning(models.C2Output),
@@ -2592,8 +2833,13 @@ async def create_c2_task_output(db: AsyncSession, c2_outputs: schemas.C2OutputCr
     return result.time_updated == None, result
 
 
-
-
+@redis_cache(
+    key_prefix="c2_task",
+    session_factory=SessionLocal,
+    schema=schemas.C2Task,  # Ensure this schema exists
+    key_param_name="c2_task_id",
+    ttl_seconds=DEFAULT_CACHE_TTL,
+)
 async def get_c2_task(db, c2_task_id: str | UUID4) -> Optional[models.C2Task]:
     return await db.get(models.C2Task, c2_task_id)
 
@@ -2640,6 +2886,7 @@ async def update_c2_task_summary(
     )
     await db.execute(q)
     await db.commit()
+    await invalidate_cache_entry("c2_task", c2_task_id)
     await send_event(schemas.Event.c2_task, schemas.EventType.update, c2_task_id)
 
 
@@ -2727,6 +2974,14 @@ async def get_situational_awarenesss_filters(
     return result
 
 
+# --- SituationalAwareness ---
+@redis_cache(
+    key_prefix="situational_awareness",
+    session_factory=SessionLocal,
+    schema=schemas.SituationalAwareness,  # Ensure this schema exists
+    key_param_name="sa_id",
+    ttl_seconds=DEFAULT_CACHE_TTL,
+)
 async def get_situational_awareness(
     db, sa_id: str | UUID4
 ) -> Optional[models.SituationalAwareness]:
@@ -2790,6 +3045,11 @@ async def get_or_create_situational_awareness(
     return created, sa_db
 
 
+@redis_cache_fixed_key(
+    cache_key="sa_statistics",
+    session_factory=SessionLocal,  # Use your SessionLocal
+    schema=schemas.StatisticsItems,
+)
 async def get_sa_statistics(db: AsyncSession) -> dict:
     stats = {}
     q = select(
@@ -2887,6 +3147,13 @@ async def get_share_filters(
     return result
 
 
+@redis_cache(
+    key_prefix="share",
+    session_factory=SessionLocal,
+    schema=schemas.Share,  # Ensure this schema exists
+    key_param_name="share_id",
+    ttl_seconds=DEFAULT_CACHE_TTL,
+)
 async def get_share(db: AsyncSession, share_id: str | UUID4) -> Optional[models.Share]:
     return await db.get(models.Share, share_id)
 
@@ -2911,9 +3178,16 @@ async def create_share_file(
     return result.unique().one()
 
 
-async def set_share_file_downloaded(db: AsyncSession, share_file_id: str | UUID4) -> None:
-    await db.execute(update(models.ShareFile).where(models.ShareFile.id == share_file_id).values(downloaded=True))
+async def set_share_file_downloaded(
+    db: AsyncSession, share_file_id: str | UUID4
+) -> None:
+    await db.execute(
+        update(models.ShareFile)
+        .where(models.ShareFile.id == share_file_id)
+        .values(downloaded=True)
+    )
     await db.commit()
+    await invalidate_cache_entry("share_file", share_file_id)
     await send_event(schemas.Event.share_file, schemas.EventType.update, share_file_id)
 
 
@@ -3027,6 +3301,13 @@ async def get_share_file_filters(db: AsyncSession, filters: filters.ShareFileFil
     return result
 
 
+@redis_cache(
+    key_prefix="share_file",
+    session_factory=SessionLocal,
+    schema=schemas.ShareFile,  # Ensure this schema exists
+    key_param_name="id",
+    ttl_seconds=DEFAULT_CACHE_TTL,
+)
 async def get_share_file(
     db: AsyncSession, id: UUID4 | str
 ) -> Optional[models.ShareFile]:
@@ -3135,6 +3416,11 @@ async def save_objects(
         )
 
 
+@redis_cache_fixed_key(
+    cache_key="share_statistics",
+    session_factory=SessionLocal,  # Use your SessionLocal
+    schema=schemas.StatisticsItems,
+)
 async def get_share_statistics(db: AsyncSession) -> dict:
     stats = {}
     q = select(func.count(models.Share.id))
@@ -3221,6 +3507,11 @@ async def delete_c2_server_status_custom(
     await db.commit()
 
 
+@redis_cache_fixed_key(
+    cache_key="c2_server_statistics",
+    session_factory=SessionLocal,  # Use your SessionLocal
+    schema=schemas.StatisticsItems,
+)
 async def get_c2_server_statistics(db: AsyncSession) -> dict:
     stats = {}
     c2_server_stats = {}
@@ -3290,6 +3581,13 @@ async def create_hash(
         return True, hash_db
 
 
+@redis_cache(
+    key_prefix="hash",
+    session_factory=SessionLocal,
+    schema=schemas.Hash,  # Ensure this schema exists
+    key_param_name="hash_id",
+    ttl_seconds=DEFAULT_CACHE_TTL,
+)
 async def get_hash(db: AsyncSession, hash_id: UUID4 | str) -> Optional[models.Hash]:
     return await db.get(models.Hash, hash_id)
 
@@ -3540,6 +3838,13 @@ async def create_parse_result(
     return result_db
 
 
+@redis_cache(
+    key_prefix="parse_result",
+    session_factory=SessionLocal,
+    schema=schemas.ParseResult,  # Ensure this schema exists
+    key_param_name="result_id",
+    ttl_seconds=DEFAULT_CACHE_TTL,
+)
 async def get_parse_result(
     db: AsyncSession, result_id: UUID4 | str
 ) -> Optional[models.ParseResult]:
@@ -3585,6 +3890,13 @@ async def create_highlight(
     return result
 
 
+@redis_cache(
+    key_prefix="highlight",
+    session_factory=SessionLocal,
+    schema=schemas.Highlight,  # Ensure this schema exists
+    key_param_name="highlight_id",
+    ttl_seconds=DEFAULT_CACHE_TTL,
+)
 async def get_highlight(
     db: AsyncSession, highlight_id: UUID4 | str
 ) -> Optional[models.Highlight]:
@@ -3722,11 +4034,20 @@ async def create_socks_server(
     return result.unique().one()
 
 
+@redis_cache(
+    key_prefix="socks_server",
+    session_factory=SessionLocal,
+    schema=schemas.SocksServer,  # Ensure this schema exists
+    key_param_name="id",
+    ttl_seconds=DEFAULT_CACHE_TTL,
+)
 async def get_socks_server(db: AsyncSession, id: UUID4) -> Optional[models.SocksServer]:
     return await db.get(models.SocksServer, id)
 
 
-async def list_socks_servers_paged(db: AsyncSession, filters: filters.SocksServerFilter):
+async def list_socks_servers_paged(
+    db: AsyncSession, filters: filters.SocksServerFilter
+):
     q: Select = select(models.SocksServer)
     q = q.outerjoin(models.SocksServer.labels)
     q = filters.filter(q)  # type: ignore
@@ -3820,6 +4141,10 @@ async def get_action_filters(db: AsyncSession, filters: filters.ActionFilter):
     return result
 
 
+async def get_action(db: AsyncSession, id: UUID4) -> Optional[models.Action]:
+    return await db.get(models.Action, id)
+
+
 async def delete_action_playbook_mapping(
     db: AsyncSession, action_id: UUID4 | str
 ) -> None:
@@ -3883,38 +4208,74 @@ async def create_action(db: AsyncSession, action: schemas.ActionCreate) -> None:
     await delete_action_playbook_mapping(db, action.id)
 
     for template_id in action.playbook_template_ids or []:
-        await add_action_playbook_mapping(
+        added = await add_action_playbook_mapping(
             db, action_id=action.id, playbook_template_id=template_id
         )
+    await db.commit()
 
 
 async def get_certificate_templates_paged(
     db: AsyncSession,
     filters: filters.CertificateTemplateFilter,
-    enrollment_permissions: str = "",
+    enroll_permissions: str = "",
+    owner_permissions: str = "",
+    writeowner_permissions: str = "",
+    fullcontrol_permissions: str = "",
+    writedacl_permissions: str = "",
+    writeproperty_permissions: str = "",
 ) -> Page[models.CertificateTemplate]:
     q: Select = select(models.CertificateTemplate)
     q = q.outerjoin(models.CertificateTemplate.labels)
     q = filters.filter(q)  # type: ignore
     q = filters.sort(q)  # type: ignore
     q = q.group_by(models.CertificateTemplate.id)
-    if enrollment_permissions:
-        q = q.where(
-            models.CertificateTemplatePermission.certificate_template_id
-            == models.CertificateTemplate.id
-        )
-        q = q.where(models.CertificateTemplatePermission.permission == "Enroll")
-        q = q.where(
-            models.CertificateTemplatePermission.principal == enrollment_permissions
-        )
+
+    q = await _apply_permission_filter(q, "Enroll", enroll_permissions)
+    q = await _apply_permission_filter(q, "Owner", owner_permissions)
+    q = await _apply_permission_filter(q, "WriteOwner", writeowner_permissions)
+    q = await _apply_permission_filter(q, "FullControl", fullcontrol_permissions)
+    q = await _apply_permission_filter(q, "WriteDACL", writedacl_permissions)
+    q = await _apply_permission_filter(q, "WriteProperty", writeproperty_permissions)
 
     return await paginate(db, q)
+
+
+async def _apply_permission_filter(
+    q: Select,
+    permission_type: str,
+    permission_value: str
+) -> Select:
+    """
+    Applies a permission filter to the query using a table alias to prevent conflicts.
+
+    Args:
+        q: The current SQLAlchemy Select query.
+        permission_type: The type of permission (e.g., "Enroll", "Owner").
+        permission_value: The principal associated with the permission.
+
+    Returns:
+        The modified SQLAlchemy Select query with the permission filter applied.
+    """
+    if permission_value:
+        permission_alias = aliased(models.CertificateTemplatePermission)
+        q = q.join(
+            permission_alias,
+            permission_alias.certificate_template_id == models.CertificateTemplate.id,
+        )
+        q = q.where(permission_alias.permission == permission_type)
+        q = q.where(permission_alias.principal == permission_value)
+    return q
 
 
 async def get_certificate_templates_filters(
     db: AsyncSession,
     filters: filters.CertificateTemplateFilter,
-    enrollment_permissions: str = "",
+    enroll_permissions: str = "",
+    owner_permissions: str = "",
+    writeowner_permissions: str = "",
+    fullcontrol_permissions: str = "",
+    writedacl_permissions: str = "",
+    writeproperty_permissions: str = "",
 ) -> list[schemas.Filter]:
     result: list[schemas.Filter] = []
     q: Select = (
@@ -3924,15 +4285,12 @@ async def get_certificate_templates_filters(
     )
     q = filters.filter(q)  # type: ignore
 
-    if enrollment_permissions:
-        q = q.where(
-            models.CertificateTemplatePermission.certificate_template_id
-            == models.CertificateTemplate.id
-        )
-        q = q.where(models.CertificateTemplatePermission.permission == "Enroll")
-        q = q.where(
-            models.CertificateTemplatePermission.principal == enrollment_permissions
-        )
+    q = await _apply_permission_filter(q, "Enroll", enroll_permissions)
+    q = await _apply_permission_filter(q, "Owner", owner_permissions)
+    q = await _apply_permission_filter(q, "WriteOwner", writeowner_permissions)
+    q = await _apply_permission_filter(q, "FullControl", fullcontrol_permissions)
+    q = await _apply_permission_filter(q, "WriteDACL", writedacl_permissions)
+    q = await _apply_permission_filter(q, "WriteProperty", writeproperty_permissions)
 
     lb_entry = await get_labels_for_q(db, q)
     result.extend(lb_entry)
@@ -3949,32 +4307,55 @@ async def get_certificate_templates_filters(
         )
         result.append(res)
 
-    enrollment = await create_certificate_enrollment_filters(db, q)
-    result.append(enrollment)
+    permissions = ["Owner", "WriteOwner", "FullControl", "WriteDacl", "Enroll", "WriteProperty"]
+    for permission_type in permissions:
+        permission_filter = await create_certificate_permission_filter(db, q, permission_type)
+        result.append(permission_filter)
+        
     return result
 
 
-async def create_certificate_enrollment_filters(db: AsyncSession, q) -> schemas.Filter:
-    eq = q.add_columns(models.CertificateTemplatePermission.principal)
-    eq = eq.where(
-        models.CertificateTemplatePermission.certificate_template_id
-        == models.CertificateTemplate.id
+async def create_certificate_permission_filter(
+    db: AsyncSession, q: Select, permission_type: str
+) -> schemas.Filter:
+    """
+    Creates a filter option list for a given permission type based on the main query's results.
+    """
+    # Create a subquery that gets the IDs of all certificate templates
+    # that match the main query's filters.
+    template_ids_subquery = q.with_only_columns(
+        models.CertificateTemplate.id
+    ).distinct().subquery()
+
+    # Now, create a NEW, separate query to find principals for the specified
+    # permission type, but only for the templates identified by the subquery.
+    permissions_q = (
+        select(
+            func.count(models.CertificateTemplatePermission.principal).label("count"),
+            models.CertificateTemplatePermission.principal,
+        )
+        .where(
+            # Filter permissions to only those related to our templates
+            models.CertificateTemplatePermission.certificate_template_id.in_(
+                select(template_ids_subquery)
+            )
+        )
+        .where(models.CertificateTemplatePermission.permission == permission_type)
+        .group_by(models.CertificateTemplatePermission.principal)
     )
-    eq = eq.where(models.CertificateTemplatePermission.permission == "Enroll")
-    eq = eq.group_by(models.CertificateTemplatePermission.principal)
 
     options: list[schemas.FilterOption] = []
-    res = await db.execute(eq)
-    for entry in res.unique().all():
-        if entry[1] or entry[1] == False:
-            options.append(schemas.FilterOption(name=str(entry[1]), count=entry[0]))
+    res = await db.execute(permissions_q)
+    for count, principal in res.all():
+        if principal is not None:
+            options.append(schemas.FilterOption(name=str(principal), count=count))
 
     ft_entry = schemas.Filter(
-        name="enrollment_permissions",
+        name=f"{permission_type.lower()}_permissions",
         icon="",
         type="options",
         options=options,
-        query_name="enrollment_permissions",
+        query_name=f"{permission_type.lower()}_permissions",
     )
 
     return ft_entry
@@ -4030,7 +4411,7 @@ async def create_certificate_template(
     #     await send_event(
     #         schemas.Event.certificate_template, schemas.EventType.new, result.id
     #     )
-    for authority in authorities:
+    for authority in authorities or []:
         auth_db = list(
             await get_certificate_authorities(
                 db, filters.CertificateAuthorityFilter(ca_name=authority), 0, 1
@@ -4192,7 +4573,10 @@ async def create_issue(
         await send_event(schemas.Event.issue, schemas.EventType.new, result.id)
     return result.time_updated == None, result
 
-
+@redis_cache_invalidate(
+    key_prefix="issue",
+    key_param_name="id",
+)
 async def update_issue(
     db: AsyncSession, id: str | uuid.UUID, issue: schemas.IssueCreate
 ) -> None:
@@ -4376,7 +4760,7 @@ async def get_suggestions_filters(db: AsyncSession, filters: filters.SuggestionF
     lb_entry = await get_labels_for_q(db, q)
     result.extend(lb_entry)
 
-    for field in ['name']:
+    for field in ["name"]:
         res = await create_filter_for_column(
             db, q, getattr(models.Suggestion, field), field, field
         )
@@ -4385,15 +4769,26 @@ async def get_suggestions_filters(db: AsyncSession, filters: filters.SuggestionF
     return result
 
 
+@redis_cache(
+    key_prefix="suggestion",
+    session_factory=SessionLocal,
+    schema=schemas.Suggestion,  # Ensure this schema exists
+    key_param_name="id",
+    ttl_seconds=DEFAULT_CACHE_TTL,
+)
 async def get_suggestion(db: AsyncSession, id: UUID4) -> Optional[models.Suggestion]:
     return await db.get(models.Suggestion, id)
 
 
-async def create_suggestion(db: AsyncSession, suggestions: schemas.SuggestionCreate) -> Tuple[bool, models.Suggestion]:
+async def create_suggestion(
+    db: AsyncSession, suggestions: schemas.SuggestionCreate
+) -> Tuple[bool, models.Suggestion]:
     data = suggestions.model_dump()
     q = insert(models.Suggestion).values(**data).values(time_created=func.now())
-    data['time_updated'] = func.now()
-    update_stmt = q.on_conflict_do_update(models.Suggestion.__table__.primary_key, set_=data)
+    data["time_updated"] = func.now()
+    update_stmt = q.on_conflict_do_update(
+        models.Suggestion.__table__.primary_key, set_=data
+    )
     result = await db.scalars(
         update_stmt.returning(models.Suggestion),
         execution_options={"populate_existing": True},
@@ -4405,8 +4800,14 @@ async def create_suggestion(db: AsyncSession, suggestions: schemas.SuggestionCre
     return result.time_updated == None, result
 
 
-async def update_suggestion(db: AsyncSession, id: str | uuid.UUID, suggestions: schemas.SuggestionCreate) -> None:
-    q = update(models.Suggestion).where(models.Suggestion.id == id).values(**suggestions.model_dump())
+async def update_suggestion(
+    db: AsyncSession, id: str | uuid.UUID, suggestions: schemas.SuggestionCreate
+) -> None:
+    q = (
+        update(models.Suggestion)
+        .where(models.Suggestion.id == id)
+        .values(**suggestions.model_dump())
+    )
     await db.execute(q)
     await db.commit()
 
@@ -4449,7 +4850,7 @@ async def get_checklists_filters(db: AsyncSession, filters: filters.ChecklistFil
     lb_entry = await get_labels_for_q(db, q)
     result.extend(lb_entry)
 
-    for field in ['phase', 'name', 'status']:
+    for field in ["phase", "name", "status"]:
         res = await create_filter_for_column(
             db, q, getattr(models.Checklist, field), field, field
         )
@@ -4462,10 +4863,12 @@ async def get_checklist(db: AsyncSession, id: UUID4) -> Optional[models.Checklis
     return await db.get(models.Checklist, id)
 
 
-async def create_checklist(db: AsyncSession, checklists: schemas.ChecklistCreate) -> Tuple[bool, models.Checklist]:
+async def create_checklist(
+    db: AsyncSession, checklists: schemas.ChecklistCreate
+) -> Tuple[bool, models.Checklist]:
     data = checklists.model_dump()
     q = insert(models.Checklist).values(**data).values(time_created=func.now())
-    data['time_updated'] = func.now()
+    data["time_updated"] = func.now()
     if checklists.c2_implant_id:
         update_stmt = q.on_conflict_do_update("checklist_implant_phase_name", set_=data)
     else:
@@ -4481,8 +4884,14 @@ async def create_checklist(db: AsyncSession, checklists: schemas.ChecklistCreate
     return result.time_updated == None, result
 
 
-async def update_checklist(db: AsyncSession, id: str | uuid.UUID, checklists: schemas.ChecklistCreate) -> None:
-    q = update(models.Checklist).where(models.Checklist.id == id).values(**checklists.model_dump())
+async def update_checklist(
+    db: AsyncSession, id: str | uuid.UUID, checklists: schemas.ChecklistCreate
+) -> None:
+    q = (
+        update(models.Checklist)
+        .where(models.Checklist.id == id)
+        .values(**checklists.model_dump())
+    )
     await db.execute(q)
     await db.commit()
 
@@ -4525,7 +4934,7 @@ async def get_objectives_filters(db: AsyncSession, filters: filters.ObjectivesFi
     lb_entry = await get_labels_for_q(db, q)
     result.extend(lb_entry)
 
-    for field in ['status']:
+    for field in ["status"]:
         res = await create_filter_for_column(
             db, q, getattr(models.Objectives, field), field, field
         )
@@ -4538,11 +4947,15 @@ async def get_objective(db: AsyncSession, id: UUID4) -> Optional[models.Objectiv
     return await db.get(models.Objectives, id)
 
 
-async def create_objective(db: AsyncSession, objective: schemas.ObjectiveCreate) -> Tuple[bool, models.Objectives]:
+async def create_objective(
+    db: AsyncSession, objective: schemas.ObjectiveCreate
+) -> Tuple[bool, models.Objectives]:
     data = objective.model_dump()
     q = insert(models.Objectives).values(**data).values(time_created=func.now())
-    data['time_updated'] = func.now()
-    update_stmt = q.on_conflict_do_update(models.Objectives.__table__.primary_key, set_=data)
+    data["time_updated"] = func.now()
+    update_stmt = q.on_conflict_do_update(
+        models.Objectives.__table__.primary_key, set_=data
+    )
     result = await db.scalars(
         update_stmt.returning(models.Objectives),
         execution_options={"populate_existing": True},
@@ -4554,7 +4967,13 @@ async def create_objective(db: AsyncSession, objective: schemas.ObjectiveCreate)
     return result.time_updated == None, result
 
 
-async def update_objective(db: AsyncSession, id: str | uuid.UUID, objective: schemas.ObjectiveCreate) -> None:
-    q = update(models.Objectives).where(models.Objectives.id == id).values(**objective.model_dump())
+async def update_objective(
+    db: AsyncSession, id: str | uuid.UUID, objective: schemas.ObjectiveCreate
+) -> None:
+    q = (
+        update(models.Objectives)
+        .where(models.Objectives.id == id)
+        .values(**objective.model_dump())
+    )
     await db.execute(q)
     await db.commit()

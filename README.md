@@ -6,8 +6,8 @@ Connecting the different components of red teaming. This project integrates mult
 
 - **Socks tasks:** Run tools over socks proxies and log the output, as well as templating of commonly used tools.
 - **Neo4j:** Use data from neo4j directly into templating of tool commands.
-- **Mythic:** Run commands on Mythic's Apollo implants.
-- **File parsing:** Harbinger can parse a number of filetypes and import the data into the database. Examples include lsass dumps and ad snapshots.
+- **Mythic:** Run commands on mythic implants.
+- **File parsing:** Harbinger can parse a number of filetypes and import the data into the database. Examples include lsass dumps and ad snapshots. See the [parser table](docs/parsers.md) for a full list.
 - **Output parsing:** Harbinger can detect useful information in output from the C2 and provide you easy access to it.
 - **Data searching:** Harbinger gives you the ability to search for data in the database in a number of ways. It combines the data from all your C2s in a single database.
 - **Playbooks:** Execute commands in turn in a playbook.

@@ -58,7 +58,7 @@ async def create_upload_file(
 
     await upload_file(path, file.file.read())
 
-    file_db = await crud.get_file(db, file_id)  # type: ignore
+    file_db = await crud.get_file(file_id)  # type: ignore
     if file_db:
         client = await get_client()
         await client.start_workflow(

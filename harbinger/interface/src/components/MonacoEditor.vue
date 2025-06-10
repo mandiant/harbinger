@@ -15,14 +15,14 @@
 -->
 
 <template>
-  <q-btn flat color="secondary" @click="paste_clipboard">Paste Clipboard</q-btn>
+  <q-btn flat color="secondary" @click="paste_clipboard" v-if="!readonly">Paste Clipboard</q-btn>
 
   <div ref="editorContainer" style="width: 100%; height: 30rem;"></div>
 </template>
 
 <style lang="scss">
 .highlight {
-  background: #ffff00;
+  background: #006AFF;
 }
 </style>
 
