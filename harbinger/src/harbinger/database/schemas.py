@@ -893,7 +893,7 @@ class C2ServerTypeYaml(BaseModel):
     command: str
     icon_base64: str | None = ''
     required_arguments: List[RequiredArgument]
-    implants: List[Implant]
+    implants: List[Implant] = []
 
 
 class C2ServerTypeBase(BaseModel):
