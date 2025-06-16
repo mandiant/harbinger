@@ -71,8 +71,8 @@
           <q-td key="time_started" :props="props" @click="Goto(props.row)">
             {{ props.row.time_started }}
           </q-td>
-          <q-td key="time_started" :props="props" @click="Goto(props.row)">
-            {{ props.row.time_started }}
+          <q-td key="time_completed" :props="props" @click="Goto(props.row)">
+            {{ props.row.time_completed }}
           </q-td>
           <q-td key="labels" :props="props">
             <labels-list object-type="c2_task" :object-id="String(props.row.id)" v-model="props.row.labels" />
