@@ -44,7 +44,7 @@ dependencies = [
   "aiodocker",
   "aiohttp",
   "websockets",
-  "protobuf==4.23.2",
+  "protobuf==4.25.8",
   "sqladmin",
   "alive-progress",
   "aiosmb",
