@@ -1063,7 +1063,7 @@ async def get_server_settings(c2_server_id: str) -> schemas.C2ServerAll | None:
 @activity.defn
 async def save_implant(c2_implant: schemas.C2ImplantCreate) -> schemas.C2Implant:
     async with SessionLocal() as db:
-        domain_id = ""
+        domain_id = None
         if c2_implant.domain:
             domain_obj = await crud.get_or_create_domain(db, c2_implant.domain)
             domain_id = str(domain_obj.id)

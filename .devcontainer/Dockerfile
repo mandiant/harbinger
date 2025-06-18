@@ -25,7 +25,7 @@ ARG USER_GID=$USER_UID
 RUN groupadd --gid $USER_GID $USERNAME \
     && useradd -s /bin/bash --uid $USER_UID --gid $USER_GID -m $USERNAME 
 
-RUN apt-get update && apt-get install -y zip git wget unzip pandoc libmagic1 libimage-exiftool-perl python3-dev protobuf-compiler
+RUN apt-get update && apt-get install -y zip git wget unzip pandoc libmagic1 libimage-exiftool-perl python3-dev protobuf-compiler jq
 
 RUN mkdir /opt/tools/
 
