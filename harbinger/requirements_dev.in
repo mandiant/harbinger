@@ -2,3 +2,4 @@
 testcontainers
 pip-tools
 pytest
+pytest-cov

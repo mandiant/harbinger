@@ -30,7 +30,7 @@ jobs:
         echo "NEO4J_PASSWORD=test" >> $GITHUB_ENV
         echo "TEMPORAL_HOST=test" >> $GITHUB_ENV
     - name: Install the requirements
-      run: pip install -r requirements_dev.txt --require-hashes --no-deps
+      run: pip install -r requirements.txt -r requirements_dev.txt --require-hashes --no-deps
       working-directory: ./harbinger
     - name: Run pytest
       run: python -m pytest
