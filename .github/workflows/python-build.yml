@@ -1,0 +1,37 @@
+name: Python test
+
+on:
+  push:
+
+jobs:
+  python-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
+      id: py3
+      with:
+        python-version: '3.12'
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    - name: Set environment variables
+      run: |
+        CPATH=$pythonLocation/include/python3.12
+        echo "CPATH=$CPATH" >> $GITHUB_ENV
+        echo "MINIO_HOST=http://localhost" >> $GITHUB_ENV
+        echo "JWT_SECRET_KEY=test" >> $GITHUB_ENV
+        echo "REDIS_DSN=redis://localhost:6379/0" >> $GITHUB_ENV
+        echo "PG_DSN=postgresql+asyncpg://postgres:postgres@localhost:5432/postgres" >> $GITHUB_ENV
+        echo "MINIO_ACCESS_KEY=test" >> $GITHUB_ENV
+        echo "MINIO_SECRET_KEY=test" >> $GITHUB_ENV
+        echo "MINIO_DEFAULT_BUCKET=test" >> $GITHUB_ENV
+        echo "NEO4J_HOST=bolt://localhost:7687" >> $GITHUB_ENV
+        echo "NEO4J_USER=neo4j" >> $GITHUB_ENV
+        echo "NEO4J_PASSWORD=test" >> $GITHUB_ENV
+        echo "TEMPORAL_HOST=test" >> $GITHUB_ENV
+    - name: Install the requirements
+      run: pip install -r requirements.txt -r requirements_dev.txt --require-hashes --no-deps
+      working-directory: ./harbinger
+    - name: Run pytest
+      run: python -m pytest
+      working-directory: ./harbinger

@@ -1,0 +1,16 @@
+name: Golang build
+
+on:
+  push:
+
+jobs:
+  go-build:
+    runs-on: [ ubuntu-latest ]
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: actions/setup-go@v5
+
+    - name: Go build
+      run: go build .
+      working-directory: ./harbinger/src/harbinger/connectors/mythic_go/
