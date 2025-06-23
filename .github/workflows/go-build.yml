@@ -5,12 +5,12 @@ on:
 
 jobs:
   test:
-    runs-on: windows-latest
+    runs-on: [ ubuntu-latest ]
     steps:
     - uses: actions/checkout@v3
 
     - uses: actions/setup-go@v5
 
     - name: Go build
-      run: go build *.go
+      run: go build .
       working-directory: ./harbinger/src/harbinger/connectors/mythic_go/

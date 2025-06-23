@@ -1,3 +1,4 @@
 -c requirements.txt
 testcontainers
 pip-tools
+pytest
