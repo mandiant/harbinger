@@ -99,7 +99,6 @@ async def main():
             activities.create_file_download_suggestion,
             activities.create_dir_ls_suggestion,
             activities.create_share_list_suggestion,
-            activities.create_domain_checklist,
             activities.kerberoasting_suggestions,
             activities.c2_job_detection_risk,
             activities.get_c2_task_output,

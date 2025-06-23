@@ -20,9 +20,13 @@ import typing as t
 import yaml
 import re
 import uuid
-from pydantic import ValidationError as PydanticValidationError # Alias to avoid name clash
+from pydantic import (
+    ValidationError as PydanticValidationError,
+)
 from harbinger.database import schemas
-from harbinger.worker import prompt_vars
+from harbinger.worker.genai import prompt_vars
+from harbinger.database import schemas
+
 
 settings = get_settings()
 
@@ -179,22 +183,23 @@ class Summary(rg.Model):
 
 
 @generator.prompt
-async def find_credentials(text: str) -> ListOfCredentials:
+async def find_credentials(text: str) -> ListOfCredentials:  # type: ignore
     """Analyze the provided file and extract all verifiable credentials with high precision, minimizing false positives. Focus exclusively on identifying legitimate username/password pairs, and strictly avoid reporting data that only superficially resembles a credential.  Leverage contextual clues such as proximity to labels like "username," "password," "login," "credentials," "account," etc., and analyze surrounding data structures (e.g., key-value pairs, forms, tables) to validate potential credentials and disambiguate from similar-looking data.  Consider different credential formats, including email addresses, usernames with special characters, and potentially obfuscated credentials, but only report credentials that are explicitly present in the file. Do not fabricate, guess, or infer credentials.  For each extracted credential, adhere to this precise output structure:
 
-* **Clearly specify the `username` and `password`.**
+    * **Clearly specify the `username` and `password`.**
 
-* **If a username includes an "@" symbol:**
-    * Parse it into two separate fields:  `"username"` (the part before the "@") and `"domain"` (the part after the "@").  For Example:  `{"username": "john.doe", "domain": "example.com", "password": "password123"}`
+    * **If a username includes an "@" symbol:**
+        * Parse it into two separate fields:  `"username"` (the part before the "@") and `"domain"` (the part after the "@").  For Example:  `{"username": "john.doe", "domain": "example.com", "password": "password123"}`
 
-* **If the username does *not* contain an "@" symbol:**
-    * Provide the entire username as a single `"username"` field. For Example: `{"username": "johndoe", "password": "password123"}`
+    * **If the username does *not* contain an "@" symbol:**
+        * Provide the entire username as a single `"username"` field. For Example: `{"username": "johndoe", "password": "password123"}`
 
-Do not deviate from the specified output structure. Do not include any additional information or commentary."""
+    Do not deviate from the specified output structure. Do not include any additional information or commentary.
+    """
 
 
 @generator.prompt
-async def summarize_action(command: str, arguments: str, output: str) -> Summary:
+async def summarize_action(command: str, arguments: str, output: str) -> Summary:  # type: ignore
     """Hi, You are a cyber security expert, can you please write a short summary of this action and output that was performed?
     Write in active voice and use "the Red Team" as the person instantiating the action, do not use attempted to and was able to.
     Do not include passwords in the output summary.
@@ -203,7 +208,7 @@ async def summarize_action(command: str, arguments: str, output: str) -> Summary
 
 
 @generator.prompt
-async def summarize_attack_path(summaries: list[str]) -> str:
+async def summarize_attack_path(summaries: list[str]) -> str:  # type: ignore
     """Hi, You are a cyber security expert, can you please write an attack path of these summaries of actions?
     Write in active voice and do not use attempted to and was able to. Please write it as an interesting story.
     Please ignore actions that failed and only write about the importatnt steps in the attack path that brought the red team closer to their goal.
@@ -277,14 +282,8 @@ class ActionList(rg.Model):
 @generator.prompt
 async def suggest_action_c2_implant(
     additional_prompt: str,
-    tasks_executed: list[str],
     implant_information: str,
-    executed_playbooks_list: list[str],
-    playbook_template_list: list[str],
-    previous_suggestions: list[str],
-    proxies: list[str],
-    socks_servers: list[str],
-) -> ActionList:
+) -> ActionList:  # type: ignore
     """Hi, You are a cyber security expert, you will get a list of tasks that have been executed so far and some information on an implant that is running on a system.
     There is also a list of playbooks of which you can select an action.
     Can you please indicate what command should be executed next on this implant with the following requirements:
@@ -315,17 +314,7 @@ async def suggest_domain_action(
     additional_prompt: str,
     edr_detections: str,
     domain_checklist: str,
-    checklist: list[str],
-    tasks_executed: list[str],
-    implants_information: list[str],
-    executed_playbooks_list: list[str],
-    playbook_template_list: list[str],
-    previous_suggestions: list[str],
-    proxies: list[str],
-    socks_servers: list[str],
-    credentials: list[str],
-    situational_awareness: list[str],
-) -> ActionList:
+) -> ActionList:  # type: ignore
     """Hi, You are a cyber security expert, you will get a list of tasks that have been executed so far and some information on an implant that is running on a system.
     There is also a list of playbooks of which you can select an action.
 
@@ -347,99 +336,10 @@ async def suggest_domain_action(
 
     {{ domain_checklist }}
 
-    This is the checklist you've made so far with all the steps and status of the progress of the checklist above:
-
-    {{ checklist }}
-
     Please try to fill in all fields for each playbook and use the situational awareness output to get values for values like domain controller and dns server.
 
     Please encode the optional arguments for each playbook as json blob.
     Give an empty action list like <action-list></action-list> if there are no new actions to perform.
-    """
-
-
-class CheckListAction(rg.Model):
-    name: str = rg.element()
-    status: str = rg.element()
-    reason: str = rg.element()
-
-
-class Phase(rg.Model):
-    name: str = rg.element(attr="name")
-    status: str = rg.element(attr="status")
-    reason: str = rg.element(attr="reason")
-    actions: list[CheckListAction] = rg.element(name="action")
-
-
-class Implant(rg.Model):
-    implant_id: str = rg.element(attr="id")
-    checklist: list[Phase] = rg.element(name="checklist")
-
-
-class Domain(rg.Model):
-    name: str = rg.element(attr="name")
-    checklist: list[Phase] = rg.element(name="checklist")
-
-
-class CheckList(rg.Model):
-    # checklist: list[Phase] = rg.element(name="checklist")
-    domain_checklist: list[Domain] = rg.element(name="domain_checklist")
-    # implants: list[Implant] = rg.element(name="implants")
-
-    @classmethod
-    def xml_example(cls) -> str:
-        return CheckList(
-            domain_checklist=[
-                Domain(
-                    name="test.local",
-                    checklist=[
-                        Phase(
-                            name="Domain reconnaissance",
-                            status="completed",
-                            reason="All domain reconnaissance tasks are completed.",
-                            actions=[
-                                CheckListAction(
-                                    name="Enumerate domain password policy",
-                                    status="completed",
-                                    reason="We enumerated the domain password policy"
-                                ),
-                            ],
-                        ),
-                    ],
-                ),
-            ],
-        ).to_pretty_xml()
-
-
-@generator.prompt
-async def create_checklist(
-    domains: list[str],
-    objectives: list[str],
-    additional_prompt: str,
-    checklist: str,
-    previous_checklist: list[str],
-    tasks_executed: list[str],
-    implants_information: list[str],
-    executed_playbooks_list: list[str],
-    proxies: list[str],
-    socks_servers: list[str],
-    credentials: list[str],
-    situational_awareness: list[str],
-) -> CheckList:
-    """Hi, You are a cyber security expert, you will get a list of tasks that have been executed so far and some information on a implants that are running on systems.
-    There will be the following: tasks_executed and its output, implants information, executed playbooks, proxies, socks servers, credentials and situational awareness.
-    The objectives that should be achieved and a checklist of actions that should be performed. You will also get the previous checklist that you've made (if its available).
-    Can you make or update the checklist for the domains to show which phases in the checklist were completed and what actions are outstanding.
-    Please add additional items on the Checklist to achieve the objectives.
-    Only include actions for a domain and not about implant or host specific things.
-    Only include entries for each domain in the domains list.
-    In the mindmap there may be multiple tools that have the same effect or outcome and only one of them needs to be executed for success.
-
-    Keep the next objectives in mind:
-
-    {{ objectives }}
-
-    Thanks!
     """
 
 
@@ -493,8 +393,8 @@ class Host(rg.Model):
 
 
 class Hosts(rg.Model):
-    host_list: list[Host] = rg.element()
-    c2_implant_id: str = rg.element()
+    host_list: list[Host] = rg.element(default=[])
+    c2_implant_id: str = rg.element(default='')
 
     @classmethod
     def xml_example(cls) -> str:
@@ -516,17 +416,20 @@ class Shares(rg.Model):
     @classmethod
     def xml_example(cls) -> str:
         return Shares(
-            share_list=[Share(share_name="\\\\host1.domain.local\\NETLOGON", reason="Netlogon share could contain files with credentials")],
+            share_list=[
+                Share(
+                    share_name="\\\\host1.domain.local\\NETLOGON",
+                    reason="Netlogon share could contain files with credentials",
+                )
+            ],
             c2_implant_id="e7d73d39-88b0-4900-b1a1-49205b56fde9",
         ).to_pretty_xml()
 
 
 @generator.prompt
 async def suggest_file_download_actions(
-    share_files: list[str],
-    implants_information: list[str],
     interesting_files: str,
-) -> Files:
+) -> Files:  # type: ignore
     """Hi, You are a cyber security expert, you will get a list of files that have been gathered and a list of interesting files according to our documentation. We are looking for files that contain credentials.
     Can you please provide us with a list of files that we should investigate further and select a suitable implant to download these files.
 
@@ -538,10 +441,7 @@ async def suggest_file_download_actions(
 
 
 @generator.prompt
-async def suggest_dir_list_actions(
-    share_files: list[str],
-    implants_information: list[str],
-) -> Directories:
+async def suggest_dir_list_actions() -> Directories:  # type: ignore
     """Hi, You are a cyber security expert, you will get a list of directories that have been gathered.
     Can you please provide us with a list of directories that we should investigate further and select a suitable implant to list these directories.
     In case there are no valid directories to list give us an empty list of directories like this: <directories></directories>.
@@ -550,20 +450,14 @@ async def suggest_dir_list_actions(
 
 
 @generator.prompt
-async def suggest_hosts_list_shares(
-    hosts: list[str],
-    implants_information: list[str],
-) -> Hosts:
+async def suggest_hosts_list_shares() -> Hosts:  # type: ignore
     """Hi, You are a cyber security expert, you will get a list of hosts that have been gathered.
     Can you please provide us with a list of hosts that may contain interesting files and select a suitable implant to list these shares.
     """
 
 
 @generator.prompt
-async def suggest_shares_list(
-    shares: list[str],
-    implants_information: list[str],
-) -> Shares:
+async def suggest_shares_list() -> Shares:  # type: ignore
     """Hi, You are a cyber security expert, you will get a list of shares that have been gathered but we did not yet list the root.
     Can you please provide us with a list of shares from <shares> input that may contain interesting files and select a suitable implant to list the root these shares.
     Do not make up new shares. If there are not results yield an empty <shares></shares> result.
@@ -578,9 +472,9 @@ class DetectionRisk(rg.Model):
     def xml_example(cls) -> str:
         return DetectionRisk(
             value=1,
-            reason="None of the EDRs in the labels are known to detect this action."
+            reason="None of the EDRs in the labels are known to detect this action.",
         ).to_pretty_xml()
-    
+
     @field_validator("value", mode="before")
     def parse_value(cls, v: t.Any) -> t.Any:
         value = int(v)
@@ -593,19 +487,15 @@ def replace_id(yaml_string: str) -> str:
     try:
         new_id = str(uuid.uuid4())
         # Match the whole line starting with 'id:'
-        pattern = r"^id:\s*.*$" # Added $ to match end of line explicitly
+        pattern = r"^id:\s*.*$"  # Added $ to match end of line explicitly
         # Replace with a simple f-string
         replacement = f"id: {new_id}"
         if not isinstance(yaml_string, str):
-             print(f"Error: Input was not a string, but {type(yaml_string)}")
-             return yaml_string
+            print(f"Error: Input was not a string, but {type(yaml_string)}")
+            return yaml_string
 
         updated_yaml_string_re, replacements_made = re.subn(
-            pattern,
-            replacement,
-            yaml_string,
-            count=1,
-            flags=re.MULTILINE
+            pattern, replacement, yaml_string, count=1, flags=re.MULTILINE
         )
         if replacements_made == 0:
             print("Warning: Line starting with 'id:' not found. Original string kept.")
@@ -622,7 +512,7 @@ async def c2_job_detection_risk(
     action: str,
     detection_risk: str,
     c2_implant_information: str,
-) -> DetectionRisk:
+) -> DetectionRisk:  # type: ignore
     """Hi, You are a cyber security expert, you will get an action that we would like to perform, please determine how likely it is to be detected.
     Use the following information:
     * The detection_risk string will contain information about certain EDRs and what actions they detect.
@@ -641,15 +531,7 @@ async def c2_job_detection_risk(
 async def kerberoasting(
     additional_prompt: str,
     kerberoastable_users: list[str],
-    proxies: list[str],
-    implants_information: list[str],
-    executed_playbooks_list: list[str],
-    playbook_template_list: list[str],
-    previous_suggestions: list[str],
-    socks_servers: list[str],
-    credentials: list[str],
-    situational_awareness: list[str],
-) -> ActionList:
+) -> ActionList:  # type: ignore
     """Hi, You are a cyber security expert, you will get a list of users that are kerberoastable, can you please select the best users to target. Be specific and make sure you only kerberoast everyone if all targets are a good target or no data is available.
 
     Use the following information:
@@ -659,6 +541,7 @@ async def kerberoasting(
 
     {{ additional_prompt }}
     """
+
 
 # # --- Pydantic schema for basic YAML structure validation ---
 # # Define this according to the essential fields your playbook requires.
@@ -671,6 +554,7 @@ async def kerberoasting(
 #     steps: str # Check if 'steps' key exists and is a string (multiline YAML)
 
 #     # Add other mandatory fields as needed for basic validation
+
 
 # --- Output Model for Rigging ---
 # This model defines the expected output structure for the rigging generator.
@@ -691,20 +575,24 @@ class PlaybookYamlOutput(rg.Model):
         """
         if not isinstance(v, str):
             # Should already be a string based on type hint, but safety check
-            raise ValueError(f"Expected string output for yaml_content, but got {type(v)}")
+            raise ValueError(
+                f"Expected string output for yaml_content, but got {type(v)}"
+            )
 
         generated_yaml = v.strip()
         if not generated_yaml:
-             raise ValueError("Generated YAML content cannot be empty.")
-        
-        generated_yaml = generated_yaml.replace("```yaml", '')
-        generated_yaml = generated_yaml.replace("```", '')
+            raise ValueError("Generated YAML content cannot be empty.")
+
+        generated_yaml = generated_yaml.replace("```yaml", "")
+        generated_yaml = generated_yaml.replace("```", "")
 
         try:
             # 1. Validate YAML syntax
             parsed_yaml = yaml.safe_load(generated_yaml)
             if not isinstance(parsed_yaml, dict):
-                raise ValueError("Generated output is not a valid YAML dictionary/mapping.")
+                raise ValueError(
+                    "Generated output is not a valid YAML dictionary/mapping."
+                )
             schemas.PlaybookTemplateGenerated(**parsed_yaml)
             return replace_id(generated_yaml)
 
@@ -713,43 +601,47 @@ class PlaybookYamlOutput(rg.Model):
             # Rigging's error handling mechanism should catch this.
             # Include details for debugging.
             error_message = f"Generated YAML failed validation: {e}. Content received:\n---\n{generated_yaml}\n---"
-            print(f"Validation Error: {error_message}") # Optional: log the error server-side
-            raise ValueError(error_message) # Raise ValueError to signal validation failure
+            print(
+                f"Validation Error: {error_message}"
+            )  # Optional: log the error server-side
+            raise ValueError(
+                error_message
+            )  # Raise ValueError to signal validation failure
         except Exception as e:
-             # Catch any other unexpected validation errors
-             error_message = f"Unexpected validation error ({type(e).__name__}): {e}. Content received:\n---\n{generated_yaml}\n---"
-             print(f"Validation Error: {error_message}")
-             raise ValueError(error_message)
+            # Catch any other unexpected validation errors
+            error_message = f"Unexpected validation error ({type(e).__name__}): {e}. Content received:\n---\n{generated_yaml}\n---"
+            print(f"Validation Error: {error_message}")
+            raise ValueError(error_message)
 
 
-@generator.prompt # Use your specific configured generator instance
+@generator.prompt  # Use your specific configured generator instance
 async def generate_playbook_yaml(
     readme_content: str,
     playbook_format_description: str = prompt_vars.PLAYBOOK_FORMAT_DESCRIPTION,
     yaml_examples: str = prompt_vars.PLAYBOOK_EXAMPLES,
-) -> PlaybookYamlOutput: # type: ignore
+) -> PlaybookYamlOutput:  # type: ignore
     """You are an expert system specializing in cybersecurity automation and creating structured playbook templates in YAML format.
-Your goal is to generate a valid playbook YAML based *only* on the provided README documentation, adhering strictly to the specified format and drawing inspiration from the examples.
+    Your goal is to generate a valid playbook YAML based *only* on the provided README documentation, adhering strictly to the specified format and drawing inspiration from the examples.
 
-Where possible try to use the Credential object in your playbooks by setting a credential_id and using the fields as shown below:
+    Where possible try to use the Credential object in your playbooks by setting a credential_id and using the fields as shown below:
 
-class Credential(BaseModel):
-    domain: Domain | None = None
-    password: Password | None = None
-    kerberos: Kerberos | None = None
-    labels: List["Label"] | None = None
+    class Credential(BaseModel):
+        domain: Domain | None = None
+        password: Password | None = None
+        kerberos: Kerberos | None = None
+        labels: List["Label"] | None = None
 
-class Password(BaseModel):
-    password: str | None = None
-    nt: str | None = None
-    aes256_key: str | None = None
-    aes128_key: str | None = None
+    class Password(BaseModel):
+        password: str | None = None
+        nt: str | None = None
+        aes256_key: str | None = None
+        aes128_key: str | None = None
 
-class Domain(BaseModel):
-    short_name: str | None = None
-    long_name: str | None = None
+    class Domain(BaseModel):
+        short_name: str | None = None
+        long_name: str | None = None
 
-If you use a credential object don't include the credential related fields.
+    If you use a credential object don't include the credential related fields.
 
-If more steps are required you can include multiple steps in the output. 
-"""
+    If more steps are required you can include multiple steps in the output.
+    """
