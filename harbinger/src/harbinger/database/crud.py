@@ -2127,8 +2127,24 @@ async def get_playbook_template(
     return await db.get(models.PlaybookTemplate, template_id)
 
 
-async def get_chain_templates(db: AsyncSession) -> Iterable[models.PlaybookTemplate]:
-    q = select(models.PlaybookTemplate)
+async def get_chain_templates(db: AsyncSession, filters: filters.PlaybookTemplateFilter) -> Iterable[models.PlaybookTemplate]:
+    q: Select = select(models.PlaybookTemplate).outerjoin(
+        models.PlaybookTemplate.labels
+    )
+    q = filters.filter(q)  # type: ignore
+    try:
+        q = filters.sort(q)  # type: ignore
+    except NotImplementedError:
+        pass
+    q = q.group_by(models.PlaybookTemplate.id)
+    if filters.search:
+        if len(filters.search) == 36:
+            q = q.where(
+                or_(
+                    models.PlaybookTemplate.name.ilike(f"%{filters.search}%"),
+                    models.PlaybookTemplate.id == filters.search,
+                )
+            )
     result = await db.execute(q)
     return result.scalars().unique().all()
 

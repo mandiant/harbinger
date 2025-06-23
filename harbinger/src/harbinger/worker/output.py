@@ -40,7 +40,7 @@ from pydantic_core import ValidationError
 from harbinger.config import constants
 from harbinger.graph.database import get_async_neo4j_session_context
 from harbinger.graph import crud as graph_crud
-from harbinger.worker import genai
+from harbinger.worker.genai import prompts
 
 
 log = structlog.get_logger()
@@ -989,7 +989,7 @@ class LLMParser(SimpleMatchParser):
             log.info("Gemini not enabled, skipping")
             return
         try:
-            results = await genai.find_credentials(text)
+            results = await prompts.find_credentials(text)
             presult = await crud.create_parse_result(
                 self.db,
                 schemas.ParseResultCreate(

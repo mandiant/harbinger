@@ -31,7 +31,7 @@ from fastapi_pagination import Page, add_pagination
 from fastapi_filter import FilterDepends
 from harbinger.database import filters
 from pydantic import UUID4
-from harbinger.worker import genai
+from harbinger.worker.genai import prompts
 
 
 settings = get_settings()
@@ -270,7 +270,7 @@ async def generate_playbook_template_from_ai(
         )
     try:
         # Call the AI generation service function
-        generated_yaml = await genai.generate_playbook_yaml(input_data.readme)
+        generated_yaml = await prompts.generate_playbook_yaml(input_data.readme)
 
         # The validation is now handled inside generate_playbook_yaml_from_readme
         # If it returns, we assume it's valid enough

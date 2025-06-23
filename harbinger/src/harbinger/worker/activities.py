@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from dataclasses import dataclass, field
 from datetime import timedelta, datetime
 import os
 import dpath
@@ -22,7 +23,7 @@ import pytz
 from temporalio import activity
 from harbinger.database import crud, models, schemas, progress_bar, filters
 from harbinger.database.database import SessionLocal
-from harbinger.worker import genai
+from harbinger.worker.genai import prompts, tools
 import concurrent.futures
 import structlog
 import magic
@@ -54,17 +55,19 @@ import math
 from tabulate import tabulate
 import typing as t
 import rigging as rg
-import yaml
-from dataclasses import dataclass, field
-from rigging.logging import configure_logging
 from sqlalchemy.exc import IntegrityError
 from harbinger.graph import crud as graph_crud
 from pydantic import BaseModel
 import traceback
+import yaml
+import logging
 
 settings = get_settings()
 
 log = structlog.get_logger()
+
+litellm_logger = logging.getLogger('LiteLLM')
+litellm_logger.setLevel(logging.WARNING) 
 
 
 @activity.defn
@@ -491,7 +494,9 @@ class FileParsing:
                                     files.append(schemas.File.model_validate(file_db))
                                     log.info(f"Created {path}")
                                 else:
-                                    log.info(f"Unable to extract {f.name} from the zip.")
+                                    log.info(
+                                        f"Unable to extract {f.name} from the zip."
+                                    )
                             except IntegrityError:
                                 log.info(f"{f.name} already exists, skipping")
                                 await db.rollback()
@@ -916,7 +921,7 @@ async def create_timeline(timeline: schemas.CreateTimeline):
                     if settings.gemini_enabled:
                         log.info("Summarizing attack path")
                         try:
-                            summary = await genai.summarize_attack_path(attack_path)
+                            summary = await prompts.summarize_attack_path(attack_path)
                         except Exception as e:
                             log.warning(f"Unable to create attack path summary: {e}")
 
@@ -1272,7 +1277,7 @@ async def check_file_hash(hash_value: str) -> bool:
 
 async def create_labels_for_summary(
     db: AsyncSession,
-    summary: genai.Summary,
+    summary: prompts.Summary,
     c2_task_id: str | UUID4 | None = None,
     socks_task_id: str | UUID4 | None = None,
     manual_timeline_id: str | UUID4 | None = None,
@@ -1299,12 +1304,12 @@ async def create_labels_for_summary(
         )
     if (
         summary.attack_lifecycle
-        and summary.attack_lifecycle in genai.attack_phase_label_mapping
+        and summary.attack_lifecycle in prompts.attack_phase_label_mapping
     ):
         await crud.create_label_item(
             db,
             schemas.LabeledItemCreate(
-                label_id=genai.attack_phase_label_mapping[summary.attack_lifecycle],
+                label_id=prompts.attack_phase_label_mapping[summary.attack_lifecycle],
                 c2_task_id=c2_task_id,
                 proxy_job_id=socks_task_id,
                 manual_timeline_task_id=manual_timeline_id,
@@ -1345,7 +1350,7 @@ async def summarize_c2_tasks():
                     )
                     output_str = "".join([o.response_text for o in output])
                     try:
-                        summary = await genai.summarize_action(
+                        summary = await prompts.summarize_action(
                             task.command_name or "",
                             task.display_params or "",
                             output_str or "",
@@ -1403,7 +1408,7 @@ async def summarize_socks_tasks():
                         output = "\n".join([o.output for o in output_list])
 
                     try:
-                        summary = await genai.summarize_action(
+                        summary = await prompts.summarize_action(
                             task.command or "", task.arguments or "", output or ""
                         )
                         log.info(
@@ -1448,7 +1453,7 @@ async def summarize_manual_tasks():
                         )
                         continue
                     try:
-                        summary = await genai.summarize_action(
+                        summary = await prompts.summarize_action(
                             task.command_name or "",
                             task.arguments or "",
                             task.output or "",
@@ -1480,7 +1485,9 @@ def sequence_to_string_list(
     return result
 
 
-def object_to_string(obj: DeclarativeBase | BaseModel, object_type: t.Type[BaseModel]) -> str:
+def object_to_string(
+    obj: DeclarativeBase | BaseModel, object_type: t.Type[BaseModel]
+) -> str:
     result = object_type.model_validate(obj)
     return result.model_dump_json(exclude_unset=True, exclude_none=True)
 
@@ -1491,217 +1498,9 @@ def dict_to_string(obj: dict) -> str:
     return json.dumps(obj, default=lambda o: str(o))
 
 
-def validate_playbook_callback(
-    playbook_map: dict[str, models.PlaybookTemplate]
-) -> t.Callable[[rg.Chat], t.Coroutine[t.Any, t.Any, rg.PipelineStepContextManager | None]]:
-    async def validate_playbook(
-        chat: rg.Chat,
-    ) -> rg.PipelineStepContextManager | None:
-        """
-        A rigging pipeline step that validates playbook actions and asks the LLM
-        to correct them if errors are found.
-
-        This function parses the last message for playbook actions, validates them,
-        and if any errors exist, it constructs a new prompt detailing the errors
-        and triggers another generation round.
-
-        Args:
-            chat: The current chat object in the rigging pipeline.
-
-        Returns:
-            A PipelineStepContextManager to trigger another LLM call if validation fails,
-            otherwise None to indicate success and continue the pipeline.
-        """
-        error_messages = []
-        try:
-            # Assuming rg.parse can handle parsing the content into the desired structure
-            actions = chat.last.parse(genai.ActionList)
-            for action in actions.actions or []:
-                if action.playbook and action.playbook.playbook_id in playbook_map:
-                    try:
-                        playbook_template = playbook_map[action.playbook.playbook_id]
-                        chain = schemas.PlaybookTemplate(
-                            **yaml.safe_load(playbook_template.yaml)
-                        )
-                        arguments = json.loads(action.playbook.arguments or "{}")
-                        # This line performs the actual validation
-                        chain.create_model()(**arguments)
-                    except ValidationError as e:
-                        error_messages.append(
-                            f"Validation Error for playbook '{action.playbook.playbook_id}':\n{e.json()}"
-                        )
-                    except (json.JSONDecodeError, yaml.YAMLError) as e:
-                        error_messages.append(
-                            f"Error processing playbook '{action.playbook.playbook_id}': {e}"
-                        )
-                # You can add other checks for placeholder IDs or missing playbooks if needed
-                elif not action.playbook or not action.playbook.playbook_id:
-                    error_messages.append(f"Action is missing a playbook or playbook_id: {action}")
-                elif action.playbook.playbook_id not in playbook_map:
-                    error_messages.append(f"Playbook with ID '{action.playbook.playbook_id}' not found.")
-
-
-        except ValidationError as e:
-            log.warning(f"Major ValidationError during parsing: {e}")
-            error_messages.append(f"The overall structure of your response was incorrect: {e.json()}")
-
-        # --- This is the key change in logic ---
-        if error_messages:
-            # 1. Format the collected errors into a clear message for the model.
-            error_summary = "\n- ".join(error_messages)
-            correction_prompt = (
-                "Your previous attempt to generate a playbook action had errors. "
-                "Please review the errors below, correct them, and provide the full, valid action again.\n\n"
-                "Errors found:\n"
-                f"- {error_summary}"
-            )
-
-            # 2. Create a new chat object with the corrective prompt.
-            follow_up_chat = chat.continue_(correction_prompt)
-
-            # 3. Return the PipelineStepContextManager to trigger a new LLM call.
-            return follow_up_chat.step()
-
-        # 4. If there were no errors, return None to exit the loop.
-        return None
-
-    return validate_playbook
-
-
-@dataclass
-class AIData:
-    implant_information: str = ""
-    implants_information: list[str] = field(default_factory=list)
-    tasks_executed: list[str] = field(default_factory=list)
-    playbooks: list[str] = field(default_factory=list)
-    playbook_map: dict[str, models.PlaybookTemplate] = field(default_factory=dict)
-    playbook_templates: list[str] = field(default_factory=list)
-    proxies: list[str] = field(default_factory=list)
-    previous_suggestions: list[str] = field(default_factory=list)
-    socks_servers: list[str] = field(default_factory=list)
-    credentials: list[str] = field(default_factory=list)
-    situational_awareness: list[str] = field(default_factory=list)
-    domains: list[str] = field(default_factory=list)
-    domain_map: dict[str, models.Domain] = field(default_factory=dict)
-    objectives: list[str] = field(default_factory=list)
-    current_checklist: list[str] = field(default_factory=list)
-
-
-async def load_data_for_ai(
-    db: AsyncSession,
-    req: schemas.SuggestionBaseRequest,
-    c2_implant_id: str | None = None,
-    include_labels: list[str] | None = None,
-    skip_labels: list[str] | None = None,
-) -> AIData:
-    data = AIData()
-    # label_filters = filters.LabelFilter(name__in=include_labels, name__not_in=skip_labels)
-    if c2_implant_id:
-        c2_implant = await crud.get_c2_implant(c2_implant_id)
-        if c2_implant:
-            labels = await crud.recurse_labels_c2_implant(db, c2_implant_id)
-            c2_implant_dict = c2_implant.__dict__
-            c2_implant_dict["labels"] = labels
-            data.implant_information = dict_to_string(
-                c2_implant_dict,
-            )
-    else:
-        implants = await crud.get_c2_implants(
-            db, not_labels=skip_labels, labels=include_labels
-        )
-        implants_list = []
-        for implant in implants:
-            labels = await crud.recurse_labels_c2_implant(db, implant.id)
-            c2_implant_dict = implant.__dict__
-            c2_implant_dict["labels"] = labels
-            implants_list.append(dict_to_string(c2_implant_dict))
-        data.implants_information = implants_list
-
-    if req.c2_tasks:
-        tasks = await crud.get_c2_tasks(
-            db, filters.C2TaskFilter(c2_implant_id=c2_implant_id), limit=10000
-        )
-        data.tasks_executed = []
-        for task in tasks:
-            task_dict = task.__dict__
-            if req.c2_task_output:
-                output = await crud.get_c2_task_output(
-                    db, filters.C2OutputFilter(c2_task_id=task.id)
-                )
-                task_output = "".join([o.response_text for o in output])
-                if len(task_output) > 1000:
-                    # Truncate long output to not overflow the context window.
-                    task_output = task_output[0:500] + "..." + task_output[-500:]
-
-                task_dict["task_output"] = task_output
-            data.tasks_executed.append(dict_to_string(task_dict))
-
-    if req.playbooks:
-        playbooks = await crud.get_playbooks(db, filters.PlaybookFilter(), 0, 10000)
-        data.playbooks = sequence_to_string_list(playbooks, schemas.ProxyChain)
-
-    playbook_templates = await crud.get_chain_templates(db)
-    data.playbook_templates = sequence_to_string_list(
-        playbook_templates, schemas.PlaybookTemplateView
-    )
-    data.playbook_map = {
-        str(playbook_template.id): playbook_template
-        for playbook_template in playbook_templates
-    }
-
-    if req.proxies:
-        proxies = await crud.get_proxies(db, filters.ProxyFilter(), limit=1000)
-        data.proxies = sequence_to_string_list(proxies, schemas.Proxy)
-
-    previous_suggestions = await crud.get_suggestions(
-        db, filters.SuggestionFilter(c2_implant_id=c2_implant_id), limit=1000
-    )
-    data.previous_suggestions = sequence_to_string_list(
-        previous_suggestions, schemas.Suggestion
-    )
-
-    socks_servers = await crud.get_socks_servers(
-        db,
-        filters.SocksServerFilter(),
-        limit=1000000,
-    )
-    data.socks_servers = sequence_to_string_list(socks_servers, schemas.SocksServer)
-
-    if req.credentials:
-        credentials = await crud.get_credentials(
-            db, filters.CredentialFilter(), limit=100000
-        )
-        data.credentials = sequence_to_string_list(credentials, schemas.Credential)
-
-    situational_awareness = await crud.list_situational_awareness(db, limit=10000)
-    data.situational_awareness = sequence_to_string_list(
-        situational_awareness, schemas.SituationalAwareness
-    )
-
-    domains = await crud.get_domains(
-        db,
-        filters.DomainFilter(),
-        limit=100000,
-    )
-    data.domains = sequence_to_string_list(domains, schemas.Domain)
-
-    data.domain_map = {
-        **{domain.short_name: domain for domain in domains},
-        **{domain.long_name: domain for domain in domains},
-    }
-
-    objectives = await crud.get_objectives(db, filters.ObjectivesFilter(), limit=10000)
-    data.objectives = sequence_to_string_list(objectives, schemas.Objective)
-
-    checklist = await crud.get_checklists(db, filters.ChecklistFilter(), limit=10000)
-    data.current_checklist = sequence_to_string_list(checklist, schemas.Checklist)
-
-    return data
-
-
 async def save_result(
     db: AsyncSession,
-    result: genai.Action,
+    result: prompts.Action,
     default_arguments: dict | None = None,
     c2_implant_id: str | None = None,
 ) -> None:
@@ -1754,7 +1553,7 @@ async def create_c2_implant_suggestion(req: schemas.C2ImplantSuggestionRequest):
 
             data = await load_data_for_ai(db, req, req.c2_implant_id)
 
-            await bar(5)
+            await bar(1)
 
             async def log_message(chats: list[rg.Chat]) -> None:
                 for chat in chats:
@@ -1762,21 +1561,16 @@ async def create_c2_implant_suggestion(req: schemas.C2ImplantSuggestionRequest):
                         log.info(message)
 
             pipeline = (
-                genai.generator.chat([{"role": "system", "content": ""}])
+                prompts.generator.chat([{"role": "system", "content": ""}])
                 .then(validate_playbook_callback(data.playbook_map))
                 .watch(log_message)
+                .using(data.tools)
             )
-            run = genai.suggest_action_c2_implant.bind(pipeline)
+            run = prompts.suggest_action_c2_implant.bind(pipeline)
 
             results = await run(
                 additional_prompt=req.additional_prompt,
-                tasks_executed=data.tasks_executed,
                 implant_information=data.implant_information,
-                executed_playbooks_list=data.playbooks,
-                playbook_template_list=data.playbook_templates,
-                previous_suggestions=data.previous_suggestions,
-                proxies=data.proxies,
-                socks_servers=data.socks_servers,
             )
             await bar(4)
             arguments = dict(c2_implant_id=req.c2_implant_id)
@@ -1787,7 +1581,7 @@ async def create_c2_implant_suggestion(req: schemas.C2ImplantSuggestionRequest):
 
 @activity.defn
 async def create_domain_suggestion(req: schemas.SuggestionsRequest):
-    log.info("Creating ai suggestion for all domains?")
+    log.info("Creating ai suggestion for all domains")
     if not settings.gemini_enabled:
         log.warning("Gemini not enabled, skipping")
         return
@@ -1812,100 +1606,23 @@ async def create_domain_suggestion(req: schemas.SuggestionsRequest):
             domain_checklist: str = await crud.get_setting(db, "suggestions", "domain_checklist", "")  # type: ignore
 
             pipeline = (
-                genai.generator.chat([{"role": "system", "content": ""}])
+                prompts.generator.chat([{"role": "system", "content": ""}])
                 .then(validate_playbook_callback(data.playbook_map))
                 .watch(log_message)
+                .using(data.tools)
             )
-            run = genai.suggest_domain_action.bind(pipeline)
+            run = prompts.suggest_domain_action.bind(pipeline)
 
             try:
                 results = await run(
                     edr_detections=edr_detections,
                     domain_checklist=domain_checklist,
-                    checklist=data.current_checklist,
                     additional_prompt=req.additional_prompt,
-                    tasks_executed=data.tasks_executed,
-                    implants_information=data.implants_information,
-                    executed_playbooks_list=data.playbooks,
-                    playbook_template_list=data.playbook_templates,
-                    previous_suggestions=data.previous_suggestions,
-                    proxies=data.proxies,
-                    socks_servers=data.socks_servers,
-                    credentials=data.credentials,
-                    situational_awareness=data.situational_awareness,
                 )
                 await bar(4)
                 for result in results.actions or []:
                     await save_result(db, result, None)
                 await bar(1)
-            except Exception as e:
-                log.warning(f"Exception while creating suggestions: {e}")
-
-
-@activity.defn
-async def create_domain_checklist(req: schemas.SuggestionsRequest):
-    log.info("Creating checklist")
-    if not settings.gemini_enabled:
-        log.warning("Gemini not enabled, skipping")
-        return
-
-    async with SessionLocal() as db:
-        async with progress_bar.ProgressBar(
-            bar_id=str(uuid.uuid4()),
-            max=10,
-            description="Creating AI suggestion",
-        ) as bar:
-
-            async def log_message(chats: list[rg.Chat]) -> None:
-                for chat in chats:
-                    for message in chat.generated:
-                        log.info(message)
-
-            data = await load_data_for_ai(db, req, skip_labels=["Dead"])
-
-            domain_checklist: str = await crud.get_setting(db, "suggestions", "domain_checklist", "")  # type: ignore
-
-            await bar(5)
-
-            pipeline = genai.generator.chat([{"role": "system", "content": ""}]).watch(
-                log_message
-            )
-            run = genai.create_checklist.bind(pipeline)
-
-            try:
-                results = await run(
-                    objectives=data.objectives,
-                    additional_prompt=req.additional_prompt,
-                    checklist=domain_checklist,
-                    tasks_executed=data.tasks_executed,
-                    implants_information=data.implants_information,
-                    executed_playbooks_list=data.playbooks,
-                    proxies=data.proxies,
-                    socks_servers=data.socks_servers,
-                    credentials=data.credentials,
-                    situational_awareness=data.situational_awareness,
-                    domains=data.domains,
-                    previous_checklist=data.current_checklist,
-                )
-                for dc in results.domain_checklist:
-                    if dc.name in data.domain_map:
-                        domain_id = data.domain_map[dc.name].id
-                        for phase in dc.checklist:
-                            for action in phase.actions:
-                                await crud.create_checklist(
-                                    db,
-                                    schemas.ChecklistCreate(
-                                        domain_id=domain_id,
-                                        phase=phase.name,
-                                        name=action.name,
-                                        status=action.status,
-                                    ),
-                                )
-
-                # await bar(4)
-                # for result in results.actions:
-                #     await save_result(db, result, None)
-                # await bar(1)
             except Exception as e:
                 log.warning(f"Exception while creating suggestions: {e}")
 
@@ -1923,57 +1640,27 @@ async def create_file_download_suggestion(req: schemas.SuggestionsRequest):
 
     log.info("Creating ai suggestion for files")
     async with SessionLocal() as db:
-        pipeline = genai.generator.chat([{"role": "system", "content": ""}]).watch(
-            log_message
-        )
-        run = genai.suggest_file_download_actions.bind(pipeline)
-
-        implants = await crud.get_c2_implants(
-            db,
-            not_labels=["Dead"],
-        )
-        implants_list = []
-        for implant in implants:
-            labels = await crud.recurse_labels_c2_implant(db, implant.id)
-            c2_implant_dict = implant.__dict__
-            c2_implant_dict["labels"] = labels
-            implants_list.append(dict_to_string(c2_implant_dict))
-
-        share_files = list(
-            await crud.get_share_files(
-                db,
-                filters=filters.ShareFileFilter(type="file", downloaded=False),
-                limit=1000000,
-            )
-        )
-
-        interesting_files: str = await crud.get_setting(db, "suggestions", "interesting_files", "")  # type: ignore
-        file_chunk_size = 100
         async with progress_bar.ProgressBar(
             bar_id=str(uuid.uuid4()),
-            max=int(len(share_files) / file_chunk_size),
-            description="Creating AI download suggestions",
+            max=10,
+            description="Creating ai suggestion for files",
         ) as bar:
-            suggestions: dict[str, list[genai.File]] = dict()
-            for i in range(0, len(share_files), file_chunk_size):
-                await bar(1)
-                files = share_files[i : i + file_chunk_size]
-                share_files_list = sequence_to_string_list(files, schemas.ShareFile)
-                try:
-                    result = await run(
-                        share_files=share_files_list,
-                        interesting_files=interesting_files,
-                        implants_information=implants_list,
-                    )
-                except Exception as e:
-                    log.warning(
-                        f"Error creating results: {e}, continuing with the next batch"
-                    )
-                    continue
-                if result.files and result.c2_implant_id:
-                    if not result.c2_implant_id in suggestions:
-                        suggestions[result.c2_implant_id] = []
-                    suggestions[result.c2_implant_id].extend(result.files)
+            pipeline = (
+                prompts.generator.chat([{"role": "system", "content": ""}])
+                .watch(log_message)
+                .using([tools.get_all_c2_implant_info, tools.get_undownloaded_share_files])
+            )
+            await bar(1)
+            run = prompts.suggest_file_download_actions.bind(pipeline)
+            interesting_files: str = await crud.get_setting(db, "suggestions", "interesting_files", "")  # type: ignore
+            suggestions: dict[str, list[prompts.File]] = dict()
+            result = await run(
+                interesting_files=interesting_files,
+            )
+            if result.files and result.c2_implant_id:
+                if not result.c2_implant_id in suggestions:
+                    suggestions[result.c2_implant_id] = []
+                suggestions[result.c2_implant_id].extend(result.files)
 
             for c2_implant_id, files in suggestions.items():
                 file_names: list[str] = []
@@ -2013,61 +1700,23 @@ async def create_dir_ls_suggestion(req: schemas.SuggestionsRequest):
 
     log.info("Creating ai suggestion for dir listing")
     async with SessionLocal() as db:
-        pipeline = genai.generator.chat([{"role": "system", "content": ""}]).watch(
-            log_message
-        )
-        run = genai.suggest_dir_list_actions.bind(pipeline)
-
-        implants = await crud.get_c2_implants(
-            db,
-            not_labels=["Dead"],
-        )
-        implants_list = []
-        for implant in implants:
-            labels = await crud.recurse_labels_c2_implant(db, implant.id)
-            c2_implant_dict = implant.__dict__
-            c2_implant_dict["labels"] = labels
-            implants_list.append(dict_to_string(c2_implant_dict))
-
-        share_files = list(
-            await crud.get_share_files(
-                db,
-                filters=filters.ShareFileFilter(type="dir", indexed=False),
-                limit=1000000,
-            )
-        )
-
-        file_chunk_size = 100
         async with progress_bar.ProgressBar(
             bar_id=str(uuid.uuid4()),
-            max=int(len(share_files) / file_chunk_size),
-            description="Creating AI suggestion for dir listing",
+            max=10,
+            description="Creating ai suggestion for dir listing",
         ) as bar:
-            suggestions: dict[str, list[genai.File]] = dict()
-
-            for i in range(0, len(share_files), file_chunk_size):
-                await bar(1)
-
-                files = share_files[i : i + file_chunk_size]
-                share_files_list = sequence_to_string_list(files, schemas.ShareFile)
-
-                try:
-                    result = await run(
-                        share_files=share_files_list,
-                        implants_information=implants_list,
-                    )
-                except Exception as e:
-                    log.warning(
-                        f"Error creating results: {e}, continuing with the next batch"
-                    )
-                    continue
-
-                log.info(result)
-                if result.files and result.c2_implant_id:
-                    if result.c2_implant_id not in suggestions:
-                        suggestions[result.c2_implant_id] = []
-                    suggestions[result.c2_implant_id].extend(result.files)
-
+            pipeline = prompts.generator.chat([{"role": "system", "content": ""}]).watch(
+                log_message
+            ).using([tools.get_all_c2_implant_info, tools.get_unindexed_share_folders])
+            run = prompts.suggest_dir_list_actions.bind(pipeline)
+            suggestions: dict[str, list[prompts.File]] = dict()
+            await bar(1)
+            result = await run()
+            log.info(result)
+            if result.files and result.c2_implant_id:
+                if result.c2_implant_id not in suggestions:
+                    suggestions[result.c2_implant_id] = []
+                suggestions[result.c2_implant_id].extend(result.files)
             for c2_implant_id, files in suggestions.items():
                 directories: list[str] = []
                 for file in files:
@@ -2110,59 +1759,16 @@ async def create_share_list_suggestion(req: schemas.SuggestionsRequest):
             max=10,
             description="Creating AI suggestion for share listing",
         ) as bar:
-            pipeline = genai.generator.chat([{"role": "system", "content": ""}]).watch(
-                log_message
-            )
-            run = genai.suggest_hosts_list_shares.bind(pipeline)
-
-            implants = await crud.get_c2_implants(
-                db,
-                not_labels=["Dead"],
-            )
-            implants_list = []
-            for implant in implants:
-                labels = await crud.recurse_labels_c2_implant(db, implant.id)
-                c2_implant_dict = implant.__dict__
-                c2_implant_dict["labels"] = labels
-                implants_list.append(dict_to_string(c2_implant_dict))
-
-            async with get_async_neo4j_session_context() as graphsession:
-                hosts = await graph_crud.get_computers(graphsession, "", 0, 10000)
-
-            skip_hosts = await crud.get_hosts(
-                db,
-                filters=filters.HostFilter(
-                    labels=filters.LabelFilter(
-                        id__in=["e6a57aae-993a-4196-a23a-13a7e5f607a3"]
-                    )
-                ),
-                limit=10000,
-            )
-
-            to_skip: set[str] = set()
-
-            for skip in skip_hosts:
-                to_skip.add(f"{skip.name}".upper())
-
-            hosts_list = []
-            for host in hosts:
-                if "." in host["name"]:
-                    basename = host["name"].split(".")[0]
-                    if basename.upper() in to_skip:
-                        continue
-                hosts_list.append(dict_to_string(host))
-
-            if not hosts_list:
-                log.info(f"No hosts found skiplist size: {len(to_skip)}")
-                return
-
-            result = await run(
-                hosts=hosts_list,
-                implants_information=implants_list,
-            )
-
+            pipeline = prompts.generator.chat(
+                [{"role": "system", "content": ""}]
+            ).watch(log_message).using([tools.get_all_c2_implant_info, tools.get_hosts])
+            run = prompts.suggest_hosts_list_shares.bind(pipeline)
+            await bar(1)
+            result = await run()
             chunk_size = 50
-            log.info(result)
+            if not result.host_list or not result.c2_implant_id:
+                log.info("No hosts or c2_implants found, skipping")
+                return
             for i in range(0, len(result.host_list), chunk_size):
                 hosts = result.host_list[i : i + chunk_size]
                 _ = await crud.create_suggestion(
@@ -2200,48 +1806,16 @@ async def create_share_root_list_suggestion(req: schemas.SuggestionsRequest):
             max=10,
             description="Creating AI suggestion for listing the root of shares",
         ) as bar:
-            pipeline = genai.generator.chat([{"role": "system", "content": ""}]).watch(
-                log_message
-            )
-            run = genai.suggest_shares_list.bind(pipeline)
-
-            implants = await crud.get_c2_implants(
-                db,
-                not_labels=["Dead"],
-            )
-            implants_list = []
-            for implant in implants:
-                labels = await crud.recurse_labels_c2_implant(db, implant.id)
-                c2_implant_dict = implant.__dict__
-                c2_implant_dict["labels"] = labels
-                implants_list.append(dict_to_string(c2_implant_dict))
-
-            shares = await crud.get_shares(
-                db, filters.ShareFilter(), limit=1000000
-            )
-
-            shares_list = []
-            skip_shares = set()
-            for share in shares:
-                for label in share.labels:
-                    if str(label.id) in ["3f061979-055d-473f-ba15-d7b508f0ba83", "851853d0-e540-4185-b46e-cf2e0cc63aa8"]:
-                        skip_shares.add(share.unc_path)
-
-
-            shares_list = [share.unc_path for share in shares if not share.unc_path in skip_shares]
-
-            if not shares_list:
-                log.info("No available shares to send to the LLM")
-                return
-
-            result = await run(
-                shares=shares_list,
-                implants_information=implants_list,
-            )
-
-            # Filter out hallucunations
-            to_list = [share for share in result.share_list or [] if share.share_name in shares_list]
-
+            pipeline = prompts.generator.chat(
+                [{"role": "system", "content": ""}]
+            ).watch(log_message).using([tools.get_network_shares, tools.get_all_c2_implant_info])
+            run = prompts.suggest_shares_list.bind(pipeline)
+            await bar(1)
+            result = await run()
+            to_list = [
+                share
+                for share in result.share_list or []
+            ]
             if to_list:
                 _ = await crud.create_suggestion(
                     db,
@@ -2252,7 +1826,9 @@ async def create_share_root_list_suggestion(req: schemas.SuggestionsRequest):
                         ),
                         playbook_template_id="b13e64a7-5623-4d69-bb6e-5718b887658c",
                         arguments=dict(
-                            directories="|".join([share.share_name for share in to_list]),
+                            directories="|".join(
+                                [share.share_name for share in to_list]
+                            ),
                             c2_implant_id=result.c2_implant_id,
                         ),
                     ),
@@ -2277,18 +1853,21 @@ async def c2_job_detection_risk(req: schemas.C2JobDetectionRiskRequest) -> None:
         log.warning("Gemini not enabled, skipping")
         return
 
+    async def log_message(chats: list[rg.Chat]) -> None:
+        for chat in chats:
+            for message in chat.generated:
+                log.info(message)
+
     async with SessionLocal() as db:
         async with progress_bar.ProgressBar(
             bar_id=str(uuid.uuid4()),
             max=5,
             description="Checking detections",
         ) as bar:
-            pipeline = genai.generator.chat(
+            pipeline = prompts.generator.chat(
                 [{"role": "system", "content": ""}]
-            )  # .watch(
-            #     log_message
-            # )
-            run = genai.c2_job_detection_risk.bind(pipeline)
+            )
+            run = prompts.c2_job_detection_risk.bind(pipeline).watch(log_message)
 
             c2_job = await crud.get_c2_job(req.c2_job_id)
 
@@ -2347,7 +1926,9 @@ async def c2_job_detection_risk(req: schemas.C2JobDetectionRiskRequest) -> None:
                         playbook_id=c2_job.playbook_id,
                     ),
                 )
-                await crud.send_update_playbook(str(c2_job.playbook_id), "updated_chain")
+                await crud.send_update_playbook(
+                    str(c2_job.playbook_id), "updated_chain"
+                )
             await bar(1)
 
 
@@ -2365,7 +1946,9 @@ async def kerberoasting_suggestions(req: schemas.SuggestionsRequest):
             description="Creating kerberoasting suggestions",
         ) as bar:
             async with get_async_neo4j_session_context() as session:
-                kerberoastable_users = await graph_crud.get_kerberoastable_groups(session)
+                kerberoastable_users = await graph_crud.get_kerberoastable_groups(
+                    session
+                )
                 if not kerberoastable_users:
                     await bar(3)
                     return
@@ -2376,25 +1959,174 @@ async def kerberoasting_suggestions(req: schemas.SuggestionsRequest):
                 await bar(1)
 
                 pipeline = (
-                    genai.generator.chat([{"role": "system", "content": ""}])
+                    prompts.generator.chat([{"role": "system", "content": ""}])
                     .then(validate_playbook_callback(data.playbook_map))
                     .watch(log_message)
+                    .using(data.tools)
                 )
-                run = genai.kerberoasting.bind(pipeline)
+                run = prompts.kerberoasting.bind(pipeline)
 
                 results = await run(
                     additional_prompt=req.additional_prompt,
-                    kerberoastable_users=[dict_to_string(user) for user in kerberoastable_users],
-                    implants_information=data.implants_information,
-                    proxies=data.proxies,
-                    executed_playbooks_list=data.playbooks,
-                    playbook_template_list=data.playbook_templates,
-                    previous_suggestions=data.previous_suggestions,
-                    socks_servers=data.socks_servers,
-                    credentials=data.credentials,
-                    situational_awareness=data.situational_awareness,
+                    kerberoastable_users=[
+                        dict_to_string(user) for user in kerberoastable_users
+                    ],
                 )
 
                 for result in results.actions or []:
                     await save_result(db, result, None)
                 await bar(1)
+
+
+def validate_playbook_callback(
+    playbook_map: dict[str, models.PlaybookTemplate],
+) -> t.Callable[
+    [rg.Chat], t.Coroutine[t.Any, t.Any, rg.PipelineStepContextManager | None]
+]:
+    async def validate_playbook(
+        chat: rg.Chat,
+    ) -> rg.PipelineStepContextManager | None:
+        """
+        A rigging pipeline step that validates playbook actions and asks the LLM
+        to correct them if errors are found.
+
+        This function parses the last message for playbook actions, validates them,
+        and if any errors exist, it constructs a new prompt detailing the errors
+        and triggers another generation round.
+
+        Args:
+            chat: The current chat object in the rigging pipeline.
+
+        Returns:
+            A PipelineStepContextManager to trigger another LLM call if validation fails,
+            otherwise None to indicate success and continue the pipeline.
+        """
+        error_messages = []
+        try:
+            # Assuming rg.parse can handle parsing the content into the desired structure
+            actions = chat.last.parse(prompts.ActionList)
+            for action in actions.actions or []:
+                if action.playbook and action.playbook.playbook_id in playbook_map:
+                    try:
+                        playbook_template = playbook_map[action.playbook.playbook_id]
+                        chain = schemas.PlaybookTemplate(
+                            **yaml.safe_load(playbook_template.yaml)
+                        )
+                        arguments = json.loads(action.playbook.arguments or "{}")
+                        # This line performs the actual validation
+                        chain.create_model()(**arguments)
+                    except ValidationError as e:
+                        error_messages.append(
+                            f"Validation Error for playbook '{action.playbook.playbook_id}':\n{e.json()}"
+                        )
+                    except (json.JSONDecodeError, yaml.YAMLError) as e:
+                        error_messages.append(
+                            f"Error processing playbook '{action.playbook.playbook_id}': {e}"
+                        )
+                # You can add other checks for placeholder IDs or missing playbooks if needed
+                elif not action.playbook or not action.playbook.playbook_id:
+                    error_messages.append(
+                        f"Action is missing a playbook or playbook_id: {action}"
+                    )
+                elif action.playbook.playbook_id not in playbook_map:
+                    error_messages.append(
+                        f"Playbook with ID '{action.playbook.playbook_id}' not found."
+                    )
+
+        except ValidationError as e:
+            log.warning(f"Major ValidationError during parsing: {e}")
+            error_messages.append(
+                f"The overall structure of your response was incorrect: {e.json()}"
+            )
+
+        # --- This is the key change in logic ---
+        if error_messages:
+            # 1. Format the collected errors into a clear message for the model.
+            error_summary = "\n- ".join(error_messages)
+            correction_prompt = (
+                "Your previous attempt to generate a playbook action had errors. "
+                "Please review the errors below, correct them, and provide the full, valid action again.\n\n"
+                "Errors found:\n"
+                f"- {error_summary}"
+            )
+
+            # 2. Create a new chat object with the corrective prompt.
+            follow_up_chat = chat.continue_(correction_prompt)
+
+            # 3. Return the PipelineStepContextManager to trigger a new LLM call.
+            return follow_up_chat.step()
+
+        # 4. If there were no errors, return None to exit the loop.
+        return None
+
+    return validate_playbook
+
+
+@dataclass
+class AIData:
+    implant_information: str = ""
+    playbook_map: dict[str, models.PlaybookTemplate] = field(default_factory=dict)
+    tools: list[rg.Tool] = field(default_factory=list)
+    domain_map: dict[str, models.Domain] = field(default_factory=dict)
+
+
+async def load_data_for_ai(
+    db: AsyncSession,
+    req: schemas.SuggestionBaseRequest,
+    c2_implant_id: str | None = None,
+    include_labels: list[str] | None = None,
+    skip_labels: list[str] | None = None,
+) -> AIData:
+    data = AIData(
+        tools=[
+            tools.get_playbook_templates,
+            tools.get_previous_suggestions,
+            tools.get_socks_servers_info,
+            tools.get_situational_awareness_info,
+        ]
+    )
+    if c2_implant_id:
+        c2_implant = await crud.get_c2_implant(c2_implant_id)
+        if c2_implant:
+            labels = await crud.recurse_labels_c2_implant(db, c2_implant_id)
+            c2_implant_dict = c2_implant.__dict__
+            c2_implant_dict["labels"] = labels
+            data.implant_information = dict_to_string(
+                c2_implant_dict,
+            )
+    else:
+        data.tools.append(tools.get_all_c2_implant_info)
+
+    if req.c2_tasks:
+        data.tools.append(tools.get_c2_tasks_executed)
+    if req.c2_task_output:
+        data.tools.append(tools.get_c2_tasks_executed)
+
+    playbook_templates = await crud.get_chain_templates(
+        db, filters=filters.PlaybookTemplateFilter()
+    )
+    data.playbook_map = {
+        str(playbook_template.id): playbook_template
+        for playbook_template in playbook_templates
+    }
+    if req.playbooks:
+        data.tools.append(tools.get_playbooks)
+
+    if req.proxies:
+        data.tools.append(tools.get_proxies_info)
+
+    if req.credentials:
+        data.tools.append(tools.get_credentials_info)
+
+    domains = await crud.get_domains(
+        db,
+        filters.DomainFilter(),
+        limit=100000,
+    )
+
+    data.domain_map = {
+        **{domain.short_name: domain for domain in domains},
+        **{domain.long_name: domain for domain in domains},
+    }
+
+    return data
