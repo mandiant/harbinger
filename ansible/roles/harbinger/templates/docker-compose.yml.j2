@@ -145,9 +145,9 @@ services:
   caddy:
     image: "{{ harbinger_image_caddy }}"
     restart: unless-stopped
-    command: caddy reverse-proxy --from https://{{ harbinger_domain_name }}:8443 --to http://web:8000
+    command: caddy reverse-proxy --from https://{{ harbinger_domain_name }}:{{ harbinger_listen_port }} --to http://web:8000
     ports:
-      - 8443:8443
+      - {{ harbinger_listen_port }}:{{ harbinger_listen_port }}
     volumes:
       - caddy:/data
     depends_on:

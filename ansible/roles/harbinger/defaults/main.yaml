@@ -43,6 +43,7 @@ harbinger_harbinger_version: latest
 harbinger_grpc_host: grpc:50051
 harbinger_gemini_key:
 harbinger_domain_name: "{{ inventory_hostname }}"
+harbinger_listen_port: 8443
 harbinger_http_proxy:
 harbinger_https_proxy:
 harbinger_expose_all_ports: false

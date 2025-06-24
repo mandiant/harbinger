@@ -44,6 +44,8 @@ harbinger_server:
     harbinger_gemini_api_key: api_key_here
     # Change the hostname, will default to your inventory name.
     harbinger_domain_name: harbinger1.local
+    # Change from this value if you want it to listen on another port
+    harbinger_listen_port: 8443
     # Swap to true if docker and docker compose are already installed
     harbinger_skip_docker_installation: false
 ```
