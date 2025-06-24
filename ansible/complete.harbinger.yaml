@@ -40,12 +40,12 @@
         - docker.io
         - docker-compose
       become: true
-      when: ansible_distribution == "Kali"
+      when: ansible_distribution == "Kali" and not harbinger_skip_docker_installation
 
     - name: Install docker on other os
       ansible.builtin.include_role:
         name: geerlingguy.docker
-      when: ansible_distribution != "Kali"
+      when: ansible_distribution != "Kali" and not harbinger_skip_docker_installation
 
   roles:
     - role: "harbinger"
@@ -53,12 +53,5 @@
       vars:
         harbinger_postgres_password: "{{ lookup('password', inventory_dir + '/site/' + inventory_hostname + '/postgres_password.txt chars=ascii_letters length=12') }}"
         harbinger_redis_password: "{{ lookup('password', inventory_dir + '/site/' + inventory_hostname + '/redis_password.txt chars=ascii_letters length=12') }}"
-        harbinger_users: "{{ users }}"
         harbinger_password: "{{ lookup('password', inventory_dir + '/site/' + inventory_hostname + '/harbinger_password.txt chars=ascii_letters length=12') }}"
         harbinger_minio_secret_key: "{{ lookup('password', inventory_dir + '/site/' + inventory_hostname + '/minio_secret_key.txt chars=ascii_letters length=12') }}"
-        harbinger_neo4j_host: "{{ neo4j_host }}"
-        harbinger_neo4j_port: "{{ neo4j_port }}"
-        harbinger_neo4j_user: "{{ neo4j_user }}"
-        harbinger_neo4j_password: "{{ neo4j_password }}"
-        harbinger_gemini_key: "{{ gemini_api_key }}"
-        harbinger_domain_name: "{{ inventory_hostname }}.local"

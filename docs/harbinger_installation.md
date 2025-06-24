@@ -36,12 +36,16 @@ harbinger_server:
   vars:
     users:
     - user1
-    neo4j_host: 10.10.10.2
-    neo4j_port: 7687
-    neo4j_user: neo4j
-    neo4j_password: neo4j_password_here
+    harbinger_neo4j_host: 10.10.10.2
+    harbinger_neo4j_port: 7687
+    harbinger_neo4j_user: neo4j
+    harbinger_neo4j_password: neo4j_password_here
     # if you want to enable gemini based processing, leave empty if not needed
-    gemini_api_key: api_key_here
+    harbinger_gemini_api_key: api_key_here
+    # Change the hostname, will default to your inventory name.
+    harbinger_domain_name: harbinger1.local
+    # Swap to true if docker and docker compose are already installed
+    harbinger_skip_docker_installation: false
 ```
 
 If you want to install it on the local vm use this in your inventory:
@@ -57,12 +61,12 @@ harbinger_server:
   vars:
     users:
     - example
-    neo4j_host: 10.10.10.2
-    neo4j_port: 7687
-    neo4j_user: neo4j
-    neo4j_password: neo4j_password_here
+    harbinger_neo4j_host: 10.10.10.2
+    harbinger_neo4j_port: 7687
+    harbinger_neo4j_user: neo4j
+    harbinger_neo4j_password: neo4j_password_here
     # if you want to enable gemini based processing, leave empty if not needed
-    gemini_api_key: api_key_here
+    harbinger_gemini_api_key: api_key_here
 ```
 
 Run the ansible playbook:

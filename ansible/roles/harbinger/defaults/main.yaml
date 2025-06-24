@@ -42,6 +42,18 @@ harbinger_temporal_host: temporal:7233
 harbinger_harbinger_version: latest
 harbinger_grpc_host: grpc:50051
 harbinger_gemini_key:
-harbinger_domain_name: harbinger
+harbinger_domain_name: "{{ inventory_hostname }}"
 harbinger_http_proxy:
 harbinger_https_proxy:
+harbinger_expose_all_ports: false
+harbinger_worker_replicas: 2
+harbinger_image_postgres: "postgres:17"
+harbinger_image_temporal_auto_setup: "temporalio/auto-setup:1.22"
+harbinger_image_temporal_ui: "temporalio/ui:2.25.0"
+harbinger_image_redis: "redis:latest"
+harbinger_image_minio: "quay.io/minio/minio:latest"
+harbinger_image_harbinger: "harbinger:latest"
+harbinger_image_caddy: "caddy:2.4.3-alpine"
+harbinger_image_tmate_ssh_server: "tmate/tmate-ssh-server:latest"
+harbinger_users: []
+harbinger_skip_docker_installation: false

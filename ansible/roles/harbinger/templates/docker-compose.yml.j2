@@ -5,11 +5,15 @@ services:
     environment:
       POSTGRES_PASSWORD: temporal
       POSTGRES_USER: temporal
-    image: postgres:17
+    image: "{{ harbinger_image_postgres }}"
     networks:
       - harbinger
     volumes:
       - /var/lib/postgresql/data
+{% if harbinger_expose_all_ports %}
+    ports:
+      - "5432:5432
+{% endif %}
 
   temporal:
     container_name: temporal
@@ -23,11 +27,14 @@ services:
       - POSTGRES_PWD=temporal
       - POSTGRES_SEEDS=postgresql
       - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/deploy.yaml
-    image: temporalio/auto-setup:1.22
+      - LOG_LEVEL=error
+    image: "{{ harbinger_image_temporal_auto_setup }}"
     networks:
       - harbinger
+{% if harbinger_expose_all_ports %}
     ports:
       - 7233:7233
+{% endif %}
     volumes:
       - ./deploy/dynamicconfig:/etc/temporal/config/dynamicconfig
 
@@ -41,21 +48,25 @@ services:
       - TEMPORAL_UI_ENABLED=true
       - TEMPORAL_UI_PORT=8080
       - TEMPORAL_OPENAPI_ENABLED=true
-    image: temporalio/ui:2.25.0
+    image: "{{ harbinger_image_temporal_ui }}"
     networks:
       - harbinger
+{% if harbinger_expose_all_ports %}
     ports:
       - 8080:8080
+{% endif %}
 
   postgres:
-    image: postgres:17
+    image: "{{ harbinger_image_postgres }}"
     restart: unless-stopped
     env_file:
       - deploy/postgres.env
     volumes:
       - db-data:/var/lib/postgresql/data
+{% if harbinger_expose_all_ports %}
     ports:
       - "5432:5432"
+{% endif %}
     networks:
       - harbinger
     healthcheck:
@@ -66,11 +77,13 @@ services:
       start_period: 80s
 
   redis:
-    image: "redis:latest"
+    image: "{{ harbinger_image_redis }}"
     restart: unless-stopped
     command: "redis-server /etc/redis/redis.conf"
+{% if harbinger_expose_all_ports %}
     ports:
       - "6379:6379"
+{% endif %}
     env_file:
       - deploy/redis.env
     volumes:
@@ -80,12 +93,14 @@ services:
       - harbinger
 
   minio:
-    image: quay.io/minio/minio
+    image: "{{ harbinger_image_minio }}"
     restart: unless-stopped
     command: server /data --console-address ":9001"
+{% if harbinger_expose_all_ports %}
     ports:
       - 9000:9000
       - 9001:9001
+{% endif %}
     volumes:
       - minio-data:/data
     env_file:
@@ -94,11 +109,13 @@ services:
       - harbinger
 
   web:
-    image: harbinger:latest
+    image: "{{ harbinger_image_harbinger }}"
     restart: unless-stopped
     command: "uvicorn harbinger.config.app:app --host 0.0.0.0 --forwarded-allow-ips='*' --proxy-headers"
+{% if harbinger_expose_all_ports %}
     ports:
       - "8000:8000"
+{% endif %}
     env_file:
       - deploy/redis.env
       - deploy/server.env
@@ -109,11 +126,13 @@ services:
       - harbinger
 
   grpc:
-    image: harbinger:latest
+    image: "{{ harbinger_image_harbinger }}"
     restart: unless-stopped
     command: "harbinger_grpc"
+{% if harbinger_expose_all_ports %}
     ports:
       - "50051:50051"
+{% endif %}
     env_file:
       - deploy/redis.env
       - deploy/server.env
@@ -124,9 +143,9 @@ services:
       - harbinger
 
   caddy:
-    image: caddy:2.4.3-alpine
+    image: "{{ harbinger_image_caddy }}"
     restart: unless-stopped
-    command: caddy reverse-proxy --from https://{{ harbinger_domain_name | default('*') }}:8443 --to http://web:8000
+    command: caddy reverse-proxy --from https://{{ harbinger_domain_name }}:8443 --to http://web:8000
     ports:
       - 8443:8443
     volumes:
@@ -137,10 +156,12 @@ services:
       - harbinger
 
   tmate:
-    image: tmate/tmate-ssh-server:latest
+    image: "{{ harbinger_image_tmate_ssh_server }}"
     restart: unless-stopped
+{% if harbinger_expose_all_ports %}
     ports:
       - 2200:2200
+{% endif %}
     volumes:
       - ./deploy/keys:/keys
     cap_add:
@@ -152,7 +173,7 @@ services:
       - harbinger
 
   migration:
-    image: harbinger:latest
+    image: "{{ harbinger_image_harbinger }}"
     command: harbinger_migrate
     env_file:
       - deploy/redis.env
@@ -164,7 +185,7 @@ services:
       - harbinger
 
   create_defaults:
-    image: harbinger:latest
+    image: "{{ harbinger_image_harbinger }}"
     command: harbinger_create_defaults
     env_file:
       - deploy/redis.env
@@ -177,7 +198,7 @@ services:
 
   worker:
     command: harbinger_worker
-    image: harbinger:latest
+    image: "{{ harbinger_image_harbinger }}"
     env_file:
       - deploy/redis.env
       - deploy/server.env
@@ -193,9 +214,11 @@ services:
     restart: on-failure
     networks:
       - harbinger
+    deploy:
+      replicas: "{{ harbinger_worker_replicas }}"
 
   docker_worker:
-    image: harbinger:latest
+    image: "{{ harbinger_image_harbinger }}"
     command: harbinger_docker_worker
     user: root
     env_file:
