@@ -133,7 +133,7 @@
     force_source: true
     build:
       dockerfile: "Dockerfile.mythic"
-      path: /opt/harbinger_build/harbinger/
+      path: /opt/harbinger_build/go/
       args: "{{ harbinger_docker_build_args }}"
 
 - name: Start harbinger

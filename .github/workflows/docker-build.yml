@@ -15,8 +15,11 @@ jobs:
       matrix:
         include:
           - dockerfile: Dockerfile
+            context: harbinger
           - dockerfile: Dockerfile.proxy
+            context: harbinger
           - dockerfile: Dockerfile.mythic
+            context: go
     steps:
     - uses: actions/checkout@v4
 
@@ -26,6 +29,6 @@ jobs:
     - name: Build and push image
       uses: docker/build-push-action@v5
       with:
-        context: "{{defaultContext}}:harbinger"
+        context: "{{defaultContext}}:${{ matrix.context }}"
         push: false
         file: ${{ matrix.dockerfile }}
