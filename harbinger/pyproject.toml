@@ -85,7 +85,7 @@ harbinger_files = "harbinger.files.cli:cli"
 harbinger_grpc = "harbinger.rpc.server:cli"
 
 [build-system]
-requires = ["setuptools==69.0.2"]
+requires = ["setuptools==78.1.1"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
