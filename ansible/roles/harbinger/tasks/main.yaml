@@ -101,6 +101,11 @@
     src: "{{ role_path }}/../../../harbinger"
     dest: /opt/harbinger_build/
 
+- name: Upload go repository
+  ansible.posix.synchronize:
+    src: "{{ role_path }}/../../../go"
+    dest: /opt/harbinger_build/
+
 - name: Create deploy.yaml for temporal
   copy:
     src: deploy.yaml
