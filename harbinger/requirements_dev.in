@@ -3,3 +3,4 @@ testcontainers
 pip-tools
 pytest
 pytest-cov
+grpcio-tools

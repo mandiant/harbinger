@@ -14,9 +14,9 @@
 
 syntax = "proto3";
 
-package proto.v1;
+package harbinger.go.proto.v1;
 
-option go_package = "https://github.com/mndt-proactive/Harbinger/gen/messages/v1;messagesv1";
+option go_package = "github.com/mandiant/harbinger/go/proto/v1;messagesv1";
 
 service Harbinger {
   rpc Ping (PingRequest) returns (PingResponse) {}
