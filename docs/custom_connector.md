@@ -2,6 +2,8 @@
 
 Harbinger is designed with a modular architecture to seamlessly integrate with various C2 (Command and Control) servers. This document guides you through implementing your own custom connector, leveraging the Go `base_worker` library. This library handles common infrastructure concerns, allowing you to focus purely on the unique interactions with your chosen C2 server.
 
+After you create your code, make sure to build it into a container and [configure it in harbinger](./configuration.md#c2-connectors).
+
 ## Environment Variables
 
 Your custom connector's Docker image should start automatically and will receive the following environment variables:
