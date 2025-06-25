@@ -101,6 +101,11 @@
     src: "{{ role_path }}/../../../harbinger"
     dest: /opt/harbinger_build/
 
+- name: Upload go repository
+  ansible.posix.synchronize:
+    src: "{{ role_path }}/../../../go"
+    dest: /opt/harbinger_build/
+
 - name: Create deploy.yaml for temporal
   copy:
     src: deploy.yaml
@@ -133,7 +138,7 @@
     force_source: true
     build:
       dockerfile: "Dockerfile.mythic"
-      path: /opt/harbinger_build/harbinger/
+      path: /opt/harbinger_build/go/
       args: "{{ harbinger_docker_build_args }}"
 
 - name: Start harbinger

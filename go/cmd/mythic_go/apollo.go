@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"log"
 	"strings"
+
+	"github.com/mandiant/harbinger/go/pkg/base_worker"
 )
 
 type ApolloMythicArguments struct {
@@ -34,9 +36,9 @@ type ApolloMythicArguments struct {
 	AssemblyArguments string     `json:"assembly_arguments,omitempty"`
 }
 
-func BuildApolloTask(job RunJob, file_ids []InputFile) ([]Task, error) {
-	input_arguments := HarbingerArguments{}
-	tasks := []Task{}
+func BuildApolloTask(job base_worker.RunJob, file_ids []base_worker.InputFile) ([]base_worker.Task, error) {
+	input_arguments := base_worker.HarbingerArguments{}
+	tasks := []base_worker.Task{}
 	err := json.Unmarshal([]byte(job.C2Job.Arguments), &input_arguments)
 	if err != nil {
 		return tasks, err
@@ -78,7 +80,7 @@ func BuildApolloTask(job RunJob, file_ids []InputFile) ([]Task, error) {
 		if err != nil {
 			return tasks, err
 		}
-		tasks = append(tasks, Task{Command: "register_assembly", Arguments: string(arguments_bytes)})
+		tasks = append(tasks, base_worker.Task{Command: "register_assembly", Arguments: string(arguments_bytes)})
 		command = "execute_assembly"
 		arguments_json = ApolloMythicArguments{
 			AssemblyName:      file_ids[0].Name,
@@ -100,7 +102,7 @@ func BuildApolloTask(job RunJob, file_ids []InputFile) ([]Task, error) {
 		if err != nil {
 			return tasks, err
 		}
-		tasks = append(tasks, Task{Command: "register_coff", Arguments: string(arguments_bytes)})
+		tasks = append(tasks, base_worker.Task{Command: "register_coff", Arguments: string(arguments_bytes)})
 		command = "execute_coff"
 		coff_arguments := make([][]string, 0)
 		r := csv.NewReader(strings.NewReader(input_arguments.Arguments))
@@ -147,7 +149,7 @@ func BuildApolloTask(job RunJob, file_ids []InputFile) ([]Task, error) {
 	default:
 	}
 
-	tasks = append(tasks, Task{Command: command, Arguments: arguments})
+	tasks = append(tasks, base_worker.Task{Command: command, Arguments: arguments})
 
 	return tasks, nil
 }

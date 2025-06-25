@@ -12,5 +12,5 @@ jobs:
     - uses: actions/setup-go@v5
 
     - name: Go build
-      run: go build .
-      working-directory: ./harbinger/src/harbinger/connectors/mythic_go/
+      run: go build ./cmd/mythic_go
+      working-directory: ./go

@@ -12,13 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package base_worker
 
 type File struct {
 	Id       string `json:"id"`
 	Filename string `json:"filename"`
 	Bucket   string `json:"bucket"`
 	Path     string `json:"path"`
+}
+
+type Task struct {
+	Command   string
+	Arguments string
+}
+
+type InputFile struct {
+	Id   string
+	Name string
 }
 
 type C2Job struct {

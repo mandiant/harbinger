@@ -96,7 +96,7 @@ c2_server_types:
           - pwd
 ```
 
-See [custom connectors](custom_connectors.md) on how to make your custom c2 connector.
+See [custom connectors](custom_connector.md) on how to make your custom c2 connector.
 
 
 ## Actions

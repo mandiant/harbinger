@@ -12,21 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Build the mythic connector
-FROM golang:latest as build_mythic
+FROM golang:1.24-bookworm AS build_mythic
 
-WORKDIR /build
+WORKDIR /app
 
-COPY src/harbinger/connectors/mythic_go .
+COPY go.mod .
 
-RUN go build -o harbinger_mythic_client *.go
+COPY go.sum .
 
-# base image
+RUN go mod download
+
+COPY . .
+
+RUN CGO_ENABLED=0 GOOS=linux go build -o mythic_go_connector ./cmd/mythic_go
+
 FROM debian:12-slim
 
-COPY --from=build_mythic /build/harbinger_mythic_client /usr/local/bin/
+COPY --from=build_mythic /app/mythic_go_connector /usr/local/bin/
 
-RUN chmod +x /usr/local/bin/harbinger_mythic_client
+RUN chmod +x /usr/local/bin/mythic_go_connector
 
 ARG USERNAME=user
 ARG USER_UID=1000
@@ -35,4 +39,6 @@ ARG USER_GID=$USER_UID
 RUN groupadd --gid $USER_GID $USERNAME \
     && useradd -s /bin/bash --uid $USER_UID --gid $USER_GID -m $USERNAME
 
-USER user:user
+USER ${USERNAME}:${USERNAME}
+
+CMD ["/usr/local/bin/mythic_go_connector"]
