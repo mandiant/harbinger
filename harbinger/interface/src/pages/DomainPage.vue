@@ -90,7 +90,7 @@ const visible = ref(['id', 'short_name', 'long_name', 'time_created'])
 
 domainStore.Load()
 
-store.clear('domain');
+store.clear('domains');
 const $q = useQuasar();
 
 const { loading, data, pagination, filters } =

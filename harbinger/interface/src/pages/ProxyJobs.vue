@@ -139,7 +139,7 @@ import { storeToRefs } from 'pinia'
 
 const counter_store = useCounterStore();
 
-counter_store.clear('proxy_job');
+counter_store.clear('proxy_jobs');
 
 const $q = useQuasar();
 

@@ -104,7 +104,7 @@ import { api } from 'boot/axios';
 import { useRouter } from 'vue-router';
 import JobTemplateForm from '../components/JobTemplateForm.vue';
 import BreadCrumb from '../components/BreadCrumb.vue';
-import { Template, Schema } from '../models'
+import { PlaybookTemplate, Schema } from '../models'
 import useloadData from 'src/load-data';
 import { useParamStore } from 'src/stores/ParamStore';
 import FilterView from '../components/FilterView.vue';
@@ -112,7 +112,7 @@ import FilterView from '../components/FilterView.vue';
 const p_store = useParamStore();
 
 const { loading, data, pagination, AddFilter, loadData } =
-  useloadData<Array<Template>>('templates/playbooks');
+  useloadData<Array<PlaybookTemplate>>('templates/playbooks');
 
 pagination.value.rowsPerPage = 10;
 

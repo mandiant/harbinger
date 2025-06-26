@@ -54,6 +54,7 @@ harbinger_image_temporal_ui: "temporalio/ui:2.25.0"
 harbinger_image_redis: "redis:latest"
 harbinger_image_minio: "quay.io/minio/minio:latest"
 harbinger_image_harbinger: "harbinger:latest"
+harbinger_image_events: "harbinger_events:latest"
 harbinger_image_caddy: "caddy:2.4.3-alpine"
 harbinger_image_tmate_ssh_server: "tmate/tmate-ssh-server:latest"
 harbinger_users: []

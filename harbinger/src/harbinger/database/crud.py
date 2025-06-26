@@ -21,8 +21,6 @@ import yaml
 import random
 import string
 import re
-
-
 from harbinger.database.redis_pool import redis
 import harbinger.proto.v1.messages_pb2 as messages_pb2
 from harbinger.database.database import get_async_session
@@ -58,17 +56,6 @@ CACHE_DECORATORS_AVAILABLE = True
 DEFAULT_CACHE_TTL = 3600  # 1 hour
 
 logger = logging.getLogger(__name__)
-
-
-async def send_event(object_type: str, name: str, object_id: str | UUID4) -> None:
-    event = messages_pb2.Event(
-        event=object_type, name=name, id=str(object_id)
-    ).SerializeToString()
-    await redis.publish(
-        schemas.Streams.events,
-        event,
-    )
-    await redis.xadd(schemas.Streams.events, dict(message=event))  # type: ignore
 
 
 @redis_cache(
@@ -151,7 +138,6 @@ async def get_or_create_password(
         db.add(password_db)
         await db.commit()
         await db.refresh(password_db)
-        await send_event(schemas.Event.password, schemas.EventType.new, password_db.id)
     return password_db
 
 
@@ -185,7 +171,6 @@ async def get_or_create_credential(
         db.add(credential)
         await db.commit()
         await db.refresh(credential)
-        await send_event(schemas.Event.credential, schemas.EventType.new, credential.id)
     return credential
 
 
@@ -214,7 +199,6 @@ async def get_or_create_kerberos(
         db.add(kerberos)
         await db.commit()
         await db.refresh(kerberos)
-        await send_event(schemas.Event.kerberos, schemas.EventType.new, kerberos.id)
         return True, kerberos
 
 
@@ -282,7 +266,6 @@ async def create_domain(
     db.add(db_domain)
     await db.commit()
     await db.refresh(db_domain)
-    await send_event(schemas.Event.domain, schemas.EventType.new, db_domain.id)
     return db_domain
 
 
@@ -432,7 +415,6 @@ async def create_credential(
     db.add(db_credential)
     await db.commit()
     await db.refresh(db_credential)
-    await send_event(schemas.Event.credential, schemas.EventType.new, db_credential.id)
     return db_credential
 
 
@@ -554,7 +536,6 @@ async def create_proxy(db: AsyncSession, proxy: schemas.ProxyCreate) -> models.P
     db.add(db_proxy)
     await db.commit()
     await db.refresh(db_proxy)
-    await send_event(schemas.Event.proxy, schemas.EventType.new, db_proxy.id)
     return db_proxy
 
 
@@ -587,7 +568,6 @@ async def update_proxy_job(
     for input_file in input_files:
         await create_input_file(db, input_file, proxy_job_id=job_id)
     proxy_job = await db.get(models.ProxyJob, job_id)
-    await send_event(schemas.Event.proxy_job, schemas.EventType.update, proxy_job.id)
     if proxy_job and proxy_job.playbook_id:
         await send_update_playbook(proxy_job.playbook_id, "updated_proxy_job", str(proxy_job.id))
     return proxy_job
@@ -702,7 +682,6 @@ async def create_proxy_job(
     for input_file in input_files:
         await create_input_file(db, input_file, proxy_job_id=str(db_proxy_job.id))
 
-    await send_event(schemas.Event.proxy_job, schemas.EventType.new, db_proxy_job.id)
     await db.refresh(db_proxy_job)
     return db_proxy_job
 
@@ -715,9 +694,6 @@ async def create_proxy_job_output(
     proxy_job_output.job_id = output.job_id
     db.add(proxy_job_output)
     await db.commit()
-    await send_event(
-        schemas.Event.proxy_job_output, schemas.EventType.new, proxy_job_output.id
-    )
 
 
 async def get_proxy_job_output_paged(
@@ -790,7 +766,6 @@ async def add_file(
     db.add(file)
     await db.commit()
     await db.refresh(file)
-    await send_event(schemas.Event.file, schemas.EventType.new, file.id)
     return file
 
 
@@ -804,7 +779,6 @@ async def update_file(
     q = update(models.File).where(models.File.id == file_id).values(**file.model_dump())
     await db.execute(q)
     await db.commit()
-    await send_event(schemas.Event.file, schemas.EventType.update, str(file_id))
 
 
 @redis_cache_invalidate(
@@ -817,7 +791,6 @@ async def update_file_path(
     q = update(models.File).where(models.File.id == file_id).values(path=path)
     await db.execute(q)
     await db.commit()
-    await send_event(schemas.Event.file, schemas.EventType.update, str(file_id))
 
 
 @redis_cache(
@@ -968,7 +941,6 @@ async def update_file_type(
     q = update(models.File).where(models.File.id == file_id).values(filetype=filetype)
     await db.execute(q)
     await db.commit()
-    await send_event(schemas.Event.file, schemas.EventType.update, str(file_id))
 
 
 async def update_or_create_proxy(
@@ -999,7 +971,6 @@ async def update_or_create_proxy(
     except exc.NoResultFound:
         proxy_db = models.Proxy(**proxy.model_dump())
         proxy_db.type = proxy.type.value
-        await send_event(schemas.Event.proxy, schemas.EventType.new, proxy_db.id)
         new = True
 
     proxy_db.status = proxy.status.value
@@ -1197,7 +1168,6 @@ async def create_chain_from_template(
 
     await db.commit()
     await db.refresh(playbook_obj)
-    await send_event(schemas.Event.playbook, schemas.EventType.new, playbook_obj.id)
     return playbook_obj
 
 
@@ -1211,7 +1181,6 @@ async def create_chain(
     db.add(db_chain)
     await db.commit()
     await db.refresh(db_chain)
-    await send_event(schemas.Event.playbook, schemas.EventType.new, db_chain.id)
     return db_chain
 
 
@@ -1234,7 +1203,6 @@ async def clone_chain(
     for step in steps:
         await clone_chain_step(db, step, str(new_chain.id))
 
-    await send_event(schemas.Event.playbook, schemas.EventType.new, new_chain.id)
     await db.refresh(new_chain)
     return new_chain
 
@@ -1265,7 +1233,7 @@ async def get_playbooks(
 async def update_chain(
     db: AsyncSession, playbook_id: str, chain: schemas.ProxyChainCreate
 ) -> Optional[models.Playbook]:
-    db_chain = await db.get(models.Playbook, id)
+    db_chain = await db.get(models.Playbook, playbook_id)
     if db_chain:
         db_chain.playbook_name = chain.playbook_name  # type: ignore
         db_chain.description = chain.description  # type: ignore
@@ -1273,7 +1241,6 @@ async def update_chain(
         await db.commit()
         await db.refresh(db_chain)
     await send_update_playbook(playbook_id, "updated_chain")
-    await send_event(schemas.Event.playbook, schemas.EventType.update, playbook_id)
     return db_chain
 
 
@@ -1488,7 +1455,6 @@ async def update_chain_status(
         msg = messages_pb2.Event(event="playbook_status", chain_status=status)
         await redis.publish(f"playbook_stream_{playbook_id}", msg.SerializeToString())
         await update_action_status(db, status, playbook_id)
-        await send_event(schemas.Event.playbook, schemas.EventType.update, playbook_id)
         return chain
 
 
@@ -1578,7 +1544,6 @@ async def update_playbook_steps(db: AsyncSession, playbook_id: str | uuid.UUID) 
 
         await db.execute(update(models.Playbook).where(models.Playbook.id == playbook_id).values(steps=count))
         await db.commit()
-        await send_event(schemas.Event.playbook, schemas.EventType.update, playbook_id)
 
 
 async def delete_step(db: AsyncSession, step_id: str) -> None:
@@ -1650,7 +1615,6 @@ async def add_step(
     if step.playbook_id:
         await update_playbook_steps(db, step.playbook_id)
         await send_update_playbook(step.playbook_id, "new_step", str(db_step.id))
-    await send_event(schemas.Event.playbook_step, schemas.EventType.new, db_step.id)
     return db_step
 
 
@@ -1675,11 +1639,8 @@ async def update_step(
         await db.commit()
         if step.playbook_id:
             await update_playbook_steps(db, step.playbook_id)
-            await send_update_playbook(step.playbook_id, "updated_step", str(db_step.id))
+            await send_update_playbook(str(step.playbook_id), "updated_step", str(db_step.id))
         await db.refresh(db_step)
-        await send_event(
-            schemas.Event.playbook_step, schemas.EventType.update, db_step.id
-        )
         return db_step
     return None
 
@@ -1738,7 +1699,6 @@ async def create_c2_job(db: AsyncSession, job: schemas.C2JobCreate) -> models.C2
     await db.refresh(db_obj)
     for input_file in input_files or []:
         await create_input_file(db, input_file, c2_job_id=str(db_obj.id))
-    await send_event(schemas.Event.c2_job, schemas.EventType.new, db_obj.id)
     return db_obj
 
 
@@ -1772,7 +1732,6 @@ async def update_c2_job(
     c2_job = await db.get(models.C2Job, c2_job_id)
     if c2_job and c2_job.playbook_id:
         await send_update_playbook(c2_job.playbook_id, "updated_c2_job", str(c2_job_id))
-    await send_event(schemas.Event.c2_job, schemas.EventType.update, c2_job_id)
     return c2_job
 
 
@@ -1796,7 +1755,6 @@ async def update_c2_job_status(
     q = update(models.C2Job).where(models.C2Job.id == c2_job_id).values(**values)
     await db.execute(q)
     await db.commit()
-    await send_event(schemas.Event.c2_job, schemas.EventType.update, c2_job_id)
 
 
 async def get_c2_job_status_by_task(
@@ -1823,7 +1781,6 @@ async def create_process(
     db.add(process_db)
     await db.commit()
     await db.refresh(process_db)
-    await send_event(schemas.Event.process, schemas.EventType.new, process_db.id)
     return process_db
 
 
@@ -2035,7 +1992,6 @@ async def get_or_create_host(
         try:
             await db.commit()
             await db.refresh(host)
-            await send_event(schemas.Event.host, schemas.EventType.new, host.id)
         except exc.IntegrityError:
             await db.rollback()
             created, host = await get_or_create_host(db, name, domain_id)
@@ -2060,7 +2016,6 @@ async def update_host(
     )
     await db.execute(q)
     await db.commit()
-    await send_event(schemas.Event.host, schemas.EventType.update, host_id)
     return await db.get(models.Host, host_id)
 
 
@@ -2332,7 +2287,6 @@ async def create_label(db: AsyncSession, label: schemas.LabelCreate) -> models.L
     db.add(db_label)
     await db.commit()
     await db.refresh(db_label)
-    await send_event(schemas.Event.label, schemas.EventType.new, db_label.id)
     return db_label
 
 
@@ -2377,25 +2331,6 @@ async def send_label_events(
                 )
             # --- End Added Call ---
 
-            # Existing event sending logic
-            event = getattr(
-                schemas.Event, key_prefix, None
-            )  # Use derived prefix for event type
-            logger.error(f"Sending event: {event}")
-            if event:
-                # Assuming send_event is defined and imported correctly
-                await send_event(event, schemas.EventType.update, value)
-            else:
-                logger.warning(
-                    f"No matching schemas.Event found for key_prefix '{key_prefix}' derived from '{key}'. Cannot send generic event."
-                )
-
-    # for key, value in dumped_label.items():
-    #     key = key.replace("_id", "")
-    #     event = getattr(schemas.Event, key, None)
-    #     if event:
-    #         await send_event(event, schemas.EventType.update, value)
-
 
 async def create_label_item(
     db: AsyncSession, label: schemas.LabeledItemCreate
@@ -2404,7 +2339,6 @@ async def create_label_item(
     db.add(db_label)
     await db.commit()
     await db.refresh(db_label)
-    await send_event(schemas.Event.labeled_item, schemas.EventType.new, db_label.id)
     await send_label_events(label)
     return db_label
 
@@ -2416,7 +2350,6 @@ async def delete_label_item(db: AsyncSession, label: schemas.LabeledItemDelete) 
             q = q.where(getattr(models.LabeledItem, x) == y)
     await db.execute(q)
     await db.commit()
-    await send_event(schemas.Event.labeled_item, schemas.EventType.deleted, "")
     await send_label_events(label)
     return "Success"
 
@@ -2712,7 +2645,6 @@ async def update_c2_server(
     )
     await db.execute(q)
     await db.commit()
-    await send_event(schemas.Event.c2_server, schemas.EventType.update, c2_server_id)
     return await db.get(models.C2Server, c2_server_id)
 
 
@@ -2723,7 +2655,6 @@ async def create_c2_server(
     db.add(db_c2_server)
     await db.commit()
     await db.refresh(db_c2_server)
-    await send_event(schemas.Event.c2_server, schemas.EventType.new, db_c2_server.id)
     return db_c2_server
 
 
@@ -2744,7 +2675,6 @@ async def update_c2_implant(
     q = q.values(**data)
     await db.execute(q)
     await db.commit()
-    await send_event(schemas.Event.c2_implant, schemas.EventType.update, c2_implant_id)
     return await db.get(models.C2Implant, c2_implant_id)
 
 
@@ -2775,16 +2705,12 @@ async def create_or_update_c2_implant(
         await db.execute(q)
         await db.commit()
         await invalidate_cache_entry("c2_implant", db_implant.id)
-        await send_event(
-            schemas.Event.c2_implant, schemas.EventType.update, db_implant.id
-        )
         new = False
     else:
         db_implant = models.C2Implant(**implant.model_dump())
         db.add(db_implant)
         await db.commit()
         await db.refresh(db_implant)
-        await send_event(schemas.Event.c2_implant, schemas.EventType.new, db_implant.id)
         new = True
 
     return new, db_implant
@@ -2813,13 +2739,11 @@ async def create_or_update_c2_task(
         await db.execute(q)
         await db.commit()
         await invalidate_cache_entry("c2_task", db_task.id)
-        await send_event(schemas.Event.c2_task, schemas.EventType.update, db_task.id)
     else:
         db_task = models.C2Task(**data)
         db.add(db_task)
         await db.commit()
         await db.refresh(db_task)
-        await send_event(schemas.Event.c2_task, schemas.EventType.new, db_task.id)
         new = True
     return new, db_task
 
@@ -2844,8 +2768,6 @@ async def create_c2_task_output(
     )
     await db.commit()
     result = result.unique().one()
-    if result.time_updated == None:
-        await send_event(schemas.Event.c2_task_output, schemas.EventType.new, result.id)
     return result.time_updated == None, result
 
 
@@ -2903,7 +2825,6 @@ async def update_c2_task_summary(
     await db.execute(q)
     await db.commit()
     await invalidate_cache_entry("c2_task", c2_task_id)
-    await send_event(schemas.Event.c2_task, schemas.EventType.update, c2_task_id)
 
 
 async def get_timeline_paged(
@@ -3014,9 +2935,6 @@ async def update_situational_awareness(
     )
     await db.execute(q)
     await db.commit()
-    await send_event(
-        schemas.Event.situational_awareness, schemas.EventType.update, sa_id
-    )
 
 
 async def delete_situational_awareness(db, sa_id: str | UUID4):
@@ -3025,9 +2943,6 @@ async def delete_situational_awareness(db, sa_id: str | UUID4):
     )
     await db.execute(q)
     await db.commit()
-    await send_event(
-        schemas.Event.situational_awareness, schemas.EventType.deleted, sa_id
-    )
 
 
 async def get_or_create_situational_awareness(
@@ -3055,9 +2970,6 @@ async def get_or_create_situational_awareness(
         db.add(sa_db)
         await db.commit()
         await db.refresh(sa_db)
-        await send_event(
-            schemas.Event.situational_awareness, schemas.EventType.new, sa_db.id
-        )
     return created, sa_db
 
 
@@ -3094,7 +3006,6 @@ async def get_or_create_share(
         try:
             await db.commit()
             await db.refresh(db_share)
-            await send_event(schemas.Event.share, schemas.EventType.new, db_share.id)
             if share.name and (
                 "$" in share.name
                 or share.name.lower()
@@ -3204,7 +3115,6 @@ async def set_share_file_downloaded(
     )
     await db.commit()
     await invalidate_cache_entry("share_file", share_file_id)
-    await send_event(schemas.Event.share_file, schemas.EventType.update, share_file_id)
 
 
 async def list_share_files_paged(
@@ -3593,7 +3503,6 @@ async def create_hash(
         db.add(hash_db)
         await db.commit()
         await db.refresh(hash_db)
-        await send_event(schemas.Event.hash, schemas.EventType.new, hash_db.id)
         return True, hash_db
 
 
@@ -3728,7 +3637,6 @@ async def create_playbook_step_modifier(
     # if step.playbook_id:
     #     msg = messages_pb2.Event(event="new_step", id=str(step.id))
     #     await redis.publish(f"playbook_stream_{step.playbook_id}", msg.SerializeToString())
-    # await send_event(schemas.Event.domain, schemas.EventType.new, db_domain.id)
     return db_step
 
 
@@ -3850,7 +3758,6 @@ async def create_parse_result(
     db.add(result_db)
     await db.commit()
     await db.refresh(result_db)
-    # await send_event(schemas.Event.domain, schemas.EventType.new, db_domain.id)
     return result_db
 
 
@@ -3902,7 +3809,6 @@ async def create_highlight(
     db.add(result)
     await db.commit()
     await db.refresh(result)
-    await send_event(schemas.Event.highlight, schemas.EventType.new, result.id)
     return result
 
 
@@ -4419,14 +4325,7 @@ async def create_certificate_template(
     db.add(template_db)
     await db.commit()
     await db.refresh(template_db)
-    await send_event(
-        schemas.Event.certificate_template, schemas.EventType.new, template_db.id
-    )
     # result = res.unique().one()
-    # if result.time_updated == None:
-    #     await send_event(
-    #         schemas.Event.certificate_template, schemas.EventType.new, result.id
-    #     )
     for authority in authorities or []:
         auth_db = list(
             await get_certificate_authorities(
@@ -4507,10 +4406,6 @@ async def create_certificate_authority(
     )
     await db.commit()
     result = res.unique().one()
-    if result.time_updated == None:
-        await send_event(
-            schemas.Event.certificate_authority, schemas.EventType.new, result.id
-        )
     return result.time_updated == None, result
 
 
@@ -4530,12 +4425,6 @@ async def create_certificate_template_permissions(
     )
     await db.commit()
     result = result.unique().one()
-    if result.time_updated == None:
-        await send_event(
-            schemas.Event.certificate_template_permissions,
-            schemas.EventType.new,
-            result.id,
-        )
     return result.time_updated == None, result
 
 
@@ -4585,8 +4474,6 @@ async def create_issue(
     )
     await db.commit()
     result = result.unique().one()
-    if result.time_updated == None:
-        await send_event(schemas.Event.issue, schemas.EventType.new, result.id)
     return result.time_updated == None, result
 
 @redis_cache_invalidate(
@@ -4670,8 +4557,6 @@ async def create_c2_server_type(
     )
     await db.commit()
     result = result.unique().one()
-    if result.time_updated == None:
-        await send_event(schemas.Event.c2_server_type, schemas.EventType.new, result.id)
     return result.time_updated == None, result
 
 
@@ -4811,8 +4696,6 @@ async def create_suggestion(
     )
     await db.commit()
     result = result.unique().one()
-    if result.time_updated == None:
-        await send_event(schemas.Event.suggestion, schemas.EventType.new, result.id)
     return result.time_updated == None, result
 
 
@@ -4895,8 +4778,6 @@ async def create_checklist(
     )
     await db.commit()
     result = result.unique().one()
-    if result.time_updated == None:
-        await send_event(schemas.Event.checklist, schemas.EventType.new, result.id)
     return result.time_updated == None, result
 
 
@@ -4978,8 +4859,6 @@ async def create_objective(
     )
     await db.commit()
     result = result.unique().one()
-    if result.time_updated == None:
-        await send_event(schemas.Event.objective, schemas.EventType.new, result.id)
     return result.time_updated == None, result
 
 

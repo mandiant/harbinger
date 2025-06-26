@@ -98,7 +98,7 @@ import { Truncate } from 'src/truncate';
 const counter_store = useCounterStore();
 const $router = useRouter();
 
-counter_store.clear('highlight');
+counter_store.clear('highlights');
 const visible = ref(['hit', 'link', 'rule_type', 'labels'])
 
 const useStore = defineTypedStore<Highlight>('highlights');

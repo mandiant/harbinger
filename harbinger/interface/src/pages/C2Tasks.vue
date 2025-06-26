@@ -27,5 +27,5 @@ import C2Tasks from 'src/components/C2Tasks.vue';
 import { useCounterStore } from 'src/stores/object-counters';
 const store = useCounterStore();
 
-store.clear('c2_task');
+store.clear('c2_tasks');
 </script>

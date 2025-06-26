@@ -98,7 +98,7 @@ import { ref } from 'vue';
 
 const counter_store = useCounterStore();
 
-counter_store.clear('proxy');
+counter_store.clear('proxies');
 
 const visible = ref(['host', 'port', 'type', 'status', 'remote_hostname'])
 

@@ -61,7 +61,7 @@ import { storeToRefs } from 'pinia'
 
 const counter_store = useCounterStore();
 
-counter_store.clear('share');
+counter_store.clear('shares');
 
 const props = defineProps({
   host_id: {

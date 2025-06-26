@@ -93,7 +93,7 @@ import { useRouter } from 'vue-router';
 
 const counter_store = useCounterStore();
 
-counter_store.clear('suggestion');
+counter_store.clear('suggestions');
 const visible = ref(['name', 'reason', 'labels', 'actions', 'time_created'])
 const $router = useRouter();
 

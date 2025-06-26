@@ -238,6 +238,21 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 
+  events:
+    image: "{{ harbinger_image_events }}"
+    command: harbinger_events
+    env_file:
+      - deploy/redis.env
+      - deploy/server.env
+    depends_on:
+      migration:
+        condition: service_completed_successfully
+      redis:
+        condition: service_started
+    restart: on-failure
+    networks:
+      - harbinger
+
 volumes:
   db-data:
   minio-data:

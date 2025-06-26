@@ -140,7 +140,7 @@ import { storeToRefs } from 'pinia'
 
 const counter_store = useCounterStore();
 
-counter_store.clear('playbook');
+counter_store.clear('playbooks');
 
 const visible = ref(['playbook_name', 'description', 'status', 'steps', 'completed', 'labels'])
 

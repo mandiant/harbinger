@@ -51,8 +51,8 @@
         <q-icon name="article" color="secondary" />
       </q-item-section>
       <q-item-section>Files</q-item-section>
-      <q-item-section side v-if="data['file'] > 0">
-        <q-badge color="secondary" :label="data['file']" />
+      <q-item-section side v-if="data['files'] > 0">
+        <q-badge color="secondary" :label="data['files']" />
       </q-item-section>
     </q-item>
 
@@ -61,8 +61,8 @@
         <q-icon name="highlight" color="secondary" />
       </q-item-section>
       <q-item-section>Highlights</q-item-section>
-      <q-item-section side v-if="data['highlight'] > 0">
-        <q-badge color="secondary" :label="data['highlight']" />
+      <q-item-section side v-if="data['highlights'] > 0">
+        <q-badge color="secondary" :label="data['highlights']" />
       </q-item-section>
     </q-item>
 
@@ -72,8 +72,8 @@
         <q-icon name="corporate_fare" color="secondary" />
       </q-item-section>
       <q-item-section>Domains</q-item-section>
-      <q-item-section side v-if="data['domain'] > 0">
-        <q-badge color="secondary" :label="data['domain']" />
+      <q-item-section side v-if="data['domains'] > 0">
+        <q-badge color="secondary" :label="data['domains']" />
       </q-item-section>
     </q-item>
 
@@ -98,8 +98,8 @@
               <q-icon name="fingerprint" color="secondary" />
             </q-item-section>
             <q-item-section>Credentials</q-item-section>
-            <q-item-section side v-if="data['credential'] > 0">
-              <q-badge color="secondary" :label="data['credential']" />
+            <q-item-section side v-if="data['credentials'] > 0">
+              <q-badge color="secondary" :label="data['credentials']" />
             </q-item-section>
           </q-item>
           <q-item clickable v-ripple to="/passwords" exact :class="$q.dark.isActive ? 'text-white' : 'text-black'">
@@ -107,8 +107,8 @@
               <q-icon name="key" color="secondary" />
             </q-item-section>
             <q-item-section>Passwords</q-item-section>
-            <q-item-section side v-if="data['password'] > 0">
-              <q-badge color="secondary" :label="data['password']" />
+            <q-item-section side v-if="data['passwords'] > 0">
+              <q-badge color="secondary" :label="data['passwords']" />
             </q-item-section>
           </q-item>
           <q-item clickable v-ripple to="/kerberos" exact :class="$q.dark.isActive ? 'text-white' : 'text-black'">
@@ -125,8 +125,8 @@
               <q-icon name="tag" color="secondary" />
             </q-item-section>
             <q-item-section>Hashes</q-item-section>
-            <q-item-section side v-if="data['hash'] > 0">
-              <q-badge color="secondary" :label="data['hash']" />
+            <q-item-section side v-if="data['hashes'] > 0">
+              <q-badge color="secondary" :label="data['hashes']" />
             </q-item-section>
           </q-item>
         </q-list>
@@ -139,8 +139,8 @@
         <q-icon name="computer" color="secondary" />
       </q-item-section>
       <q-item-section>Hosts</q-item-section>
-      <q-item-section side v-if="data['host'] > 0">
-        <q-badge color="secondary" :label="data['host']" />
+      <q-item-section side v-if="data['hosts'] > 0">
+        <q-badge color="secondary" :label="data['hosts']" />
       </q-item-section>
     </q-item>
 
@@ -150,8 +150,8 @@
         <q-icon name="folder_shared" color="secondary" />
       </q-item-section>
       <q-item-section>Shares</q-item-section>
-      <q-item-section side v-if="data['share'] > 0">
-        <q-badge color="secondary" :label="data['share']" />
+      <q-item-section side v-if="data['shares'] > 0">
+        <q-badge color="secondary" :label="data['shares']" />
       </q-item-section>
     </q-item>
     <q-item clickable v-ripple exact :class="$q.dark.isActive ? 'text-white' : 'text-black'"
@@ -176,8 +176,8 @@
               <q-icon name="badge" color="secondary" />
             </q-item-section>
             <q-item-section>Authorities</q-item-section>
-            <q-item-section side v-if="data['certificate_authority'] > 0">
-              <q-badge color="secondary" :label="data['certificate_authority']" />
+            <q-item-section side v-if="data['certificate_authorities'] > 0">
+              <q-badge color="secondary" :label="data['certificate_authorities']" />
             </q-item-section>
           </q-item>
           <q-item clickable v-ripple to="/certificate_templates" exact
@@ -186,8 +186,8 @@
               <q-icon name="add_moderator" color="secondary" />
             </q-item-section>
             <q-item-section>Templates</q-item-section>
-            <q-item-section side v-if="data['certificate_template'] > 0">
-              <q-badge color="secondary" :label="data['certificate_template']" />
+            <q-item-section side v-if="data['certificate_templatse'] > 0">
+              <q-badge color="secondary" :label="data['certificate_templates']" />
             </q-item-section>
           </q-item>
         </q-list>
@@ -200,8 +200,8 @@
         <q-icon name="priority_high" color="secondary" />
       </q-item-section>
       <q-item-section>Issues</q-item-section>
-      <q-item-section side v-if="data['issue'] > 0">
-        <q-badge color="secondary" :label="data['issue']" />
+      <q-item-section side v-if="data['issues'] > 0">
+        <q-badge color="secondary" :label="data['issues']" />
       </q-item-section>
     </q-item>
 
@@ -211,8 +211,8 @@
         <q-icon name="label" color="secondary" />
       </q-item-section>
       <q-item-section>Labels</q-item-section>
-      <q-item-section side v-if="data['label'] > 0">
-        <q-badge color="secondary" :label="data['label']" />
+      <q-item-section side v-if="data['labels'] > 0">
+        <q-badge color="secondary" :label="data['labels']" />
       </q-item-section>
     </q-item>
 
@@ -234,8 +234,8 @@
         <q-icon name="menu_book" color="secondary" />
       </q-item-section>
       <q-item-section>Playbooks</q-item-section>
-      <q-item-section side v-if="data['playbook'] > 0">
-        <q-badge color="secondary" :label="data['playbook']" />
+      <q-item-section side v-if="data['playbooks'] > 0">
+        <q-badge color="secondary" :label="data['playbooks']" />
       </q-item-section>
     </q-item>
 
@@ -244,8 +244,8 @@
         <q-icon name="share" color="secondary" />
       </q-item-section>
       <q-item-section>Socks Jobs</q-item-section>
-      <q-item-section side v-if="data['proxy_job'] > 0">
-        <q-badge color="secondary" :label="data['proxy_job']" />
+      <q-item-section side v-if="data['proxy_jobs'] > 0">
+        <q-badge color="secondary" :label="data['proxy_jobs']" />
       </q-item-section>
     </q-item>
 
@@ -254,8 +254,8 @@
         <q-icon name="fas fa-satellite-dish" color="secondary" />
       </q-item-section>
       <q-item-section>C2 Jobs</q-item-section>
-      <q-item-section side v-if="data['c2_job'] > 0">
-        <q-badge color="secondary" :label="data['c2_job']" />
+      <q-item-section side v-if="data['c2_jobs'] > 0">
+        <q-badge color="secondary" :label="data['c2_jobs']" />
       </q-item-section>
     </q-item>
 
@@ -264,8 +264,8 @@
         <q-icon name="fas fa-robot" color="secondary" />
       </q-item-section>
       <q-item-section>Suggestions</q-item-section>
-      <q-item-section side v-if="data['suggestion'] > 0">
-        <q-badge color="secondary" :label="data['suggestion']" />
+      <q-item-section side v-if="data['suggestions'] > 0">
+        <q-badge color="secondary" :label="data['suggestions']" />
       </q-item-section>
     </q-item>
 
@@ -280,8 +280,8 @@
         <q-icon name="fas fa-virus" color="secondary" />
       </q-item-section>
       <q-item-section>Implants</q-item-section>
-      <q-item-section side v-if="data['c2_implant'] > 0">
-        <q-badge color="secondary" :label="data['c2_implant']" />
+      <q-item-section side v-if="data['c2_implants'] > 0">
+        <q-badge color="secondary" :label="data['c2_implants']" />
       </q-item-section>
     </q-item>
 
@@ -290,8 +290,8 @@
         <q-icon name="dns" color="secondary" />
       </q-item-section>
       <q-item-section>C2 Servers</q-item-section>
-      <q-item-section side v-if="data['c2_server'] > 0">
-        <q-badge color="secondary" :label="data['c2_server']" />
+      <q-item-section side v-if="data['c2_servers'] > 0">
+        <q-badge color="secondary" :label="data['c2_servers']" />
       </q-item-section>
     </q-item>
 
@@ -300,8 +300,8 @@
         <q-icon name="share" color="secondary" />
       </q-item-section>
       <q-item-section>Socks proxies</q-item-section>
-      <q-item-section side v-if="data['proxy'] > 0">
-        <q-badge color="secondary" :label="data['proxy']" />
+      <q-item-section side v-if="data['proxies'] > 0">
+        <q-badge color="secondary" :label="data['proxies']" />
       </q-item-section>
     </q-item>
 
@@ -310,9 +310,9 @@
         <q-icon name="dns" color="secondary" />
       </q-item-section>
       <q-item-section>Socks servers</q-item-section>
-      <!-- <q-item-section side v-if="c2_servers > 0">
-        <q-badge color="secondary" :label="c2_servers" />
-      </q-item-section> -->
+      <q-item-section side v-if="data['c2_servers'] > 0">
+        <q-badge color="secondary" :label="data['c2_servers']" />
+      </q-item-section>
     </q-item>
 
     <q-item clickable v-ripple to="/tasks" exact :class="$q.dark.isActive ? 'text-white' : 'text-black'">
@@ -320,8 +320,8 @@
         <q-icon name="task" color="secondary" />
       </q-item-section>
       <q-item-section>Tasks</q-item-section>
-      <q-item-section side v-if="data['c2_task'] > 0">
-        <q-badge color="secondary" :label="data['c2_task']" />
+      <q-item-section side v-if="data['c2_tasks'] > 0">
+        <q-badge color="secondary" :label="data['c2_tasks']" />
       </q-item-section>
     </q-item>
 

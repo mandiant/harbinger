@@ -121,7 +121,7 @@ const store = useStore();
 const { loading, data, pagination, filters } = storeToRefs(store);
 
 const counter_store = useCounterStore();
-counter_store.clear('c2_implant');
+counter_store.clear('c2_implants');
 
 const props = defineProps({
   host_id: {

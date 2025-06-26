@@ -322,6 +322,13 @@ export interface Event {
   progress: Progress;
 }
 
+export interface PostgresEventPayload {
+  table_name: string;
+  operation: 'insert' | 'update' | 'delete';
+  before: any; // Raw JSON of the old row (for 'update' and 'delete')
+  after: any;  // Raw JSON of the new row (for 'insert' and 'update')
+}
+
 export interface CobaltStrikeBeacon {
   id: number;
   note: string;
@@ -377,7 +384,7 @@ export interface LabelView {
   labels: Array<Label>;
 }
 
-export interface Template {
+export interface PlaybookTemplate {
   id: string;
   icon: string;
   name: string;
@@ -664,7 +671,7 @@ export interface Action {
   time_started: string;
   time_completed: string;
   labels: Array<Label>;
-  playbook_templates: Array<Template>;
+  playbook_templates: Array<PlaybookTemplate>;
 }
 
 export interface CertificateAuthority {

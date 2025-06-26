@@ -745,7 +745,7 @@ async def create_chain(
 )
 async def update_chain(
     chain: schemas.ProxyChainCreate,
-    playbook_id: str,
+    playbook_id: UUID4,
     db: AsyncSession = Depends(get_db),
     user: models.User = Depends(current_active_user),
 ):
@@ -1782,50 +1782,81 @@ async def get_job_statistics(user: models.User = Depends(current_active_user)):
     return await crud.get_job_statistics()
 
 
+# Define the Redis Pub/Sub channel the Go service publishes to
+REDIS_PUBSUB_CHANNEL = "app_events_stream" # This MUST match the Go app's `redisPubSubChannel`
+
 @router.websocket("/events")
-async def websocket_events(websocket: WebSocket):
+async def websocket_events(
+    websocket: WebSocket,
+):
+    # --- Authentication (from your original code) ---
+    # This part remains mostly the same, ensuring the user is authenticated.
     cookie = websocket._cookies.get("fastapiusersauth", None)
     if not cookie:
         logging.warning("Authentication cookie 'fastapiusersauth' not found.")
         await websocket.close(code=1008, reason="Authentication required")
         return
+
     strat = get_redis_strategy()
     async with SessionLocal() as session:
         db = await anext(get_user_db(session))
         manager = await anext(get_user_manager(db))
         token = await strat.read_token(cookie, manager)
 
-    if token:
-        await websocket.accept()
-        pubsub = redis.pubsub(ignore_subscribe_messages=True)
-        await pubsub.subscribe(schemas.Streams.events)
+    if not token:
+        logging.warning("Invalid or expired authentication token.")
+        await websocket.close(code=1008, reason="Invalid or expired token")
+        return
 
-        async def inner():
-            async for item in pubsub.listen():
-                if item["type"] != "subscribe":
-                    msg = messages_pb2.Event()
-                    try:
-                        msg.ParseFromString(item["data"])
-                        await websocket.send_text(
-                            MessageToJson(
-                                msg,
-                                preserving_proto_field_name=True,
-                                indent=0,
-                            )
-                        )
-                    except TypeError as e:
-                        pass
+    await websocket.accept()
+    logging.info(f"WebSocket client authenticated and accepted for user with token: {token}")
 
-        task = asyncio.create_task(inner())
+    # --- Redis Pub/Sub integration ---
+    pubsub = redis.pubsub()
+
+    try:
+        await pubsub.subscribe(REDIS_PUBSUB_CHANNEL)
+        logging.info(f"Subscribed to Redis channel: {REDIS_PUBSUB_CHANNEL}")
+
+        async def redis_listener():
+            try:
+                async for message in pubsub.listen():
+                    if message["type"] == "message":
+                        # The Go app now sends raw JSON bytes
+                        payload_bytes = message["data"]
+                        payload_str = payload_bytes.decode('utf-8')
+
+                        # Directly send the JSON string to the WebSocket client
+                        await websocket.send_text(payload_str)
+
+            except asyncio.CancelledError:
+                logging.info("Redis listener task cancelled.")
+            except Exception as e:
+                logging.error(f"Error in Redis listener task: {e}")
+            finally:
+                logging.info("Unsubscribing from Redis Pub/Sub.")
+                await pubsub.unsubscribe(REDIS_PUBSUB_CHANNEL)
+
+
+        listener_task = asyncio.create_task(redis_listener())
+
         try:
+            # Keep the WebSocket open by waiting for messages from the client
+            # (e.g., pings, or other client-sent data)
             while True:
                 await websocket.receive_text()
         except WebSocketDisconnect:
-            task.cancel()
+            logging.info("WebSocket disconnected.")
+        except Exception as e:
+            logging.error(f"Error in WebSocket receive loop: {e}")
         finally:
-            await pubsub.unsubscribe()
-    else:
-        await websocket.close()
+            listener_task.cancel()
+            await listener_task
+            logging.info("WebSocket connection closed.")
+
+    except Exception as e:
+        logging.error(f"Error setting up Redis Pub/Sub for WebSocket: {e}")
+        await websocket.close(code=1011, reason="Internal server error with event system")
 
 
 @router.get(

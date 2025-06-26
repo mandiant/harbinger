@@ -141,6 +141,16 @@
       path: /opt/harbinger_build/go/
       args: "{{ harbinger_docker_build_args }}"
 
+- name: Build harbinger events container
+  community.docker.docker_image:
+    name: "harbinger_events:latest"
+    source: build
+    force_source: true
+    build:
+      dockerfile: "Dockerfile.events"
+      path: /opt/harbinger_build/go/
+      args: "{{ harbinger_docker_build_args }}"
+
 - name: Start harbinger
   community.docker.docker_compose_v2:
     project_src: "{{ installation_path }}"

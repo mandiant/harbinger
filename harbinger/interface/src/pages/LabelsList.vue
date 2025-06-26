@@ -59,7 +59,7 @@ import { storeToRefs } from 'pinia'
 
 const counter_store = useCounterStore();
 
-counter_store.clear('label');
+counter_store.clear('labels');
 
 const useStore = defineTypedStore<Label>('labels');
 const store = useStore();
