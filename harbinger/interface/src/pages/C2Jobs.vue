@@ -120,7 +120,7 @@ import FilterView from '../components/FilterView.vue';
 
 const counter_store = useCounterStore();
 
-counter_store.clear('c2_job');
+counter_store.clear('c2_jobs');
 
 const $q = useQuasar();
 

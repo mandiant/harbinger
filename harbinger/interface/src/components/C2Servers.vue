@@ -127,7 +127,7 @@ import { storeToRefs } from 'pinia'
 const $q = useQuasar();
 const counter_store = useCounterStore();
 
-counter_store.clear('c2_server');
+counter_store.clear('c2_servers');
 
 const useStore = defineTypedStore<C2Server>('c2/servers');
 const store = useStore();

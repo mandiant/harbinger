@@ -107,7 +107,7 @@ import { storeToRefs } from 'pinia'
 
 const counter_store = useCounterStore();
 
-counter_store.clear('credential');
+counter_store.clear('credentials');
 
 const useStore = defineTypedStore<Credential>('credentials');
 const store = useStore();

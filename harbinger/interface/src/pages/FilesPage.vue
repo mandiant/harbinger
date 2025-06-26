@@ -27,5 +27,5 @@ import { useCounterStore } from 'src/stores/object-counters';
 import FilesView from 'src/components/FilesView.vue';
 const store = useCounterStore();
 
-store.clear('file');
+store.clear('files');
 </script>

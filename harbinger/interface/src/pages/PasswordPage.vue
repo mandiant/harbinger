@@ -60,7 +60,7 @@ import { storeToRefs } from 'pinia'
 
 const counter_store = useCounterStore();
 
-counter_store.clear('password');
+counter_store.clear('passwords');
 
 const useStore = defineTypedStore<Password>('passwords');
 const store = useStore();

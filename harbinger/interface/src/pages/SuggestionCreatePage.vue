@@ -76,7 +76,7 @@ import { Suggestion } from 'src/models';
 import { api } from 'boot/axios';
 import { useQuasar } from 'quasar';
 import JobTemplateForm from '../components/JobTemplateForm.vue';
-import { Schema, Template } from '../models'
+import { Schema, PlaybookTemplate } from '../models'
 
 const props = defineProps({
   id: {
@@ -112,7 +112,7 @@ function LoadSchema() {
     });
 }
 
-const playbook_template = ref({} as Template)
+const playbook_template = ref({} as PlaybookTemplate)
 
 function LoadPlaybookTemplate() {
   api

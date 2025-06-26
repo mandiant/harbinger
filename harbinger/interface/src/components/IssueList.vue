@@ -90,7 +90,7 @@ import { useCounterStore } from 'src/stores/object-counters';
 
 const store = useCounterStore();
 
-store.clear('issue');
+store.clear('issus');
 const visible = ref(['id', 'name', 'description', 'impact', 'exploitability', 'time_created', 'time_updated', 'label_id'])
 
 const { loading, data, pagination, loadData, onRequest, AddFilter } =

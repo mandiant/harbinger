@@ -108,7 +108,7 @@ import { useCounterStore } from 'src/stores/object-counters';
 
 const store = useCounterStore();
 
-store.clear('certificate_template');
+store.clear('certificate_templates');
 
 const visible = ref(['template_name', 'display_name', 'enabled', 'client_authentication', 'enrollment_agent', 'any_purpose', 'enrollee_supplies_subject', 'requires_manager_approval', 'authorized_signatures_required', 'labels'])
 

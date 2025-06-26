@@ -28,6 +28,6 @@ import { useCounterStore } from 'src/stores/object-counters';
 
 const store = useCounterStore();
 
-store.clear('share');
+store.clear('shares');
 
 </script>

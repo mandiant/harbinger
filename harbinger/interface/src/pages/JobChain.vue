@@ -267,7 +267,7 @@ const debounced_load = debounce(function () {
 function onSave() {
   loading.value = true;
   api
-    .put(`/playbooks/${playbook.value.id}`, {
+    .put(`/playbooks/${id.value}`, {
       playbook_name: playbook.value.playbook_name,
       description: playbook.value.description,
     })
