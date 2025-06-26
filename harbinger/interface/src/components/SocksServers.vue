@@ -67,7 +67,7 @@ import { defineTypedStore } from 'src/stores/datastore';
 import { storeToRefs } from 'pinia'
 const counter_store = useCounterStore();
 
-counter_store.clear('c2_server');
+counter_store.clear('socks_servers');
 
 const useStore = defineTypedStore<SocksServer>('socks/servers');
 const store = useStore();

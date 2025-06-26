@@ -100,7 +100,7 @@ import { useCounterStore } from 'src/stores/object-counters';
 
 const store = useCounterStore();
 
-store.clear('certificate_authority');
+store.clear('certificate_authorities');
 
 const visible = ref(['ca_name', 'dns_name', 'certificate_subject', 'web_enrollment', 'user_specified_san', 'request_disposition', 'enforce_encryption_for_requests', 'labels'])
 

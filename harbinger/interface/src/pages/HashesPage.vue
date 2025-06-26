@@ -66,7 +66,7 @@ const $q = useQuasar();
 
 const counter_store = useCounterStore();
 
-counter_store.clear('hash');
+counter_store.clear('hashes');
 
 const columns: QTableProps['columns'] = [
   { name: 'type', label: 'type', field: 'type', align: 'left', sortable: true },

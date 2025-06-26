@@ -42,7 +42,7 @@ class Streams(str, Enum):
     run_c2_job = "run_c2_job"
     run_proxy_job = "run_proxy_job"
     proxy_job_output = "proxy_job_output"
-    events = "events"
+    events = "app_events_stream"
     c2_server_events = "c2_server_events"
 
 

@@ -20,6 +20,8 @@ jobs:
             context: harbinger
           - dockerfile: Dockerfile.mythic
             context: go
+          - dockerfile: Dockerfile.events
+            context: go
     steps:
     - uses: actions/checkout@v4
 

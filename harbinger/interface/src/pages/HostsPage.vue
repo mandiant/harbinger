@@ -64,7 +64,7 @@ import { storeToRefs } from 'pinia'
 
 const store = useCounterStore();
 
-store.clear('host');
+store.clear('hosts');
 const $router = useRouter();
 
 const useHosts = defineTypedStore<Host>('hosts');

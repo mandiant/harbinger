@@ -275,8 +275,6 @@ async def create_{{route[:-1]}}(db: AsyncSession, {{route}}: schemas.{{name}}Cre
     )
     await db.commit()
     result = result.unique().one()
-    if result.time_updated == None:
-        await send_event(schemas.Event.{{route}}, schemas.EventType.new, result.id)
     return result.time_updated == None, result
 
 async def update_{{route[:-1]}}(db: AsyncSession, id: str | uuid.UUID, {{route}}: schemas.{{name}}Create) -> None:
