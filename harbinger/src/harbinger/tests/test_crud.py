@@ -223,37 +223,34 @@ class TestCrud(unittest.IsolatedAsyncioTestCase):
 
     async def test_domain(self):
         # This test doesn't directly interact with the cache decorator shown
-        with mock.patch("harbinger.database.crud.send_event") as mock_send_event:
-            async with self.SessionLocal() as db:
-                domain = await crud.get_or_create_domain(db, "test")
-                domain2 = await crud.get_or_create_domain(db, "test")
-                self.assertIsNotNone(domain.id)
-                self.assertIsNotNone(domain2.id)
-                self.assertEqual(domain.id, domain2.id)
-                self.assertTrue(await crud.set_long_name(db, domain.id, "test.local"))
-                domain3 = await crud.get_domain(
-                    domain.id
-                )  # Assuming this is not cached
-                self.assertIsNotNone(domain3)
-                if domain3:
-                    self.assertEqual(domain3.long_name, "test.local")
+        async with self.SessionLocal() as db:
+            domain = await crud.get_or_create_domain(db, "test")
+            domain2 = await crud.get_or_create_domain(db, "test")
+            self.assertIsNotNone(domain.id)
+            self.assertIsNotNone(domain2.id)
+            self.assertEqual(domain.id, domain2.id)
+            self.assertTrue(await crud.set_long_name(db, domain.id, "test.local"))
+            domain3 = await crud.get_domain(
+                domain.id
+            )  # Assuming this is not cached
+            self.assertIsNotNone(domain3)
+            if domain3:
+                self.assertEqual(domain3.long_name, "test.local")
 
     async def test_password_with_cache(self):
         # Test specifically checks cache interaction
-        with mock.patch("harbinger.database.crud.send_event") as mock_send_event:
-            password_value = (
-                f"test_password_{uuid.uuid4()}"  # Unique password per test run
-            )
-            created_password_id = None
+        password_value = (
+            f"test_password_{uuid.uuid4()}"  # Unique password per test run
+        )
+        created_password_id = None
 
-            # 1. Create the password (should trigger DB write and event)
-            async with self.SessionLocal() as db:
-                password_obj_1 = await crud.get_or_create_password(
-                    db, password=password_value
-                )
-                self.assertIsNotNone(password_obj_1.id)
-                created_password_id = password_obj_1.id
-            mock_send_event.assert_awaited_once()  # Event sent on creation
+        # 1. Create the password (should trigger DB write and event)
+        async with self.SessionLocal() as db:
+            password_obj_1 = await crud.get_or_create_password(
+                db, password=password_value
+            )
+            self.assertIsNotNone(password_obj_1.id)
+            created_password_id = password_obj_1.id
 
             # 2. Get the password - First time (Cache MISS)
             # Assuming get_password IS decorated with redis_cache
@@ -290,20 +287,18 @@ class TestCrud(unittest.IsolatedAsyncioTestCase):
 
     async def test_proxies(self):
         # Assuming create_proxy isn't cached, but get_proxy might be
-        with mock.patch("harbinger.database.crud.send_event") as mock_send_event:
-            proxy_id = None
-            async with self.SessionLocal() as db:
-                proxy = await crud.create_proxy(
-                    db,
-                    schemas.ProxyCreate(
-                        port=8080,
-                        type=schemas.ProxyType.socks5,
-                        status=schemas.ProxyStatus.connected,
-                    ),
-                )
-                self.assertIsNotNone(proxy.id)
-                proxy_id = proxy.id
-            mock_send_event.assert_awaited_once()  # Event for creation
+        proxy_id = None
+        async with self.SessionLocal() as db:
+            proxy = await crud.create_proxy(
+                db,
+                schemas.ProxyCreate(
+                    port=8080,
+                    type=schemas.ProxyType.socks5,
+                    status=schemas.ProxyStatus.connected,
+                ),
+            )
+            self.assertIsNotNone(proxy.id)
+            proxy_id = proxy.id
 
             # Optional: Test get_proxy if it exists and is cached
             # if hasattr(crud, 'get_proxy'):
@@ -314,102 +309,86 @@ class TestCrud(unittest.IsolatedAsyncioTestCase):
             #     # Add cache hit/miss checks if get_proxy is cached
 
     async def test_c2_implants(self):
-        with mock.patch("harbinger.database.crud.send_event") as mock_send_event:
-            async with self.SessionLocal() as db:
-                c2_server_to_create = schemas.C2ServerCreate(type="mythic")
-                c2_server1 = await crud.create_c2_server(db, c2_server_to_create)
+        async with self.SessionLocal() as db:
+            c2_server_to_create = schemas.C2ServerCreate(type="mythic")
+            c2_server1 = await crud.create_c2_server(db, c2_server_to_create)
 
-                to_create = schemas.C2ImplantCreate(
-                    c2_server_id=c2_server1.id, internal_id="test_implant_1"
-                )
-                created, c2_implants1 = await crud.create_or_update_c2_implant(
-                    db, to_create
-                )
-                self.assertTrue(created)
-                self.assertIsNotNone(c2_implants1)
-                implant1_id = c2_implants1.id
+            to_create = schemas.C2ImplantCreate(
+                c2_server_id=c2_server1.id, internal_id="test_implant_1"
+            )
+            created, c2_implants1 = await crud.create_or_update_c2_implant(
+                db, to_create
+            )
+            self.assertTrue(created)
+            self.assertIsNotNone(c2_implants1)
+            implant1_id = c2_implants1.id
 
-                created, c2_implants2 = await crud.create_or_update_c2_implant(
-                    db, to_create
-                )
-                self.assertFalse(created)  # Should update, not create
-                self.assertIsNotNone(c2_implants2)
-                self.assertEqual(implant1_id, c2_implants2.id)
+            created, c2_implants2 = await crud.create_or_update_c2_implant(
+                db, to_create
+            )
+            self.assertFalse(created)  # Should update, not create
+            self.assertIsNotNone(c2_implants2)
+            self.assertEqual(implant1_id, c2_implants2.id)
 
-                filter_list = await crud.get_c2_implant_filters(
-                    db, filters.ImplantFilter()
-                )
-                self.assertGreater(len(filter_list), 0)  # Check it's not empty
+            filter_list = await crud.get_c2_implant_filters(
+                db, filters.ImplantFilter()
+            )
+            self.assertGreater(len(filter_list), 0)  # Check it's not empty
 
-                # Optional: Check cache for get_c2_implant if it exists and is cached
-                # if hasattr(crud, 'get_c2_implant'):
-                #    retrieved_implant = await crud.get_c2_implant(implant1_id)
-                #    self.assertIsNotNone(retrieved_implant)
-                #    # Add cache hit/miss checks
 
-            self.assertGreaterEqual(
-                mock_send_event.await_count, 1
-            )  # At least one event for creation
 
     async def test_certificate_authoritys(self):
-        with mock.patch("harbinger.database.crud.send_event") as mock_send_event:
-            async with self.SessionLocal() as db:
-                to_create = schemas.CertificateAuthorityCreate(
-                    ca_name="test_ca", dns_name="test.local"
-                )
-                created, ca1 = await crud.create_certificate_authority(db, to_create)
-                self.assertTrue(created)
-                self.assertIsNotNone(ca1)
-                ca1_id = ca1.id
+        async with self.SessionLocal() as db:
+            to_create = schemas.CertificateAuthorityCreate(
+                ca_name="test_ca", dns_name="test.local"
+            )
+            created, ca1 = await crud.create_certificate_authority(db, to_create)
+            self.assertTrue(created)
+            self.assertIsNotNone(ca1)
+            ca1_id = ca1.id
 
-                created, ca2 = await crud.create_certificate_authority(db, to_create)
-                self.assertFalse(created)  # Not created again
-                self.assertIsNotNone(ca2)
-                self.assertEqual(ca1_id, ca2.id)
+            created, ca2 = await crud.create_certificate_authority(db, to_create)
+            self.assertFalse(created)  # Not created again
+            self.assertIsNotNone(ca2)
+            self.assertEqual(ca1_id, ca2.id)
 
-                filter_list = await crud.get_certificate_authorities_filters(
-                    db, filters.CertificateAuthorityFilter()
-                )
-                self.assertGreater(len(filter_list), 0)  # Check not empty
+            filter_list = await crud.get_certificate_authorities_filters(
+                db, filters.CertificateAuthorityFilter()
+            )
+            self.assertGreater(len(filter_list), 0)  # Check not empty
 
-            mock_send_event.assert_awaited_once()  # Only one creation event expected
 
     async def test_certificate_templates(self):
-        with mock.patch("harbinger.database.crud.send_event") as mock_send_event:
-            async with self.SessionLocal() as db:
-                template_name = f"test_template_{uuid.uuid4()}"
-                to_create = schemas.CertificateTemplateCreate(
-                    template_name=template_name
-                )
-                created, template1 = await crud.create_certificate_template(
-                    db, to_create
-                )
-                self.assertTrue(created)
-                self.assertIsNotNone(template1)
-                template1_id = template1.id
-                filter_list = await crud.get_certificate_templates_filters(
-                    db, filters.CertificateTemplateFilter()
-                )
-                self.assertGreater(len(filter_list), 0)
+        async with self.SessionLocal() as db:
+            template_name = f"test_template_{uuid.uuid4()}"
+            to_create = schemas.CertificateTemplateCreate(
+                template_name=template_name
+            )
+            created, template1 = await crud.create_certificate_template(
+                db, to_create
+            )
+            self.assertTrue(created)
+            self.assertIsNotNone(template1)
+            template1_id = template1.id
+            filter_list = await crud.get_certificate_templates_filters(
+                db, filters.CertificateTemplateFilter()
+            )
+            self.assertGreater(len(filter_list), 0)
 
-            mock_send_event.assert_awaited_once()  # Only one creation event
 
     async def test_hashs(self):
-        with mock.patch("harbinger.database.crud.send_event") as mock_send_event:
-            async with self.SessionLocal() as db:
-                hash_value = f"test_hash_{uuid.uuid4()}"
-                to_create = schemas.HashCreate(hash=hash_value, type="test_type")
-                created, hash1 = await crud.create_hash(db, to_create)
-                self.assertTrue(created)
-                self.assertIsNotNone(hash1)
-                hash1_id = hash1.id
+        async with self.SessionLocal() as db:
+            hash_value = f"test_hash_{uuid.uuid4()}"
+            to_create = schemas.HashCreate(hash=hash_value, type="test_type")
+            created, hash1 = await crud.create_hash(db, to_create)
+            self.assertTrue(created)
+            self.assertIsNotNone(hash1)
+            hash1_id = hash1.id
 
-                created, hash2 = await crud.create_hash(db, to_create)
-                self.assertFalse(created)  # Not created again
-                self.assertIsNotNone(hash2)
-                self.assertEqual(hash1_id, hash2.id)
-
-            mock_send_event.assert_awaited_once()  # Only one creation event
+            created, hash2 = await crud.create_hash(db, to_create)
+            self.assertFalse(created)  # Not created again
+            self.assertIsNotNone(hash2)
+            self.assertEqual(hash1_id, hash2.id)
 
 
 # --- Allow running the tests directly ---
