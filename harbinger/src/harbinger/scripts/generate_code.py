@@ -293,17 +293,16 @@ async def update_{{route[:-1]}}(db: AsyncSession, id: str | uuid.UUID, {{route}}
 
     test_template = """
     async def test_{{route}}(self):
-        with mock.patch("harbinger.database.crud.send_event") as mockdb:
-            async with self.SessionLocal() as db:
-                to_create = schemas.{{name}}Create() # TODO
-                created, {{route}}1 = await crud.create_{{route[:-1]}}(db, to_create)
-                self.assertTrue(created)
-                created, {{route}}2 = await crud.create_{{route[:-1]}}(db, to_create)
-                self.assertFalse(created)
-                self.assertEqual({{route}}1.id, {{route}}2.id)
-                filter_list = await crud.get_{{route}}_filters(db, filters.{{name}}Filter())
-                self.assertGreater(len(filter_list), 2)
-                mockdb.assert_awaited_once()
+        async with self.SessionLocal() as db:
+            to_create = schemas.{{name}}Create() # TODO
+            created, {{route}}1 = await crud.create_{{route[:-1]}}(db, to_create)
+            self.assertTrue(created)
+            created, {{route}}2 = await crud.create_{{route[:-1]}}(db, to_create)
+            self.assertFalse(created)
+            self.assertEqual({{route}}1.id, {{route}}2.id)
+            filter_list = await crud.get_{{route}}_filters(db, filters.{{name}}Filter())
+            self.assertGreater(len(filter_list), 2)
+            mockdb.assert_awaited_once()
     """
     templ = env.from_string(test_template)
     resp = templ.render(
