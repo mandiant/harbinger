@@ -1397,9 +1397,9 @@ markupsafe==3.0.2 \
     #   mako
     #   werkzeug
     #   wtforms
-mcp==1.9.0 \
-    --hash=sha256:905d8d208baf7e3e71d70c82803b89112e321581bcd2530f9de0fe4103d28749 \
-    --hash=sha256:9dfb89c8c56f742da10a5910a1f64b0d2ac2c3ed2bd572ddb1cfab7f35957178
+mcp==1.10.0 \
+    --hash=sha256:91fb1623c3faf14577623d14755d3213db837c5da5dae85069e1b59124cbe0e9 \
+    --hash=sha256:925c45482d75b1b6f11febddf9736d55edf7739c7ea39b583309f6651cbc9e5c
     # via rigging
 mdurl==0.1.2 \
     --hash=sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8 \
