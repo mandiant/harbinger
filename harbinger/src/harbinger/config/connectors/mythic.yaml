@@ -16,7 +16,7 @@ c2_server_types:
   - id: 3a7c34bb-93d9-4200-a5dd-36d199a2b171
     name: mythic
     docker_image: harbinger_mythic:latest
-    command: harbinger_mythic_client
+    command: mythic_go_connector
 
     icon_base64:
 

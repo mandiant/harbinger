@@ -209,16 +209,18 @@ export const defineTypedStore = <T extends BaseModel>(id: string) => {
           throw error; // Re-throw to propagate the error
         }
       },
-
       async getOrFetch(id: T['id']): Promise<T | undefined> {
         if (this.cache.has(id)) {
           return this.cache.get(id);
         }
-        return this.fetchAndCache(id);
+        return this.updateCache(id);
       },
-
-      async loadById(id: T['id']): Promise<T | undefined> {
-        return this.getOrFetch(id);
+      async loadById(id: T['id'], force = false): Promise<T | undefined> {
+        if (force) {
+          return this.updateCache(id);
+        } else {
+          return this.getOrFetch(id);
+        }
       }
     }
   });

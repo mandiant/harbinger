@@ -239,7 +239,7 @@ watch(cache, () => {
   }
 }, { deep: true })
 
-store.loadById(id.value).then((item => {
+store.loadById(id.value, true).then((item => {
   loading.value = false;
   playbook.value = item
 }));
@@ -260,6 +260,10 @@ loadData()
 
 const debounced_load = debounce(function () {
   loadData()
+  store.loadById(id.value, true).then((item => {
+    loading.value = false;
+    playbook.value = item
+  }));
   proxyReloadKey.value++
   c2ReloadKey.value++
 }, 10, false)
