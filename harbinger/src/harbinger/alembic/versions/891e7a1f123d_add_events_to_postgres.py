@@ -8,9 +8,9 @@ Create Date: 2025-06-26 06:33:51.157226
 from alembic import op
 from harbinger.database.models import (
     Domain, Password, Kerberos, Credential, Proxy, InputFile,
-    Component, ProxyJobOutput, File, Playbook, PlaybookStep, PlaybookStepModifier,
+    Component, ProxyJob, File, Playbook, PlaybookStep, PlaybookStepModifier,
     C2Job, Host, Process, PlaybookTemplate, Label, LabeledItem,
-    C2Server, C2ServerStatus, C2Implant, C2Output, SituationalAwareness, Share,
+    C2Server, C2ServerStatus, C2Implant, SituationalAwareness, Share,
     ShareFile, Highlight, Hash, ParseResult, Setting,
     SocksServer, Action, CertificateAuthority, CertificateTemplate,
     C2ServerType, C2ServerArguments, Suggestion
@@ -83,7 +83,7 @@ def upgrade():
     op.execute(NOTIFY_FUNCTION_SQL)
 
     models_to_trigger = [
-        Domain, Password, Kerberos, Credential, Proxy, InputFile,
+        Domain, Password, Kerberos, Credential, Proxy, ProxyJob, InputFile,
         Component, File, Playbook, PlaybookStep, PlaybookStepModifier,
         C2Job, Host, Process, PlaybookTemplate, Label, LabeledItem,
         C2Server, C2ServerStatus, C2Implant, SituationalAwareness, Share,
@@ -104,7 +104,7 @@ def upgrade():
 
 def downgrade():
     models_to_trigger = [
-        Domain, Password, Kerberos, Credential, Proxy, InputFile,
+        Domain, Password, Kerberos, Credential, Proxy, ProxyJob, InputFile,
         Component, File, Playbook, PlaybookStep, PlaybookStepModifier,
         C2Job, Host, Process, PlaybookTemplate, Label, LabeledItem,
         C2Server, C2ServerStatus, C2Implant, SituationalAwareness, Share,

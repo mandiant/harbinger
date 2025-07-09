@@ -28,34 +28,36 @@
           :readonly="readonly || job.status !== 'created'" :options="file_store.files" option-label="filename" />
         <proxy-select v-model="job.proxy_id" :readonly="readonly" />
         <credential-select v-model="job.credential_id" :readonly="readonly" />
-        <socks-server-select v-model="job.socks_server_id" :readonly="readonly"/>
+        <socks-server-select v-model="job.socks_server_id" :readonly="readonly" />
         <q-input filled v-model="job.env" label="env" :readonly="readonly" dense />
         <q-toggle v-model="job.tmate" label="Use tmate" />
         <q-toggle v-model="job.asciinema" label="Use asciinema" />
         <q-toggle v-model="job.proxychains" label="Use proxychains" />
       </q-form>
     </q-card-section>
+    <q-card-section>
+      <labels-list object-type="proxy_job" :object-id="String(job.id)" v-model="job.labels" />
+    </q-card-section>
     <q-card-actions v-show="!readonly">
-      <q-btn color="secondary" icon="save" flat @click="save">Save</q-btn>
-      <q-btn color="secondary" icon="delete" flat @click="emit('delete')">Delete</q-btn>
-      <q-btn color="secondary" icon="content_copy" flat @click="emit('clone')">
+      <q-btn color="secondary" icon="save" @click="save">Save</q-btn>
+      <q-btn color="secondary" icon="delete" @click="emit('delete')">Delete</q-btn>
+      <q-btn v-if="cloneButton" color="secondary" icon="content_copy" @click="emit('clone')">
         Clone
       </q-btn>
+      <q-btn v-if="job.status === 'started'" @click="emit('kill')" :loading="loading" color="secondary" icon="stop">
+        Kill job
+      </q-btn>
+      <q-btn icon="play_arrow" v-else-if="(job.status === null || job.status === '' || job.status === 'created') && startButton
+      " color="secondary" label="Start" @click="emit('start')" />
+      <q-btn icon="refresh" color="secondary" @click="loadData(job_id)" :loading="loading">Refresh</q-btn>
     </q-card-actions>
-    <q-card-section v-if="job.status !== 'created' && !dialog">
-      <q-card>
-        <q-card-section class="items-center">
-          <q-card-section v-if="castfile == ''">
-            <socks-task-output :id="job_id" />
-          </q-card-section>
-          <q-card-section v-else>
-            <cast-player :file_id="castfile" />
-          </q-card-section>
-        </q-card-section>
-        <q-card-actions>
-          <q-btn color="primary" label="OK" @click="showDialog = false" />
-        </q-card-actions>
-      </q-card>
+    <q-card-section v-if="job.status && !dialog">
+      <q-card-section v-if="castfile == ''">
+        <socks-task-output :id="job_id" />
+      </q-card-section>
+      <q-card-section v-else>
+        <cast-player :file_id="castfile" />
+      </q-card-section>
     </q-card-section>
     <q-card-section v-if="dialog">
       <q-btn flat icon="output" label="Output" @click="showDialog = true" />
@@ -80,7 +82,7 @@
 
 
 <script setup lang="ts">
-import { computed, ref, toRefs } from 'vue';
+import { computed, ref, toRefs, watch } from 'vue';
 import { api } from 'boot/axios';
 import { useQuasar } from 'quasar';
 import { ProxyJob } from '../models';
@@ -90,13 +92,16 @@ import { useFileStore } from 'src/stores/files';
 import CastPlayer from 'src/components/CastPlayer.vue';
 import SocksTaskOutput from 'src/components/SocksTaskOutput.vue';
 import SocksServerSelect from 'src/components/SocksServerSelect.vue';
-
+import { defineTypedStore } from 'src/stores/datastore';
+import LabelsList from 'src/components/LabelsList.vue';
 
 const file_store = useFileStore();
+const useProxyJobStore = defineTypedStore<ProxyJob>('proxy_jobs');
+const proxyJobStore = useProxyJobStore();
 
 const $q = useQuasar();
 
-const loading = ref(true);
+const loading = ref(false);
 
 const props = defineProps({
   job_id: {
@@ -110,23 +115,38 @@ const props = defineProps({
   dialog: {
     type: Boolean,
     default: true,
+  },
+  startButton: {
+    type: Boolean,
+    default: false,
+  },
+  cloneButton: {
+    type: Boolean,
+    default: false,
   }
 });
-const emit = defineEmits(['delete', 'clone']);
+const emit = defineEmits(['delete', 'clone', 'start', 'kill']);
 
-const { job_id, readonly, dialog } = toRefs(props);
+const { job_id, readonly, dialog, startButton, cloneButton } = toRefs(props);
+
+// Local copy for editing
 const job = ref<ProxyJob>({} as ProxyJob);
+
+watch(() => proxyJobStore.getItemFromCache(job_id.value), (newJobData) => {
+  if (newJobData) {
+    job.value = { ...newJobData };
+  }
+}, { deep: true });
+
 const showDialog = ref(false);
 const castfile = computed(() => {
   let result = ''
-  if (job.value) {
-    if (job.value.files) {
-      job.value.files.forEach(element => {
-        if (element.filename == 'output.cast') {
-          result = element.id
-        }
-      })
-    }
+  if (job.value && job.value.files) {
+    job.value.files.forEach(element => {
+      if (element.filename == 'output.cast') {
+        result = element.id
+      }
+    })
   }
   return result
 });
@@ -134,16 +154,22 @@ const castfile = computed(() => {
 
 function save() {
   loading.value = true;
-  const files = job.value.input_files
+  // Create a deep copy to avoid modifying the local state directly before saving.
+  const jobToSave = JSON.parse(JSON.stringify(job.value));
 
-  job.value.input_files = []
-  files.forEach((element) => {
-    job.value.input_files.push(element.id)
-  })
+  // The API expects an array of IDs, not file objects.
+  if (jobToSave.input_files && Array.isArray(jobToSave.input_files)) {
+    jobToSave.input_files = jobToSave.input_files.map(file =>
+      (typeof file === 'object' && file !== null && file.id) ? file.id : file
+    );
+  }
+
   api
-    .put(`/proxy_jobs/${job_id.value}`, job.value)
+    .put(`/proxy_jobs/${job_id.value}`, jobToSave)
     .then((response) => {
-      job.value = response.data;
+      // Update the central store with the new data from the server.
+      // The watcher will then update our component's local `job` ref.
+      proxyJobStore.updateObject(response.data);
       loading.value = false;
       $q.notify({
         color: 'green-4',
@@ -164,25 +190,25 @@ function save() {
     });
 }
 
-function loadData() {
-  if (job_id.value) {
+async function loadData(id: string) {
+  if (id) {
     loading.value = true;
-    api
-      .get(`/proxy_jobs/${job_id?.value}`)
-      .then((response) => {
-        job.value = response.data;
-        loading.value = false;
-      })
-      .catch(() => {
-        loading.value = false;
-        $q.notify({
-          color: 'negative',
-          position: 'top',
-          message: 'Loading failed',
-          icon: 'report_problem',
-        });
+    try {
+      // Fetch data using the store's caching mechanism.
+      job.value = await proxyJobStore.loadById(id, true);
+    } catch {
+      $q.notify({
+        color: 'negative',
+        position: 'top',
+        message: 'Loading failed',
+        icon: 'report_problem',
       });
+    } finally {
+      loading.value = false;
+    }
   }
 }
-loadData();
+
+// When the job_id prop changes, load the new job's data.
+watch(job_id, loadData, { immediate: true });
 </script>

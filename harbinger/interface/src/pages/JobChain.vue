@@ -162,7 +162,7 @@
                 </q-expansion-item>
               </q-card-section>
               <proxy-job :readonly="readonly" v-if="step.proxy_job_id" :job_id="step.proxy_job_id"
-                @delete="onDelete(step.id)" @clone="clone(step.id)" :key="proxyReloadKey" />
+                @delete="onDelete(step.id)" @clone="clone(step.id)" :key="proxyReloadKey" :clone-button="true"/>
               <c2-job v-else-if="step.c2_job_id" :dialog="true" :readonly="readonly" :job_id="step.c2_job_id"
                 @delete="onDelete(step.id)" @clone="clone(step.id)" :key="c2ReloadKey" />
               <empty-chain-step :step="step" v-on:refresh="loadData" @delete="onDelete(step.id)"
