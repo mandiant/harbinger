@@ -172,6 +172,25 @@ const connection = ref<WebSocket | null>(null); // Initialize as null
 const connected = ref(false);
 const currentTab = ref('output'); // Reactive variable to control active tab
 
+watch(id, (newId) => {
+  // Clean up the old connection before creating a new one
+  if (connection.value) {
+    connection.value.onclose = null; // Avoid triggering the onclose handler during manual cleanup
+    connection.value.close();
+  }
+
+  if (newId) {
+    // Reset state for the new job
+    output.value = [];
+    connected.value = false;
+    
+    // Fetch initial data and create the new websocket
+    loadData();
+    CreateWebSocket();
+  }
+}, { immediate: true });
+
+
 function CreateWebSocket() {
   let protocol = location.protocol.replace('http', 'ws');
   let ws_url = `${protocol}//${location.host}/proxy_jobs/${id.value}/output`;
@@ -198,8 +217,6 @@ function CreateWebSocket() {
     connected.value = false;
   };
 }
-
-CreateWebSocket();
 
 onUnmounted(() => {
   if (connection.value) {

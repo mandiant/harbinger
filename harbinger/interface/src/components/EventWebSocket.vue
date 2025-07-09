@@ -273,6 +273,17 @@ function CreateWebSocket() {
         return;
       }
 
+      if (tableName === 'proxy_jobs') {
+        if (operation === 'update') {
+          const storeInstance = storeMap.get('proxy_jobs')
+          if (storeInstance) {
+            const updatedObject: BaseModel = data.after;
+            storeInstance.loadById(updatedObject.id, true)
+            return;
+          }
+        }
+      }
+
       const storeInstance = storeMap.get(tableName);
       if (storeInstance) {
           if (operation === 'insert' && data.after) {

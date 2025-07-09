@@ -27,7 +27,6 @@
     :error="!socks_server.id"
     lazy-rules
   />
-  {{  options }}
 </template>
 
 <script setup lang="ts">

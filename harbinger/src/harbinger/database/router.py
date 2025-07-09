@@ -467,31 +467,35 @@ async def websocket_job_output(job_id: str, websocket: WebSocket):
         manager = await anext(get_user_manager(db))
         token = await strat.read_token(cookie, manager)
 
-    if token:
-        await websocket.accept()
-        pubsub = redis.pubsub(ignore_subscribe_messages=True)
-        await pubsub.subscribe(f"proxy_job_stream_{job_id}")
+    if not token:
+        logging.warning("Invalid or expired authentication token.")
+        await websocket.close(code=1008, reason="Invalid or expired token")
+        return
 
-        async def inner():
-            async for item in pubsub.listen():
-                output_pb2 = messages_pb2.Output()
-                output_pb2.ParseFromString(item["data"])
-                await websocket.send_text(
-                    MessageToJson(
-                        output_pb2,
-                        preserving_proto_field_name=True,
-                        indent=0,
-                    )
+    await websocket.accept()
+    pubsub = redis.pubsub(ignore_subscribe_messages=True)
+    await pubsub.subscribe(f"proxy_job_stream_{job_id}")
+
+    async def inner():
+        async for item in pubsub.listen():
+            output_pb2 = messages_pb2.Output()
+            output_pb2.ParseFromString(item["data"])
+            await websocket.send_text(
+                MessageToJson(
+                    output_pb2,
+                    preserving_proto_field_name=True,
+                    indent=0,
                 )
+            )
 
-        task = asyncio.create_task(inner())
-        try:
-            while True:
-                await websocket.receive_text()
-        except WebSocketDisconnect:
-            task.cancel()
-        finally:
-            await pubsub.unsubscribe()
+    task = asyncio.create_task(inner())
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        task.cancel()
+    finally:
+        await pubsub.unsubscribe()
 
 
 @router.get("/files/", response_model=Page[schemas.File], tags=["files", "crud"])

@@ -445,39 +445,21 @@ def redis_cache_invalidate(
                     key_value_str = str(key_value)
                     cache_key = f"{key_prefix}:{key_value_str}"
                     can_invalidate = True
-                    logger.info(f"Cache invalidation check for key: {cache_key} on call to {func.__name__}")
-                else:
-                     logger.warning(f"Key parameter '{key_param_name}' not found or None for {func.__name__}. Cannot invalidate cache.")
 
             except Exception as e:
-                 logger.error(f"Error binding/extracting key param '{key_param_name}' for {func.__name__}: {e}. Cannot invalidate cache.")
                  can_invalidate = False
 
-            # Call the original function regardless of key extraction success
             try:
-                # Execute the actual DB operation
                 db_result = await func(db, *args, **kwargs)
 
-                # If the function succeeded AND we identified a cache key, invalidate it.
                 if can_invalidate and cache_key:
                     try:
-                        delete_count = await redis.delete(cache_key)
-                        if delete_count > 0:
-                            logger.info(f"Successfully invalidated cache key: {cache_key}")
-                        else:
-                            logger.info(f"Cache key {cache_key} not found for invalidation (or already deleted).")
+                        await redis.delete(cache_key)
                     except RedisError as e:
                         logger.error(f"Redis DEL error while invalidating cache key {cache_key}: {e}")
-                        # Log error, but proceed as the main DB operation succeeded.
-
-                # Return the original result, whether cache was invalidated or not
                 return db_result
 
             except Exception as db_op_error:
-                # Catch errors from the decorated function (func) itself
-                logger.error(f"Error during database operation in {func.__name__} (key: {key_value_str if can_invalidate else 'N/A'}): {db_op_error}", exc_info=True)
-                # Do NOT invalidate the cache if the DB operation failed
-                # Re-raise the error so the caller knows the operation failed
                 raise db_op_error
 
         return wrapper
@@ -503,21 +485,16 @@ async def invalidate_cache_entry(key_prefix: str, key_value: Any) -> bool:
     try:
         key_value_str = str(key_value)
         cache_key = f"{key_prefix}:{key_value_str}"
-        logger.info(f"Attempting to explicitly invalidate cache key: {cache_key}")
 
         delete_count = await redis.delete(cache_key)
 
         if delete_count > 0:
-            logger.info(f"Successfully invalidated cache key: {cache_key}")
             return True
         else:
-            logger.info(f"Cache key {cache_key} not found for invalidation.")
             return False
     except RedisError as e:
-        logger.error(f"Redis DELETE error while invalidating cache key {cache_key}: {e}", exc_info=True)
         return False
     except Exception as e:
-        logger.error(f"Unexpected error during cache invalidation for prefix '{key_prefix}', key '{key_value}': {e}", exc_info=True)
         return False
 
 
