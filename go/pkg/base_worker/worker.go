@@ -47,7 +47,6 @@ func (d *DefaultC2Bridge) Initialize(
 	c2ServerID string,
 	settings *messagesv1.SettingsResponse,
 ) error {
-	log.Println("INITIALIZE!")
 	d.HarbingerClient = harbingerClient
 	d.C2ServerID = c2ServerID
 	d.Settings = settings

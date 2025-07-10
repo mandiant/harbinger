@@ -71,6 +71,17 @@ func (s *Mythic) GetOutputForTask(ctx context.Context, task_display_id int) ([]T
 	return q.TaskOutput, err
 }
 
+func (s *Mythic) GetTask(ctx context.Context, task_id int) (Task, error) {
+	q := struct {
+		Task Task `graphql:"task_by_pk(id: $id)"`
+	}{}
+	variables := map[string]interface{}{
+		"id": task_id,
+	}
+	err := s.Client.Query(ctx, &q, variables)
+	return q.Task, err
+}
+
 func (s *Mythic) GetAllProxies(ctx context.Context) ([]Proxy, error) {
 	q := ProxyQuery{}
 	err := s.Client.Query(ctx, &q, nil)
