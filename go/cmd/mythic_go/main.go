@@ -82,12 +82,6 @@ func (m *MythicBridge) InitializeC2(ctx context.Context, settings *messagesv1.Se
 
 // RunC2SpecificReaders starts all Mythic-specific goroutines for reading data.
 func (m *MythicBridge) RunC2SpecificReaders(ctx context.Context, wg *sync.WaitGroup) {
-	// Mythic subscriptions run in a separate goroutine managed by the mythic client library
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		m.mythicClient.SubscriptionClient.Run()
-	}()
 
 	wg.Add(1)
 	go func() {
@@ -161,6 +155,9 @@ func (m *MythicBridge) RunC2SpecificReaders(ctx context.Context, wg *sync.WaitGr
 		log.Fatalf("failed to subscribe to Mythic file downloads: %v", err)
 	}
 	m.subscriptions = append(m.subscriptions, subscriptionID)
+
+	// Mythic subscriptions run in a separate goroutine managed by the mythic client library
+	m.mythicClient.SubscriptionClient.RunWithContext(ctx)
 }
 
 // SyncAll performs an initial synchronization of Mythic data.
@@ -314,7 +311,7 @@ loop:
 				break loop
 			}
 		case <-ctx.Done():
-			break loop
+			return base_worker.WorkflowStepResult{}, fmt.Errorf("interrupted")
 		}
 	}
 	status := result.Status
@@ -322,7 +319,7 @@ loop:
 		status = "completed"
 	}
 	log.Printf("Task: %s completed with status: %s\n", task.InternalId, status)
-	return base_worker.WorkflowStepResult{Id: task.InternalId, Status: status}, nil
+	return base_worker.WorkflowStepResult{Id: task.Id, Status: status}, nil
 }
 
 // SendC2Status updates the C2 server's status in Harbinger.
