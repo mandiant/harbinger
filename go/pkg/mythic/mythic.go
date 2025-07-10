@@ -65,6 +65,10 @@ func Login(server_ip string, server_port int, username string, password string) 
 
 	defer response.Body.Close()
 
+	if response.StatusCode != 200 {
+		return m, fmt.Errorf("[login] incorrect username or password")
+	}
+
 	body, _ := io.ReadAll(response.Body)
 	auth_response := AuthResponse{}
 	err = json.Unmarshal(body, &auth_response)
