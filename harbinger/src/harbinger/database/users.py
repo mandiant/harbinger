@@ -60,19 +60,26 @@ cookie_transport = CookieTransport(
     cookie_secure=True,
 )
 
+bearer_transport = BearerTransport(tokenUrl="auth/redis/login")
 
 def get_redis_strategy() -> RedisStrategy:
     return RedisStrategy(redis)
 
 
-auth_backend = AuthenticationBackend(
-    name="redis",
+auth_backend_cookie = AuthenticationBackend(
+    name="redis_cookie",
     transport=cookie_transport,
     get_strategy=get_redis_strategy,
 )
 
+auth_backend_bearer = AuthenticationBackend(
+    name="redis_bearer",
+    transport=bearer_transport,
+    get_strategy=get_redis_strategy,
+)
+
 fastapi_users = FastAPIUsers[User, uuid.UUID](
-    get_user_manager, [auth_backend]
+    get_user_manager, [auth_backend_cookie, auth_backend_bearer]
 )
 
 current_active_user = fastapi_users.current_user(active=True)

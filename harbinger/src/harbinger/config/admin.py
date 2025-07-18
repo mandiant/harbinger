@@ -17,7 +17,7 @@ import random
 import string
 from fastapi import FastAPI
 from harbinger.database import database, models
-from harbinger.database.users import get_user_manager, auth_backend
+from harbinger.database.users import get_user_manager, auth_backend_cookie
 
 from sqladmin import Admin, ModelView
 from sqladmin.authentication import AuthenticationBackend
@@ -83,8 +83,8 @@ class AdminAuth(AuthenticationBackend):
                         try:
                             await user_manager.validate_password(str(password), user=user)
 
-                            strat = auth_backend.get_strategy()
-                            result = await auth_backend.login(strat, user)  # type: ignore
+                            strat = auth_backend_cookie.get_strategy()
+                            result = await auth_backend_cookie.login(strat, user)  # type: ignore
                             request.session.update({"fastapiusersauth": result.headers['set-cookie'].split('=')[1].split(' ')[0][:-1]})
 
                             return True
@@ -104,7 +104,7 @@ class AdminAuth(AuthenticationBackend):
         async with get_async_session_context() as session:
             async with get_user_db_context(session) as user_db:
                 async with get_user_manager_context(user_db) as user_manager:
-                    strat = auth_backend.get_strategy()
+                    strat = auth_backend_cookie.get_strategy()
                     res = await strat.read_token(cookie, user_manager)  # type: ignore
                     if res:
                         return True

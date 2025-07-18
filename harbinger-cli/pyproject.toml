@@ -1,0 +1,25 @@
+[project]
+name = "harbinger-cli"
+version = "0.1.0"
+authors = [
+  { name="Matthijs Gielen", email="matthijsgielen@google.com" },
+]
+description = "A standalone shell recorder for the Harbinger platform."
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+  "requests",
+  "asciinema",
+  "inquirer",
+]
+
+[project.scripts]
+hbr-shell = "hbr_shell.recorder:main"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"

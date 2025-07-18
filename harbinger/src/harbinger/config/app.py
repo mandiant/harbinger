@@ -15,7 +15,7 @@
 from harbinger.config import get_settings
 from harbinger.database import database, router, models
 from harbinger.database.schemas import UserRead, UserUpdate
-from harbinger.database.users import auth_backend, fastapi_users
+from harbinger.database.users import auth_backend_cookie, fastapi_users
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -75,7 +75,7 @@ app.include_router(files_router.router)
 app.include_router(job_template_router.router, prefix="/templates", tags=["templates"])
 
 app.include_router(
-    fastapi_users.get_auth_router(auth_backend), prefix="/auth", tags=["auth"]
+    fastapi_users.get_auth_router(auth_backend_cookie), prefix="/auth", tags=["auth"]
 )
 
 app.include_router(

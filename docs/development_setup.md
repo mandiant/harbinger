@@ -75,6 +75,14 @@ To login browse to the [interface](https://localhost:9002) and login. The API re
 
 ## Troubleshooting
 
+### Asciinema
+
+For the `hbr-shell` command to work, `asciinema` needs to be installed.
+
+```bash
+sudo apt-get install asciinema
+```
+
 ### Temporary failure resolving in docker
 
 If you get errors like "Temporary failure resolving". Then hardcode a DNS server in the docker config (`/etc/docker/daemon.json`):

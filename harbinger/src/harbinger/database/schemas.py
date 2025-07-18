@@ -316,6 +316,7 @@ class FileCreate(FileBase):
     internal_task_id: str | None = None
     c2_server_id: str | None = None
     internal_implant_id: str | None = None
+    manual_timeline_task_id: str | UUID4 | None = None
 
 
 class File(FileBase):
@@ -330,6 +331,7 @@ class File(FileBase):
     processing_note: str | None = ""
     c2_task_id: str | UUID4 | None = None
     c2_implant_id: str | UUID4 | None = None
+    manual_timeline_task_id: str | UUID4 | None = None
 
     labels: List["Label"] | None = None
 
@@ -1361,7 +1363,7 @@ class TimeLine(BaseModel):
     @classmethod
     def validate_hostname(cls, data: Any) -> Any:
         data.object_type = data.__class__.__name__
-        if hasattr(data, "c2_implant"):
+        if hasattr(data, "c2_implant") and data.c2_implant:
             data.hostname = data.c2_implant.hostname
         if hasattr(data, "proxy"):
             if data.proxy:
