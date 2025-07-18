@@ -275,6 +275,7 @@ class File(Base):
     processing_note = mapped_column(String)
     c2_implant_id = mapped_column(ForeignKey("c2_implants.id"), nullable=True)
     c2_task_id = mapped_column(ForeignKey("c2_tasks.id"), nullable=True)
+    manual_timeline_task_id = mapped_column(ForeignKey("manual_timeline_tasks.id"), nullable=True)
 
     time_created = mapped_column(DateTime(timezone=True), server_default=func.now())
 

@@ -4,7 +4,6 @@ gen/proto/v1
 __pycache__
 config.toml
 *.bin
-tools/
 *.env
 *.exe
 *.graphql

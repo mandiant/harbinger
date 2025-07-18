@@ -752,6 +752,7 @@ async def add_file(
     id: str | uuid.UUID | None = None,
     c2_implant_id: str | uuid.UUID | None = None,
     c2_task_id: str | uuid.UUID | None = None,
+    manual_timeline_task_id: str | uuid.UUID | None = None,
 ) -> models.File:
     file = models.File(
         id=id,
@@ -762,6 +763,7 @@ async def add_file(
         filetype=filetype,
         c2_implant_id=c2_implant_id,
         c2_task_id=c2_task_id,
+        manual_timeline_task_id=manual_timeline_task_id,
     )
     db.add(file)
     await db.commit()

@@ -33,6 +33,7 @@ class FileFilter(Filter):
     search: str | None = None
     filetype: str | None = None
     job_id: str | None = None
+    manual_timeline_task_id: str | None = None
     labels: LabelFilter | None = FilterDepends(with_prefix("label", LabelFilter))
 
     class Constants(Filter.Constants):

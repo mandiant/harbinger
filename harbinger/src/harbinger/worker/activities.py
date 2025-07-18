@@ -829,19 +829,28 @@ async def create_timeline(timeline: schemas.CreateTimeline):
                                 cast_exists = len(output) > 0
 
                             if task.object_type == "ManualTimelineTask":
-                                text = [
-                                    '{"version": 2, "width": 160, "height": 46, "timestamp": 0, "env": {"SHELL": "/bin/bash", "TERM": "screen-256color"}}'
-                                ]
-                                c = 0
-                                if task.output:
-                                    for line in task.output.split("\n"):
-                                        c += 1
-                                        entry = [c / 20, "o", f"{line}\r\n"]
-                                        text.append(json.dumps(entry))
+                                files = await crud.get_files(db, filters.FileFilter(manual_timeline_task_id=task.id))
+                                if files:
+                                    file = files[0]
+                                    if file.filetype == "cast":
+                                        data = await download_file(file.path, file.bucket)
+                                        async with aiofiles.open(cast_file, "wb") as f:
+                                            await f.write(data)
+                                        cast_exists = True
+                                else:
+                                    text = [
+                                        '{"version": 2, "width": 160, "height": 46, "timestamp": 0, "env": {"SHELL": "/bin/bash", "TERM": "screen-256color"}}'
+                                    ]
+                                    c = 0
+                                    if task.output:
+                                        for line in task.output.split("\n"):
+                                            c += 1
+                                            entry = [c / 20, "o", f"{line}\r\n"]
+                                            text.append(json.dumps(entry))
 
-                                    async with aiofiles.open(cast_file, "wb") as f:
-                                        await f.write("\n".join(text).encode("utf-8"))
-                                    cast_exists = len(task.output) > 0
+                                        async with aiofiles.open(cast_file, "wb") as f:
+                                            await f.write("\n".join(text).encode("utf-8"))
+                                        cast_exists = len(task.output) > 0
 
                             if task.object_type == "ProxyJob":
                                 cast_files = list(
