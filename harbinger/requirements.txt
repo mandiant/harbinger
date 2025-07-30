@@ -2753,9 +2753,9 @@ sse-starlette==2.3.5 \
     --hash=sha256:228357b6e42dcc73a427990e2b4a03c023e2495ecee82e14f07ba15077e334b2 \
     --hash=sha256:251708539a335570f10eaaa21d1848a10c42ee6dc3a9cf37ef42266cdb1c52a8
     # via mcp
-starlette==0.46.2 \
-    --hash=sha256:595633ce89f8ffa71a015caed34a5b2dc1c0cdb3f0f1fbd1e69339cf2abeec35 \
-    --hash=sha256:7f7361f34eed179294600af672f565727419830b54b7b084efe44bb82d2fccd5
+starlette==0.47.2 \
+    --hash=sha256:6ae9aa5db235e4846decc1e7b79c4f346adf41e9777aebeb49dfd09bbd7023d8 \
+    --hash=sha256:c5847e96134e5c5371ee9fac6fdf1a67336d5815e09eb2a01fdb57a351ef915b
     # via
     #   fastapi
     #   mcp
