@@ -29,7 +29,10 @@ def log_debug(message):
         print(f"[DEBUG] {message}", file=sys.stderr)
 
 def parse_cast_file(path):
-    """Parses an asciinema .cast file and extracts command chunks."""
+    """
+    Parses an asciinema .cast file and extracts command chunks by detecting
+    the shell prompt's reappearance.
+    """
     with open(path, 'r') as f:
         lines = f.readlines()
 
@@ -46,53 +49,109 @@ def parse_cast_file(path):
     header = json.loads(lines[0])
     events = [json.loads(line) for line in lines[1:]]
 
-    commands = []
-    current_input = ""
-    current_outputs = []
-    start_time = None
-    
+    # --- 1. Find the initial prompt signature ---
+    initial_output = ""
+    first_input_index = -1
     for i, event in enumerate(events):
-        timestamp, event_type, content = event
-        log_debug(f"Processing event {i}: type='{event_type}', content='{repr(content)}'")
+        if event[1] == 'i':
+            first_input_index = i
+            break
+        elif event[1] == 'o':
+            initial_output += event[2]
 
-        if event_type == 'i':
-            if start_time is None:
-                start_time = timestamp
-            current_input += content
-            if '\r' in content or '\n' in content:
-                if current_input.strip():
-                    log_debug(f"Detected command end. Input: '{current_input.strip()}'")
-                    commands.append({
-                        "input": current_input,
-                        "outputs": current_outputs,
-                        "start_time": start_time
-                    })
-                current_input = ""
-                current_outputs = []
-                start_time = None
-        
-        elif event_type == 'o':
-            if start_time is not None:
-                current_outputs.append(content)
+    if first_input_index == -1:
+        log_debug("No user input found in recording.")
+        return header, []
+
+    # The prompt is assumed to be the last non-empty line of output before the first input.
+    # This is a heuristic but should be reliable for most shell prompts (bash, zsh, etc.).
+    prompt_lines = [line for line in initial_output.splitlines() if line.strip()]
+    prompt_signature = prompt_lines[-1] if prompt_lines else ""
+    log_debug(f"Detected prompt signature: '{prompt_signature}'")
+
+    if not prompt_signature:
+        log_debug("Could not determine a prompt signature. Falling back to simple parsing.")
+        # This fallback can be implemented if needed, for now we'll proceed.
+
+    # --- 2. Group commands based on prompt appearances ---
+    commands = []
+    current_command_events = []
+    in_command = False
+
+    # Start processing from the first input event.
+    for event in events[first_input_index:]:
+        timestamp, event_type, content = event
+
+        if not in_command:
+            # A new command must start with an input event.
+            if event_type == 'i':
+                in_command = True
+                current_command_events.append(event)
+        else:
+            current_command_events.append(event)
+            # A command is considered finished when the prompt signature appears in an output event.
+            # We check if the last line of the current output matches the prompt.
+            if event_type == 'o':
+                output_lines = content.splitlines()
+                if output_lines and output_lines[-1].endswith(prompt_signature):
+                    log_debug("Detected end of command via prompt.")
+                    
+                    # Finalize the current command chunk
+                    command_input = "".join([e[2] for e in current_command_events if e[1] == 'i'])
+                    command_outputs = [e[2] for e in current_command_events if e[1] == 'o']
+                    start_time = current_command_events[0][0]
+                    end_time = timestamp # Capture the timestamp of the last event
+
+                    if command_input.strip():
+                        commands.append({
+                            "input": command_input,
+                            "outputs": command_outputs,
+                            "start_time": start_time,
+                            "end_time": end_time,
+                            "events": current_command_events,
+                        })
+
+                    # Reset for the next command
+                    in_command = False
+                    current_command_events = []
+
+    # Add any remaining events as the last command if the recording was cut off
+    if current_command_events:
+        log_debug("Saving final command chunk from remaining events.")
+        command_input = "".join([e[2] for e in current_command_events if e[1] == 'i'])
+        command_outputs = [e[2] for e in current_command_events if e[1] == 'o']
+        start_time = current_command_events[0][0]
+        end_time = current_command_events[-1][0] # Timestamp of the last event
+        if command_input.strip():
+            commands.append({
+                "input": command_input,
+                "outputs": command_outputs,
+                "start_time": start_time,
+                "end_time": end_time,
+                "events": current_command_events,
+            })
 
     log_debug(f"Parsing complete. Found {len(commands)} command(s).")
     return header, commands
 
 def synthesize_cast_file(header, command_chunk):
-    """Creates a new .cast file for a single command."""
+    """Creates a new .cast file for a single command, preserving original timing."""
     with tempfile.NamedTemporaryFile(suffix=".cast", delete=False, mode='w') as tmpfile:
-        tmpfile.write(json.dumps(header) + '\n')
+        # The header needs to be modified to reflect the new duration.
+        chunk_start_time = command_chunk['start_time']
+        chunk_end_time = command_chunk['end_time']
+        new_header = header.copy()
+        new_header['duration'] = chunk_end_time - chunk_start_time
         
-        time_offset = 0.0
+        tmpfile.write(json.dumps(new_header) + '\n')
         
-        tmpfile.write(json.dumps([time_offset, "i", command_chunk["input"]]) + '\n')
-        time_offset += 0.1
-        
-        for output in command_chunk["outputs"]:
-            tmpfile.write(json.dumps([time_offset, "o", output]) + '\n')
-            time_offset += 0.01
+        # Write events with timestamps relative to the start of the chunk
+        for event in command_chunk["events"]:
+            original_timestamp, event_type, content = event
+            relative_timestamp = original_timestamp - chunk_start_time
+            tmpfile.write(json.dumps([relative_timestamp, event_type, content]) + '\n')
             
-        log_debug(f"Synthesized cast file for command '{command_chunk['input'].strip()}' at: {tmpfile.name}")
+        log_debug(f"Synthesized cast file for command '{command_chunk['input'].splitlines()[0].strip()}' at: {tmpfile.name}")
         return tmpfile.name
 
 def main():
@@ -138,28 +197,58 @@ def main():
             print("No valid commands were found in the recording. Nothing to upload.")
             return
 
+        # The display choice for each command is its first line of input.
+        choices = [
+            (cmd['input'].splitlines()[0].strip(), i) 
+            for i, cmd in enumerate(commands) if cmd['input'].strip()
+        ]
+        extended_choices = [
+            "---",
+            ("Select All (overrides other selections)", "all"),
+            ("Select None (overrides other selections)", "none"),
+            "---",
+        ] + choices
+
         questions = [
             inquirer.Checkbox(
                 'selected_commands',
-                message="Select commands to upload to Harbinger (space to select, enter to confirm)",
-                choices=[(cmd['input'].strip().replace('\r\n', ' '), i) for i, cmd in enumerate(commands)],
+                message="Select commands to upload. 'Select All' or 'Select None' will override individual selections.",
+                choices=extended_choices,
             ),
             inquirer.Text('description', message="Enter a description for this set of actions"),
         ]
         answers = inquirer.prompt(questions)
-        
-        if not answers or not answers.get('selected_commands'):
-            print("No commands selected. Aborting.")
+
+        if not answers:
+            print("Aborting.")
             return
 
-        selected_indices = answers['selected_commands']
+        selected_options = answers.get('selected_commands', [])
+
+        if 'all' in selected_options:
+            selected_indices = list(range(len(commands)))
+            print("Processing 'Select All', all commands will be uploaded.")
+        elif 'none' in selected_options:
+            selected_indices = []
+        else:
+            selected_indices = [opt for opt in selected_options if isinstance(opt, int)]
+
+        if not selected_indices:
+            if 'none' in selected_options:
+                print("'Select None' chosen. Aborting.")
+            else:
+                print("No commands selected. Aborting.")
+            return
+        
         description = answers['description']
 
         for index in selected_indices:
             command_chunk = commands[index]
-            command_input = command_chunk['input'].strip().replace('\r\n', ' ')
             
-            print(f"\nProcessing command: {command_input}")
+            # The initial command is the first line of the input chunk.
+            initial_command = command_chunk['input'].splitlines()[0].strip()
+            
+            print(f"\nProcessing command: {initial_command}")
 
             single_cast_path = synthesize_cast_file(header, command_chunk)
 
@@ -169,14 +258,26 @@ def main():
                     "Authorization": f"Bearer {api_token}",
                     "Content-Type": "application/json",
                 }
+
+                # Calculate the absolute start and end times for the command.
+                relative_start = command_chunk['start_time']
+                relative_end = command_chunk['end_time']
+                absolute_start = time_started + datetime.timedelta(seconds=relative_start)
+                absolute_end = time_started + datetime.timedelta(seconds=relative_end)
+
+                # Split the initial command into the command name and its arguments.
+                command_parts = initial_command.split(' ')
+                command_name = command_parts[0]
+                arguments = ' '.join(command_parts[1:])
+
                 timeline_payload = {
-                    "name": f"Command: {command_input}",
+                    "name": f"Command: {initial_command}",
                     "description": description,
-                    "time_started": time_started.isoformat(),
-                    "time_completed": time_completed.isoformat(),
+                    "time_started": absolute_start.isoformat(),
+                    "time_completed": absolute_end.isoformat(),
                     "status": "completed",
-                    "command_name": command_input.split(' ')[0],
-                    "arguments": ' '.join(command_input.split(' ')[1:]),
+                    "command_name": command_name,
+                    "arguments": arguments,
                 }
 
                 timeline_response = requests.post(timeline_url, headers=headers, data=json.dumps(timeline_payload))

@@ -19,6 +19,7 @@ dependencies = [
 
 [project.scripts]
 hbr-shell = "hbr_shell.recorder:main"
+hbr-import = "hbr_shell.importer:main"
 
 [build-system]
 requires = ["setuptools"]
