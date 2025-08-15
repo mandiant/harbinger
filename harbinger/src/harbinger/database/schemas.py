@@ -254,6 +254,7 @@ class FileType(str, Enum):
 
     # harbinger related files
     harbinger_yaml = "harbinger_yaml"
+    terminal_recording = "terminal_recording"
 
 
 class FileTypes(BaseModel):
@@ -772,7 +773,7 @@ def create_random_color():
 class LabelBase(BaseModel):
     name: str
     category: str
-    color: str = ''
+    color: str | None = ''
 
     model_config = ConfigDict(validate_default=True)
 
@@ -2023,6 +2024,61 @@ class Issue(IssueBase):
     time_updated: datetime | None = None
 
     labels: List["Label"] | None = None
+
+
+# --- Graph Schemas ---
+
+class GraphBase(BaseModel):
+    name: str
+    description: str | None = None
+
+
+class GraphCreate(GraphBase):
+    pass
+
+
+class Graph(GraphBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID4 | str
+
+    labels: List["Label"] | None = None
+
+
+class GraphNodeBase(BaseModel):
+    node_type: str
+    attributes: dict | str
+    source: str | None = None
+    graph_id: UUID4 | str
+
+
+class GraphNodeCreate(GraphNodeBase):
+    pass
+
+
+class GraphNode(GraphNodeBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID4
+    time_created: datetime
+    time_updated: datetime | None = None
+
+
+class GraphEdgeBase(BaseModel):
+    source_id: UUID4 | str
+    target_id: UUID4 | str
+    verb: str
+    source: str | None = None
+    graph_id: UUID4 | str
+
+
+class GraphEdgeCreate(GraphEdgeBase):
+    pass
+
+
+class GraphEdge(GraphEdgeBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID4
+    time_created: datetime
+    time_updated: datetime | None = None
 
 
 class ManualTimelineTaskBase(BaseModel):
