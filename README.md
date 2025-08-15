@@ -26,5 +26,6 @@ A big feature of Harbinger is templating of playbooks. See the [creating playboo
 ## Development setup
 If you want to setup a development environment, see the [development setup](docs/development_setup.md) page for more information.
 
-## Harbinger Shell Recorder
-Harbinger includes a standalone tool, `hbr-shell`, to record terminal sessions and upload them as evidence. See the [`hbr-shell` documentation](docs/harbinger_cli.md) for more information.
+## Harbinger CLI
+
+Harbinger includes a powerful command-line interface (`hbr`) to interact with the platform, manage data, and record terminal sessions. See the [`hbr` CLI documentation](docs/harbinger_cli.md) for more information.

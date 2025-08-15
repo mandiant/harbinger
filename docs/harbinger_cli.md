@@ -1,70 +1,103 @@
-# `hbr-shell` - Harbinger Shell Recorder
+# `hbr` - The Harbinger CLI
 
-The `hbr-shell` command is a standalone tool that allows operators to record their terminal sessions and automatically upload them to Harbinger as evidence.
+The `hbr` command is a powerful, standalone tool for interacting with the Harbinger platform. It allows operators to manage data, control C2 infrastructure, and record terminal sessions as evidence.
 
 ## 1. Installation
 
-The `hbr-shell` tool is a standalone package. To install it, navigate to the `harbinger-cli` directory and use `pip`:
+The `hbr` tool is a standalone package. To install it, navigate to the `harbinger-cli` directory and use `pip`:
 
 ```bash
 cd /path/to/Harbinger/harbinger-cli
 pip install .
 ```
 
-This will install the `hbr-shell` command and its required dependencies.
+This will install the `hbr` command and its required dependencies.
 
-It has one external dependency:
+## 2. Configuration and Authentication
 
-*   **`asciinema`**: This is the underlying recording engine. You must install it on your system.
+The `hbr` CLI uses a local configuration file to store your API URL and an authentication cookie. To get started, you must first log in.
 
-Please refer to the [Development Setup](./development_setup.md) guide for instructions on installing `asciinema`.
+### `hbr login`
 
-## 2. Configuration
-
-Before using the tool, you must configure it by setting two environment variables:
-
-*   `HBR_API_URL`: The full URL to your Harbinger API.
-    *   Example: `export HBR_API_URL="http://localhost:8000"`
-*   `HBR_API_TOKEN`: Your personal API token for authenticating with the Harbinger API.
-    *   Example: `export HBR_API_TOKEN="your_secret_token_here"`
-
-It is recommended to add these `export` commands to your shell's profile file (e.g., `~/.bashrc`, `~/.zshrc`) so they are always available.
-
-## 3. Usage
-
-To start a recording, simply run the command in your terminal:
+This command will prompt you for your Harbinger API URL, username, and password.
 
 ```bash
-hbr-shell
+hbr login
 ```
 
-This will start a new, nested shell session. All commands you type and all output you see in this shell will be recorded.
+Upon successful authentication, the CLI will store your API URL and an authentication cookie in `~/.harbinger/config`. This cookie will be used for all subsequent commands.
 
-To stop the recording, simply exit the shell:
+## 3. Global Options
+
+-   `-o, --output {table,json,jsonl}`: Specifies the output format for `list` commands. The default is `table`.
+
+## 4. Available Commands
+
+The `hbr` CLI is organized into a series of subcommands.
+
+### `hbr shell`
+
+Records a terminal session and uploads it to Harbinger.
+
+**Usage:**
 
 ```bash
-exit
+hbr shell
 ```
 
-After you exit, the tool will launch an interactive prompt where you can select which of the recorded commands you wish to upload.
+This will start a new, nested shell session. All commands you type and all output you see in this shell will be recorded. To stop the recording, simply exit the shell (`exit` or `Ctrl+D`).
 
-```
-Select commands to upload to Harbinger:
-(Press <space> to select, <a> to select all, <i> to invert, <enter> to confirm)
+After the session ends, you will be prompted to select which of the recorded commands you wish to upload.
 
-[x] 1. whoami
-[ ] 2. ls -la
-[x] 3. cat /etc/passwd
-```
+### `hbr files`
 
-After selecting the commands, you will be prompted to provide a high-level description for the set of actions.
+Manage files in Harbinger.
 
-The tool will then upload each selected command as a separate recording, each linked to its own timeline event.
+-   **`hbr files list`**: Lists all uploaded files.
+-   **`hbr files upload <file_path> [--file-type <type>]`**: Uploads a file.
+-   **`hbr files download <file_id> <output_path>`**: Downloads a file.
 
-## 4. Integration with Harbinger
+### `hbr c2`
 
-For each command you select for upload:
+Manage C2 infrastructure.
 
-1.  A new `ManualTimelineTask` is created in Harbinger. The command itself is used as the title, and the description you provided is added.
-2.  A new entry is created in the **Files** section of the Harbinger UI. The file will have the type `cast` and will contain only the single command and its output.
-3.  This file is linked to the timeline event, providing a clear and granular audit trail of the activity.
+-   **`hbr c2 servers list`**: Lists all configured C2 servers.
+-   **`hbr c2 implants list`**: Lists all active C2 implants.
+-   **`hbr c2 tasks list`**: Lists all C2 tasks.
+
+### `hbr playbooks`
+
+Manage playbooks.
+
+-   **`hbr playbooks list`**: Lists all available playbooks.
+
+### `hbr proxies`
+
+Manage proxies.
+
+-   **`hbr proxies list`**: Lists all configured proxies.
+-   **`hbr proxies jobs list`**: Lists all proxy jobs.
+
+### `hbr domains`
+
+Manage domains.
+
+-   **`hbr domains list`**: Lists all domains.
+
+### `hbr credentials`
+
+Manage credentials.
+
+-   **`hbr credentials list`**: Lists all credentials.
+
+### `hbr hosts`
+
+Manage hosts.
+
+-   **`hbr hosts list`**: Lists all hosts.
+
+### `hbr labels`
+
+Manage labels.
+
+-   **`hbr labels list`**: Lists all labels.
