@@ -15,11 +15,11 @@ dependencies = [
   "requests",
   "asciinema",
   "inquirer",
+  "tabulate",
 ]
 
 [project.scripts]
-hbr-shell = "hbr_shell.recorder:main"
-hbr-import = "hbr_shell.importer:main"
+hbr = "hbr_shell.cli:main"
 
 [build-system]
 requires = ["setuptools"]

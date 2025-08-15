@@ -1,17 +1,3 @@
-# Copyright 2025 Google LLC
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import os
 import sys
 import subprocess
@@ -20,6 +6,8 @@ import requests
 import datetime
 import json
 import inquirer
+import configparser
+from pathlib import Path
 
 # --- Debug Logging ---
 DEBUG = os.environ.get("HBR_SHELL_DEBUG") == "1"
@@ -27,6 +15,22 @@ DEBUG = os.environ.get("HBR_SHELL_DEBUG") == "1"
 def log_debug(message):
     if DEBUG:
         print(f"[DEBUG] {message}", file=sys.stderr)
+
+def get_auth_config():
+    """Get API URL and cookie from config file."""
+    config_dir = Path.home() / ".harbinger"
+    config_file = config_dir / "config"
+    
+    if not config_file.exists():
+        return None, None
+
+    config = configparser.ConfigParser()
+    config.read(config_file)
+    
+    api_url = config.get('auth', 'api_url', fallback=None)
+    cookie = config.get('auth', 'cookie', fallback=None)
+    
+    return api_url, cookie
 
 def parse_cast_file(path):
     """
@@ -154,15 +158,19 @@ def synthesize_cast_file(header, command_chunk):
         log_debug(f"Synthesized cast file for command '{command_chunk['input'].splitlines()[0].strip()}' at: {tmpfile.name}")
         return tmpfile.name
 
-def main():
+def setup(subparsers):
+    """Setup the shell command."""
+    parser = subparsers.add_parser("shell", help="Record a shell session")
+    parser.set_defaults(func=run)
+
+def run(args):
     """
     Main function for the hbr-shell tool.
     """
-    api_url = os.environ.get("HBR_API_URL")
-    api_token = os.environ.get("HBR_API_TOKEN")
+    api_url, cookie = get_auth_config()
 
-    if not api_url or not api_token:
-        print("Error: HBR_API_URL and HBR_API_TOKEN environment variables must be set.", file=sys.stderr)
+    if not api_url or not cookie:
+        print("Error: Not logged in. Please run 'hbr login' first.", file=sys.stderr)
         sys.exit(1)
 
     try:
@@ -254,10 +262,8 @@ def main():
 
             try:
                 timeline_url = f"{api_url.rstrip('/')}/manual_timeline_tasks/"
-                headers = {
-                    "Authorization": f"Bearer {api_token}",
-                    "Content-Type": "application/json",
-                }
+                headers = { "Content-Type": "application/json" }
+                cookies = { "fastapiusersauth": cookie }
 
                 # Calculate the absolute start and end times for the command.
                 relative_start = command_chunk['start_time']
@@ -280,7 +286,7 @@ def main():
                     "arguments": arguments,
                 }
 
-                timeline_response = requests.post(timeline_url, headers=headers, data=json.dumps(timeline_payload))
+                timeline_response = requests.post(timeline_url, headers=headers, cookies=cookies, data=json.dumps(timeline_payload))
 
                 if timeline_response.status_code != 200:
                     print(f"  Error creating timeline event: {timeline_response.status_code} - {timeline_response.text}", file=sys.stderr)
@@ -290,7 +296,6 @@ def main():
                 print(f"  Timeline event created with ID: {timeline_task_id}")
 
                 upload_url = f"{api_url.rstrip('/')}/upload_file/"
-                upload_headers = {"Authorization": f"Bearer {api_token}"}
                 
                 with open(single_cast_path, "rb") as f:
                     files = {"file": ("output.cast", f, "application/octet-stream")}
@@ -298,7 +303,7 @@ def main():
                         "file_type": "cast",
                         "manual_timeline_task_id": timeline_task_id,
                     }
-                    upload_response = requests.post(upload_url, headers=upload_headers, data=data, params=data, files=files)
+                    upload_response = requests.post(upload_url, cookies=cookies, data=data, params=data, files=files)
 
                 if upload_response.status_code == 200:
                     file_data = upload_response.json()
@@ -313,6 +318,3 @@ def main():
     finally:
         if os.path.exists(recording_path):
             os.remove(recording_path)
-
-if __name__ == "__main__":
-    main()
