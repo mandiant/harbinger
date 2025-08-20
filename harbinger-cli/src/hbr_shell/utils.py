@@ -3,6 +3,9 @@ import json
 import requests
 from pathlib import Path
 from tabulate import tabulate
+import urllib3
+
+urllib3.disable_warnings()
 
 def get_auth_config():
     """Get API URL and cookie from config file."""
