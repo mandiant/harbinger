@@ -118,28 +118,30 @@ async def get_file(file_id: str | UUID4) -> bytes | None:
 @cli.command()
 @click.argument("hosts", type=click.File("r"))
 @click.option("--workers", type=int, default=5)
-@click.option("--proxy", type=str, required=True)
+@click.option("--proxy", type=str, required=False)
 @click.option("--credential", type=str, required=True)
 @click.option("--dc-ip", type=str)
 @click.option("--max-hosts", type=int, default=100000000)
 @click.option("--sleep", type=int, default=0)
 @click.option("--smbv3", is_flag=True, show_default=True, default=False, help="Force smbv3")
 def list_shares(
-    hosts: typing.IO, workers: int, proxy: str, credential: str, dc_ip: str, max_hosts: int, sleep: int, smbv3: bool = False,
+    hosts: typing.IO, workers: int, proxy: str | None, credential: str, dc_ip: str, max_hosts: int, sleep: int, smbv3: bool = False,
 ) -> None:
     anyio.run(list_sharesa, hosts, workers, proxy, credential, dc_ip, max_hosts, sleep, smbv3)
 
 
 async def list_sharesa(
-    hosts: typing.IO, workers: int, proxy_id: str, credential_id: str, dc_ip: str, max_hosts: int, sleep: int, smbv3: bool,
+    hosts: typing.IO, workers: int, proxy_id: str | None, credential_id: str, dc_ip: str, max_hosts: int, sleep: int, smbv3: bool,
 ) -> None:
     data = [h.strip() for h in hosts.readlines()]
     logger.info(f"Listing shares on {len(data)} hosts")
 
-    proxy = await load_proxy(proxy_id=proxy_id)
-    if not proxy:
-        logger.warning("Could not find the proxy with that id...")
-        return
+    proxy = None
+    if proxy_id:
+        proxy = await load_proxy(proxy_id=proxy_id)
+        if not proxy:
+            logger.warning("Could not find the proxy with that id...")
+            return
 
     credential = await load_credential(credential_id=credential_id, dc_ip=dc_ip)
     if not credential:
@@ -160,22 +162,24 @@ async def list_sharesa(
 
 @cli.command()
 @click.option("--workers", type=int, default=5)
-@click.option("--proxy", type=str, required=True)
+@click.option("--proxy", type=str, required=False)
 @click.option("--credential", type=str, required=True)
 @click.option("--max", type=int, default=0, help="Max shares to enumerate")
 @click.option("--dc-ip", type=str)
 @click.option("--smbv3", is_flag=True, show_default=True, default=False, help="Force smbv3")
-def list_root_shares(workers: int, proxy: str, credential: str, max: int = 0, dc_ip: str = "", smbv3: bool = False) -> None:
+def list_root_shares(workers: int, proxy: str | None, credential: str, max: int = 0, dc_ip: str = "", smbv3: bool = False) -> None:
     anyio.run(list_root_sharesa, workers, max, proxy, credential, dc_ip, smbv3)
 
 
 async def list_root_sharesa(
-    workers: int, max: int, proxy_id: str, credential_id: str, dc_ip, smbv3: bool = False
+    workers: int, max: int, proxy_id: str | None, credential_id: str, dc_ip, smbv3: bool = False
 ) -> None:
-    proxy = await load_proxy(proxy_id=proxy_id)
-    if not proxy:
-        logger.warning("Could not find the proxy with that id...")
-        return
+    proxy = None
+    if proxy_id:
+        proxy = await load_proxy(proxy_id=proxy_id)
+        if not proxy:
+            logger.warning("Could not find the proxy with that id...")
+            return
 
     credential = await load_credential(credential_id=credential_id, dc_ip=dc_ip)
     if not credential:
@@ -192,25 +196,27 @@ async def list_root_sharesa(
 @cli.command()
 @click.argument("depth", type=int)
 @click.option("--workers", type=int, default=5)
-@click.option("--proxy", type=str, required=True)
+@click.option("--proxy", type=str, required=False)
 @click.option("--credential", type=str, required=True)
 @click.option("--max", type=int, default=0, help="Max shares to enumerate")
 @click.option("--dc-ip", type=str, default="")
 @click.option("--search", type=str, default="")
 @click.option("--smbv3", is_flag=True, show_default=True, default=False, help="Force smbv3")
 def list_shares_depth(
-    depth: int, workers: int, proxy: str, credential: str, max: int = 0, dc_ip: str = "", search: str = "", smbv3: bool = False
+    depth: int, workers: int, proxy: str | None, credential: str, max: int = 0, dc_ip: str = "", search: str = "", smbv3: bool = False
 ) -> None:
     anyio.run(list_shares_deptha, depth, workers, max, proxy, credential, dc_ip, search, smbv3)
 
 
 async def list_shares_deptha(
-    depth: int, workers: int, max: int, proxy_id: str, credential_id: str, dc_ip: str = "", search: str = "", smbv3: bool = False
+    depth: int, workers: int, max: int, proxy_id: str | None, credential_id: str, dc_ip: str = "", search: str = "", smbv3: bool = False
 ) -> None:
-    proxy = await load_proxy(proxy_id=proxy_id)
-    if not proxy:
-        logger.warning("Could not find the proxy with that id...")
-        return
+    proxy = None
+    if proxy_id:
+        proxy = await load_proxy(proxy_id=proxy_id)
+        if not proxy:
+            logger.warning("Could not find the proxy with that id...")
+            return
 
     credential = await load_credential(credential_id=credential_id, dc_ip=dc_ip)
     if not credential:
@@ -227,7 +233,7 @@ async def list_shares_deptha(
 @cli.command()
 @click.argument("search", type=str)
 @click.option("--workers", type=int, default=5)
-@click.option("--proxy", type=str, required=True)
+@click.option("--proxy", type=str, required=False)
 @click.option("--credential", type=str, required=True)
 @click.option("--max", type=int, default=0, help="Max shares to enumerate")
 @click.option("--dc-ip", type=str, default="")
@@ -237,12 +243,14 @@ def download(search, workers: int, proxy: str, credential: str, max: int = 0, dc
 
 
 async def downloada(
-    search, workers: int, proxy_id: str, credential_id: str, max: int = 0, dc_ip: str = "", smbv3: bool = False
+    search, workers: int, proxy_id: str | None, credential_id: str, max: int = 0, dc_ip: str = "", smbv3: bool = False
 ) -> None:
-    proxy = await load_proxy(proxy_id=proxy_id)
-    if not proxy:
-        logger.warning("Could not find the proxy with that id...")
-        return
+    proxy = None
+    if proxy_id:
+        proxy = await load_proxy(proxy_id=proxy_id)
+        if not proxy:
+            logger.warning("Could not find the proxy with that id...")
+            return
 
     credential = await load_credential(credential_id=credential_id, dc_ip=dc_ip)
     if not credential:
@@ -258,7 +266,7 @@ async def downloada(
         await redis.aclose()
 
 @cli.command()
-@click.option("--proxy", type=str, required=True)
+@click.option("--proxy", type=str, required=False)
 @click.option("--credential", type=str, required=True)
 @click.option("--file", type=str, required=True)
 @click.option("--unc", type=str, required=True)
@@ -268,12 +276,14 @@ def upload(proxy: str, credential: str, file: str, unc: str, dc_ip: str = "", sm
     anyio.run(uploada, proxy, credential, file, unc, dc_ip, smbv3)
 
 async def uploada(
-    proxy_id: str, credential_id: str, file_id: str, unc: str, dc_ip: str = "", smbv3: bool = False
+    proxy_id: str | None, credential_id: str, file_id: str, unc: str, dc_ip: str = "", smbv3: bool = False
 ) -> None:
-    proxy = await load_proxy(proxy_id=proxy_id)
-    if not proxy:
-        logger.warning("Could not find the proxy with that id...")
-        return
+    proxy = None
+    if proxy_id:
+        proxy = await load_proxy(proxy_id=proxy_id)
+        if not proxy:
+            logger.warning("Could not find the proxy with that id...")
+            return
 
     credential = await load_credential(credential_id=credential_id, dc_ip=dc_ip)
     if not credential:

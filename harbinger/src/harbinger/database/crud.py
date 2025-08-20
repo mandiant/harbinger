@@ -2311,20 +2311,11 @@ async def send_label_events(
             # Derive the object type/cache prefix from the key name
             # e.g., 'host_id' -> 'host', 'c2_implant_id' -> 'c2_implant'
             key_prefix = key.replace("_id", "")
-
-            # --- Added Cache Invalidation Call ---
-            logger.info(
-                f"Invalidating cache for {key_prefix=}, {value=} due to label change."
-            )
             try:
                 # Call the standalone invalidation function
-                invalidated = await invalidate_cache_entry(
+                await invalidate_cache_entry(
                     key_prefix=key_prefix, key_value=value
                 )
-                if not invalidated:
-                    logger.warning(
-                        f"Cache entry for {key_prefix}:{value} may not have existed or Redis error occurred during invalidation."
-                    )
             except Exception as e:
                 # Catch potential errors from the invalidation function itself
                 logger.error(
@@ -3240,6 +3231,18 @@ async def get_share_file(
     db: AsyncSession, id: UUID4 | str
 ) -> Optional[models.ShareFile]:
     return await db.get(models.ShareFile, id)
+
+
+@redis_cache_invalidate(
+    key_prefix="share_file",
+    key_param_name="id",
+)
+async def update_share_file(db: AsyncSession, id: str | uuid.UUID, share_file: schemas.ShareFileUpdate) -> None:
+    to_update = share_file.model_dump(exclude_unset=True, exclude_defaults=True, exclude_none=True)
+    if to_update:
+        q = update(models.ShareFile).where(models.ShareFile.id == id).values(**to_update)
+        await db.execute(q)
+        await db.commit()
 
 
 async def save_parsed_share_file(

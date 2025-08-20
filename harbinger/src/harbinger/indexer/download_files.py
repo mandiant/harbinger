@@ -109,9 +109,13 @@ class Downloader:
                         self.logger.info(f"TimeOut during download of {path}")
                         downloaded = False
 
-                    file.downloaded = downloaded
-                    file.file_id = new_file_id
-                    session.add(file)
+                    await crud.update_share_file(
+                        session, file.id,
+                        schemas.ShareFileUpdate(
+                            downloaded=downloaded,
+                            file_id=new_file_id,
+                        )
+                    )
                     await session.commit()
 
                 except Exception as e:
@@ -159,7 +163,7 @@ class Downloader:
             return False
         hostname = file.unc_path.split("\\")[2]
         self.logger.info(f"Downloading {file.name} from {hostname} to {key}")
-        target = SMBTarget(hostname=hostname, proxies=[self.proxy])
+        target = SMBTarget(hostname=hostname, proxies=[self.proxy] if self.proxy else [])
         if self.smbv3:
             target.update_dialect(SMBConnectionDialect.SMB3)
         url = SMBConnectionFactory(self.credential, target)

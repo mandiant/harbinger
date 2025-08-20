@@ -28,7 +28,7 @@ from aiosmb.commons.connection.target import SMBTarget, SMBConnectionDialect
 
 
 class ListShares:
-    def __init__(self, proxy: UniProxyTarget, credential: UniCredential, tg: TaskGroup, smbv3: bool = False) -> None:
+    def __init__(self, proxy: UniProxyTarget | None, credential: UniCredential, tg: TaskGroup, smbv3: bool = False) -> None:
         self.logger = structlog.get_logger()
         self.proxy = proxy
         self.credential = credential
@@ -72,7 +72,7 @@ class ListShares:
 
 
     async def list_shares_on_host(self, hostname: str) -> int:
-        target = SMBTarget(hostname=hostname, proxies=[self.proxy])
+        target = SMBTarget(hostname=hostname, proxies=[self.proxy] if self.proxy else [])
         if self.smbv3:
             target.update_dialect(SMBConnectionDialect.SMB3)
 

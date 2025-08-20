@@ -25,7 +25,8 @@ def run(args):
         response = requests.post(
             f"{api_url}/auth/login",
             data={"username": username, "password": password},
-            headers={"Content-Type": "application/x-www-form-urlencoded"}
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            verify=False,
         )
         response.raise_for_status()
 

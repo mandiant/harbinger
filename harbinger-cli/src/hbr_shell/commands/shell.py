@@ -286,7 +286,7 @@ def run(args):
                     "arguments": arguments,
                 }
 
-                timeline_response = requests.post(timeline_url, headers=headers, cookies=cookies, data=json.dumps(timeline_payload))
+                timeline_response = requests.post(timeline_url, headers=headers, cookies=cookies, data=json.dumps(timeline_payload), verify=False)
 
                 if timeline_response.status_code != 200:
                     print(f"  Error creating timeline event: {timeline_response.status_code} - {timeline_response.text}", file=sys.stderr)
@@ -303,7 +303,7 @@ def run(args):
                         "file_type": "cast",
                         "manual_timeline_task_id": timeline_task_id,
                     }
-                    upload_response = requests.post(upload_url, cookies=cookies, data=data, params=data, files=files)
+                    upload_response = requests.post(upload_url, cookies=cookies, data=data, params=data, files=files, verify=False)
 
                 if upload_response.status_code == 200:
                     file_data = upload_response.json()

@@ -31,7 +31,7 @@ def make_api_request(method, endpoint, **kwargs):
     cookies = {"fastapiusersauth": cookie}
     
     try:
-        response = requests.request(method, url, cookies=cookies, **kwargs)
+        response = requests.request(method, url, cookies=cookies, verify=False, **kwargs)
         response.raise_for_status()
         return response
     except requests.exceptions.RequestException as e:

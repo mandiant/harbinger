@@ -142,7 +142,7 @@ class ShareEnum:
             self.logger.info(
                 f"[{name}] Listing {len(files)} folders on {share.unc_path}"
             )
-            target = SMBTarget(hostname=hostname, proxies=[self.proxy])
+            target = SMBTarget(hostname=hostname, proxies=[self.proxy] if self.proxy else [])
             if self.smbv3:
                 target.update_dialect(SMBConnectionDialect.SMB3)
             url = SMBConnectionFactory(self.credential, target)
@@ -216,7 +216,7 @@ class ShareEnum:
 
             self.logger.info(f"[{name}] Listing {share.unc_path} on {hostname}")
 
-            target = SMBTarget(hostname=hostname, proxies=[self.proxy])
+            target = SMBTarget(hostname=hostname, proxies=[self.proxy] if self.proxy else [])
             if self.smbv3:
                 target.update_dialect(SMBConnectionDialect.SMB3)
             url = SMBConnectionFactory(self.credential, target)
