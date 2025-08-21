@@ -46,7 +46,7 @@ class Uploader:
     async def upload_file(self, unc_path: str, data: bytes) -> None:
         hostname = [entry for entry in unc_path.split("\\") if entry][0]
         self.logger.info(f"[{hostname}] Uploading {humanize.naturalsize(len(data))} bytes to {unc_path}")
-        target = SMBTarget(hostname=hostname, proxies=[self.proxy])
+        target = SMBTarget(hostname=hostname, proxies=[self.proxy] if self.proxy else [])
         if self.smbv3:
             target.update_dialect(SMBConnectionDialect.SMB3)
         url = SMBConnectionFactory(self.credential, target)

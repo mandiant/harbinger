@@ -15,18 +15,18 @@
 -->
 
 <template>
-  <q-select
-    v-model="socks_server"
-    :option-label="(opt) => format(opt)"
-    :options="socks_servers"
-    label="Socks server"
-    clearable
-    @update:model-value="updateValue"
-    filled
-    :readonly="readonly"
-    :error="!socks_server.id"
-    lazy-rules
-  />
+  <div>
+    <q-select
+      v-model="socks_server"
+      :option-label="(opt) => format(opt)"
+      :options="socks_servers"
+      label="Socks server"
+      clearable
+      @update:model-value="updateValue"
+      filled
+      :readonly="readonly"
+    />
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -82,15 +82,6 @@ function format(obj: SocksServer) {
   return '';
 }
 
-async function loadDefault() {
-  if (modelValue.value) {
-    api.get(`/socks/servers/${modelValue.value}`).then((response) => {
-      socks_server.value = response.data;
-    });
-  }
-}
-loadDefault();
-
 function loadCredentials() {
   api
     .get('/socks/servers/')
@@ -107,6 +98,15 @@ function loadCredentials() {
     });
 }
 loadCredentials();
+
+async function loadDefault() {
+  if (modelValue.value) {
+    api.get(`/socks/servers/${modelValue.value}`).then((response) => {
+      socks_server.value = response.data;
+    });
+  }
+}
+loadDefault();
 
 watch(modelValue, (old, new_model) => {
   if (old !== new_model) {

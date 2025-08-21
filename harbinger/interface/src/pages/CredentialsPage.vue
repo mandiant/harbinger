@@ -153,7 +153,7 @@ const columns: QTableProps['columns'] = [
 
 
 function formatPassword(obj: Password, kerb: Kerberos) {
-  if (obj !== null) {
+  if (obj) {
     if (obj.password !== null && obj.password !== '') {
       return obj.password;
     }
@@ -167,7 +167,7 @@ function formatPassword(obj: Password, kerb: Kerberos) {
       return 'aes256: ' + obj.aes256_key;
     }
   }
-  else if (kerb !== null) {
+  else if (kerb) {
     return 'kerberos ticket: ' + kerb.client
   }
   return '';
