@@ -42,14 +42,33 @@
             </q-item-label>
           </div>
           <div class="row items-center q-gutter-sm">
-            <q-toggle
+            <q-btn-group flat>
+              <q-btn
+                size="sm"
+                icon="toc"
+                :flat="!showPlanSteps"
+                @click="showPlanSteps = !showPlanSteps"
+              >
+                <q-tooltip>{{ showPlanSteps ? 'Hide' : 'Show' }} Plan Steps</q-tooltip>
+              </q-btn>
+              <q-btn
+                size="sm"
+                icon="terminal"
+                :flat="!showSupervisorLogs"
+                @click="showSupervisorLogs = !showSupervisorLogs"
+              >
+                <q-tooltip>{{ showSupervisorLogs ? 'Hide' : 'Show' }} Supervisor Logs</q-tooltip>
+              </q-btn>
+            </q-btn-group>
+            <q-separator vertical class="q-mx-sm" />
+            <!-- <q-toggle
               v-model="allowAll"
               @update:model-value="toggleAllowAll"
               label="Auto-Approve"
               left-label
             >
               <q-tooltip>Automatically approve all suggested actions</q-tooltip>
-            </q-toggle>
+            </q-toggle> -->
             <q-btn size="sm" color="primary" @click="startPlan" icon="play_arrow" v-if="plan.llm_status === 'INACTIVE'">
               <q-tooltip>Start Plan</q-tooltip>
             </q-btn>
@@ -76,18 +95,70 @@
         </div>
       </q-card-section>
     </q-card>
-    <plan-step-list :plan-id="id" class="q-mt-md" />
+    <div class="row q-col-gutter-md q-mt-md">
+      <div :class="columnClass" v-if="showPlanSteps">
+        <q-card flat bordered class="full-height">
+          <q-card-section class="row items-center justify-between q-py-sm">
+            <div class="text-h6">Plan Steps</div>
+            <div>
+              <q-btn
+                v-if="planStepListRef"
+                flat
+                dense
+                size="sm"
+                :icon="planStepListRef.allExpanded ? 'unfold_less' : 'unfold_more'"
+                @click="planStepListRef.toggleAll"
+              >
+                <q-tooltip>{{ planStepListRef.allExpanded ? 'Collapse All' : 'Expand All' }}</q-tooltip>
+              </q-btn>
+              <q-btn flat dense size="sm" icon="refresh" @click="planStepListRef?.refresh()">
+                <q-tooltip>Refresh</q-tooltip>
+              </q-btn>
+            </div>
+          </q-card-section>
+          <q-separator />
+          <q-card-section class="q-pa-none">
+            <plan-step-list :plan-id="id" ref="planStepListRef" />
+          </q-card-section>
+        </q-card>
+      </div>
+      <div :class="columnClass" v-if="showSupervisorLogs">
+        <q-card flat bordered class="full-height">
+          <q-card-section class="row items-center justify-between q-py-sm">
+            <div class="text-h6">Supervisor Logs</div>
+            <div>
+              <q-btn
+                v-if="llmLogViewerRef"
+                flat
+                dense
+                size="sm"
+                :icon="llmLogViewerRef.allExpanded ? 'unfold_less' : 'unfold_more'"
+                @click="llmLogViewerRef.toggleAll"
+              >
+                <q-tooltip>{{ llmLogViewerRef.allExpanded ? 'Collapse All' : 'Expand All' }}</q-tooltip>
+              </q-btn>
+              <q-btn flat dense size="sm" icon="refresh" @click="llmLogViewerRef?.refresh()">
+                <q-tooltip>Refresh</q-tooltip>
+              </q-btn>
+            </div>
+          </q-card-section>
+          <q-separator />
+          <llm-log-viewer :plan-id="id" ref="llmLogViewerRef" style="height: calc(80vh - 48px);"/>
+        </q-card>
+      </div>
+    </div>
   </q-page>
 </template>
 
 <script setup lang="ts">
-import { ref, toRefs, watch } from 'vue';
+import { ref, toRefs, watch, computed } from 'vue';
 import { useQuasar } from 'quasar';
 import { api } from 'boot/axios';
 import { Plan } from '../models';
 import BreadCrumb from '../components/BreadCrumb.vue';
 import PlanStepList from '../components/PlanStepList.vue';
 import LlmStatusIndicator from '../components/LlmStatusIndicator.vue';
+import LlmLogViewer from 'src/components/LlmLogViewer.vue';
 import { defineTypedStore } from 'src/stores/datastore';
 
 const $q = useQuasar();
@@ -101,6 +172,18 @@ const props = defineProps({
 const { id } = toRefs(props);
 const loading = ref(false);
 const allowAll = ref(false);
+const showPlanSteps = ref(true);
+const showSupervisorLogs = ref(true);
+
+const planStepListRef = ref<InstanceType<typeof PlanStepList> | null>(null);
+const llmLogViewerRef = ref<InstanceType<typeof LlmLogViewer> | null>(null);
+
+const columnClass = computed(() => {
+  if (showPlanSteps.value && showSupervisorLogs.value) {
+    return 'col-6';
+  }
+  return 'col-12';
+});
 
 const usePlanStore = defineTypedStore<Plan>('plans');
 const planStore = usePlanStore();

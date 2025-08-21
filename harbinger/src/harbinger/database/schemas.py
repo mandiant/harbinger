@@ -2306,6 +2306,37 @@ class Plan(PlanBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+# Using Enum for validation at the application layer
+class LogType(str, Enum):
+    REASONING = "REASONING"
+    TOOL_CALL = "TOOL_CALL"
+
+
+class LlmLogBase(BaseModel):
+    plan_id: str | UUID4 | None = None
+    log_type: str | None = None
+    time_created: datetime | None = None
+    content: dict | None = None
+    
+
+class LlmLogCreate(LlmLogBase):
+    log_type: LogType = LogType.REASONING
+
+
+class LlmLogUpdate(LlmLogBase):
+    pass
+
+
+class LlmLogCreated(LlmLogBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID4 | str
+
+
+class LlmLog(LlmLogBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID4 | str
+
+
 ManualTimelineTask.model_rebuild()
 Issue.model_rebuild()
 CertificateAuthority.model_rebuild()

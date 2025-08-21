@@ -3230,3 +3230,95 @@ async def update_plan_step(
     user: models.User = Depends(current_active_user),
 ):
     return await crud.update_plan_step(db, id, plan_step)
+
+# ROUTER
+@router.get(
+    "/llm_logs/",
+    response_model=Page[schemas.LlmLog],
+    tags=["crud", "llm_logs"],
+)
+async def list_llm_logs(
+    filters: filters.LlmLogFilter = FilterDepends(filters.LlmLogFilter),
+    db: AsyncSession = Depends(get_db),
+    user: models.User = Depends(current_active_user)
+):
+    return await crud.get_llm_logs_paged(db, filters)
+
+
+@router.get(
+    "/llm_logs/filters", response_model=list[schemas.Filter], tags=["llm_logs", "crud"]
+)
+async def llm_logs_filters(
+    filters: filters.LlmLogFilter = FilterDepends(filters.LlmLogFilter),
+    db: AsyncSession = Depends(get_db),
+    user: models.User = Depends(current_active_user),
+):
+    return await crud.get_llm_logs_filters(
+        db,
+        filters,
+    )
+
+
+@router.get(
+    "/llm_logs/{id}",
+    response_model=Optional[schemas.LlmLog],
+    tags=["crud", "llm_logs"],
+)
+async def get_llm_log(
+    id: UUID4,
+    db: AsyncSession = Depends(get_db),
+    user: models.User = Depends(current_active_user),
+):
+    return await crud.get_llm_log(db, id)
+
+
+@router.websocket("/ws/plans/{plan_id}/llm_logs")
+async def websocket_llm_logs(
+    websocket: WebSocket,
+    plan_id: UUID4,
+):
+    """
+    WebSocket endpoint to stream real-time LLM logs for a specific plan.
+    """
+    cookie = websocket._cookies["fastapiusersauth"]
+    strat = get_redis_strategy()
+    async with SessionLocal() as session:
+        db = await anext(get_user_db(session))
+        manager = await anext(get_user_manager(db))
+        token = await strat.read_token(cookie, manager)
+
+    if not token:
+        logging.warning("Invalid or expired authentication token.")
+        await websocket.close(code=1008, reason="Invalid or expired token")
+        return
+
+    await websocket.accept()
+    channel = f"plan:llm_logs:{plan_id}"
+    pubsub = redis.pubsub()
+
+    async def redis_listener():
+        """Listens to the Redis channel and forwards messages to the WebSocket."""
+        try:
+            await pubsub.subscribe(channel)
+            logging.info(f"WebSocket subscribed to Redis channel: {channel}")
+            async for message in pubsub.listen():
+                if message["type"] == "message":
+                    await websocket.send_text(message["data"].decode("utf-8"))
+        except asyncio.CancelledError:
+            logging.info(f"Redis listener for {channel} cancelled.")
+        except Exception as e:
+            logging.error(f"Error in Redis listener for {channel}: {e}")
+        finally:
+            await pubsub.unsubscribe(channel)
+
+    listener_task = asyncio.create_task(redis_listener())
+
+    try:
+        # Keep the connection alive, waiting for the client to disconnect.
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        logging.info(f"WebSocket for plan {plan_id} disconnected.")
+    finally:
+        listener_task.cancel()
+        await listener_task # Ensure the listener task is fully cleaned up

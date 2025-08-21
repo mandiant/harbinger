@@ -84,8 +84,20 @@ def upgrade() -> None:
         for sql in trigger_sqls:
             op.execute(sql)
 
+    op.create_table('llm_log',
+    sa.Column('id', sa.UUID(), nullable=False),
+    sa.Column('plan_id', sa.UUID(), nullable=False),
+    sa.Column('log_type', sa.String(), nullable=False),
+    sa.Column('content', sa.JSON(), nullable=False),
+    sa.Column('time_created', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
+    sa.ForeignKeyConstraint(['plan_id'], ['plan.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+
 
 def downgrade() -> None:
+    op.drop_table('llm_log')
+
     for table_name in reversed(TABLE_NAMES):
         drop_trigger_sqls = get_drop_trigger_statements_for_table(table_name)
         for sql in drop_trigger_sqls:

@@ -470,3 +470,14 @@ class SuggestionFilter(Filter):
     class Constants(Filter.Constants):
         model = models.Suggestion
         search_model_fields = ['name', 'reason']
+
+
+class LlmLogFilter(Filter): 
+    order_by: list[str] | None = ["-time_created"]
+    search: str | None = None
+    plan_id: str | UUID4 | None = None
+    log_type: str | None = None
+
+    class Constants(Filter.Constants):
+        model = models.LlmLog
+        search_model_fields = ['log_type']

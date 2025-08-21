@@ -65,7 +65,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue';
+import { computed } from 'vue';
 import { PlanStep } from 'src/models';
 import LlmStatusIndicator from './LlmStatusIndicator.vue';
 import SuggestionItem from './SuggestionItem.vue';
@@ -75,19 +75,9 @@ const props = defineProps({
     type: Object as () => PlanStep,
     required: true,
   },
-  startOpen: {
-    type: Boolean,
-    default: null,
-  },
 });
 
-const isExpanded = ref(false);
-
-watch(() => props.startOpen, (newValue) => {
-  if (newValue !== null) {
-    isExpanded.value = newValue;
-  }
-});
+const isExpanded = defineModel<boolean>('expanded');
 
 const statusColor = computed(() => {
   switch (props.planStep.status) {

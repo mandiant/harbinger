@@ -1161,4 +1161,15 @@ class PlanStep(Base):
         ),
     )
 
+
+class LlmLog(Base):
+    __tablename__ = "llm_log"
+    id = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    plan_id = mapped_column(UUID(as_uuid=True), ForeignKey("plan.id"), nullable=False)
+    log_type = mapped_column(String, nullable=False)
+    content = mapped_column(JSON, nullable=False)
+    time_created = mapped_column(DateTime(timezone=True), server_default=func.now())
+    plan = relationship("Plan")
+
+
 Base.registry.configure()

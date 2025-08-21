@@ -16,33 +16,18 @@
 -->
 
 <template>
-  <q-card flat bordered>
-    <q-card-section>
-      <div class="row items-center justify-between">
-        <div class="text-h6">Plan Steps</div>
-        <div>
-          <q-btn @click="openAll" flat>Open All</q-btn>
-          <q-btn @click="closeAll" flat>Close All</q-btn>
-          <q-btn color="secondary" icon="refresh" @click="store.LoadData" flat>Refresh</q-btn>
-        </div>
-      </div>
-    </q-card-section>
-
-    <q-separator />
-
-    <q-list separator>
-      <plan-step-item
-        v-for="step in data"
-        :key="step.id"
-        :plan-step="step"
-        :start-open="allStepsOpen"
-      />
-    </q-list>
-  </q-card>
+  <q-list separator>
+    <plan-step-item
+      v-for="step in data"
+      :key="step.id"
+      :plan-step="step"
+      v-model:expanded="expansionState[step.id]"
+    />
+  </q-list>
 </template>
 
 <script setup lang="ts">
-import { ref, toRefs, watch } from 'vue';
+import { ref, toRefs, watch, computed } from 'vue';
 import { PlanStep } from 'src/models';
 import { defineTypedStore } from 'src/stores/datastore';
 import { storeToRefs } from 'pinia';
@@ -75,13 +60,27 @@ watch(planId, (newPlanId) => {
   }
 }, { immediate: true }); // immediate: true ensures this runs on component mount
 
-const allStepsOpen = ref<boolean | null>(null);
+const expansionState = ref<Record<string, boolean>>({});
 
-function openAll() {
-  allStepsOpen.value = true;
+const allExpanded = computed(() => {
+  if (data.value.length === 0) return false;
+  return data.value.every(step => expansionState.value[step.id]);
+});
+
+function toggleAll() {
+  const expand = !allExpanded.value;
+  data.value.forEach(step => {
+    expansionState.value[step.id] = expand;
+  });
 }
 
-function closeAll() {
-  allStepsOpen.value = false;
+function refresh() {
+  store.LoadData();
 }
+
+defineExpose({
+  toggleAll,
+  refresh,
+  allExpanded,
+});
 </script>

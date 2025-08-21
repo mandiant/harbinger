@@ -25,13 +25,14 @@ import asyncio
 import json
 import uuid
 from datetime import timedelta
-from typing import List
+from typing import List, Any, Dict
 
 import rigging as rg
 import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 from temporalio import activity, workflow
 from temporalio.exceptions import ApplicationError
+from rigging.chat import Chat
 
 from harbinger.database import crud, filters, schemas
 from harbinger.database.database import SessionLocal
@@ -114,6 +115,62 @@ SUPERVISOR_TOOLS: List[rg.Tool] = [
     tools.create_plan_step,
     tools.update_plan_step,
 ]
+
+
+# --- LLM Watcher ---
+
+class RiggingWatcher:
+    """
+    Captures LLM activity from a ChatPipeline and logs it directly to the
+    database and Redis.
+    """
+
+    def __init__(self, plan_id: str):
+        self._plan_id = plan_id
+
+    async def _log_and_publish(self, log_type: schemas.LogType, content: dict) -> None:
+        """Helper to create the log entry and publish it."""
+        log_entry = schemas.LlmLogCreate(
+            plan_id=self._plan_id,
+            log_type=log_type,
+            content=content,
+        )
+
+        # 1. Save to PostgreSQL for historical record (using its own session)
+        async with SessionLocal() as db:
+            created_log = await crud.create_llm_log(db, log_entry)
+
+        # 2. Publish to Redis for real-time UI updates
+        channel = f"plan:llm_logs:{self._plan_id}"
+        message = schemas.LlmLog.model_validate(created_log).model_dump_json()
+        await redis.publish(channel, message)
+
+    async def on_chat_update(self, chats: List[Chat]) -> None:
+        """
+        This is the WatchChatCallback. It's called by the rigging pipeline
+        whenever a chat is generated.
+        """
+        if not chats:
+            return
+
+        chat = chats[0]
+        last_message = chat.last
+
+        if last_message.role == "assistant" and last_message.tool_calls:
+            for tool_call in last_message.tool_calls:
+                log_content = {
+                    "tool_name": tool_call.function.name,
+                    "arguments": tool_call.function.arguments,
+                }
+                await self._log_and_publish(schemas.LogType.TOOL_CALL, log_content)
+        elif last_message.role == "assistant":
+            try:
+                parsed_summary = last_message.parse(prompts.SupervisorSummary)
+                log_content = {"summary": parsed_summary.summary_text}
+                await self._log_and_publish(schemas.LogType.REASONING, log_content)
+            except Exception:
+                log_content = {"summary": str(last_message.content)}
+                await self._log_and_publish(schemas.LogType.REASONING, log_content)
 
 
 # --- Activities ---
@@ -231,11 +288,12 @@ async def generate_initial_steps_activity(plan_id: str) -> None:
 
 @activity.defn
 async def handle_events_activity(plan_id: str, events: list[str]) -> None:
-    """Handles a batch of events by invoking the LLM to update the plan."""
+    """Handles a batch of events by invoking the LLM and watching its actions."""
     if not events:
         return
-    log.info(f"handle_events_activity, number of events: {len(events)}", plan_id=plan_id)
+
     plan_uuid = uuid.UUID(plan_id)
+    watcher = RiggingWatcher(plan_id)
     aggregated_event_context = "\n".join(events)
 
     async with SessionLocal() as db:
@@ -265,16 +323,10 @@ async def handle_events_activity(plan_id: str, events: list[str]) -> None:
         )
 
         pipeline = prompts.generator.chat().using(SUPERVISOR_TOOLS, max_depth=100)
-        run = prompts.update_testing_plan.bind(pipeline)
-        llm_response: prompts.SupervisorSummary = await run(
-            current_plan_summary=plan_summary, new_event=event_text
-        )
-        log.info(
-            "LLM processed event batch",
-            plan_id=plan_id,
-            summary=llm_response.summary_text,
-            event_count=len(events),
-        )
+        run = prompts.update_testing_plan.watch(watcher.on_chat_update).bind(pipeline)
+
+        await run(current_plan_summary=plan_summary, new_event=event_text)
+
 
 
 # --- Workflow ---
