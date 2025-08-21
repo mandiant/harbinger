@@ -18,7 +18,7 @@
     "@xterm/xterm": "^5.5.0",
     "axios": "^1.8.2",
     "echarts": "^5.4.1",
-    "mermaid": "^10.6.1",
+    "mermaid": "^11.10.0",
     "monaco-editor": "^0.47.0",
     "monaco-editor-webpack-plugin": "^7.1.0",
     "monaco-languageclient": "^8.2.0",
