@@ -140,7 +140,6 @@ def redis_cache(
             try:
                 cached_data = await redis.get(cache_key)
                 if cached_data:
-                    logger.info(f"Cache HIT for key: {cache_key}")
                     try:
                         # Deserialize JSON from cache and validate with Pydantic
                         return schema.model_validate_json(cached_data) # Pydantic V2
@@ -152,12 +151,10 @@ def redis_cache(
                 logger.error(f"Redis GET error for key {cache_key}: {e}. Falling back to function call.")
 
             # 2. Cache Miss: Call original function
-            logger.debug(f"Cache MISS for key: {cache_key}. Calling {func.__name__}.")
             async with session_factory() as db:
                 db_result = await func(db, *args, **kwargs)
 
                 if db_result is None:
-                    logger.info(f"{func.__name__} returned None for key value {key_value_str}.")
                     return None # Not found, return None, don't cache absence by default
 
                 # 3. Convert DB model to Pydantic schema
@@ -176,7 +173,6 @@ def redis_cache(
                 # data_to_cache = schema_result.json() # Pydantic V1
 
                 await redis.set(cache_key, data_to_cache, ex=ttl_seconds)
-                logger.debug(f"Cached data for key: {cache_key} with TTL: {ttl_seconds}s")
             except RedisError as e:
                 logger.error(f"Redis SET error for key {cache_key}: {e}")
             except Exception as e:
@@ -561,16 +557,12 @@ def redis_cache_fixed_key(
             except RedisError as e:
                 logger.error(f"Redis GET error for fixed key {cache_key}: {e}. Falling back.")
 
-            # 2. Cache Miss: Call original function
-            logger.debug(f"Cache MISS for fixed key: {cache_key}. Calling {func.__name__}.")
             schema_result: Optional[SchemaType] = None
             try:
                 async with session_factory() as db:
                     db_result = await func(db) # Call original func with only db
 
                     if db_result is None:
-                        logger.info(f"{func.__name__} returned None for fixed key {cache_key}.")
-                        # Decide if you want to cache None. Usually not for stats.
                         return None
 
                     # 3. Convert result to Pydantic schema

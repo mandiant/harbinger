@@ -645,3 +645,110 @@ async def generate_playbook_yaml(
 
     If more steps are required you can include multiple steps in the output.
     """
+
+class PlanStepOutput(rg.Model):
+    """Represents a single step in a newly generated plan."""
+    description: str = rg.element()
+    order: int = rg.element()
+    notes: str = rg.element(default="")
+
+    @classmethod
+    def xml_example(cls) -> str:
+        return cls(
+            description="Perform initial reconnaissance on the target domain.",
+            order=1,
+            notes="Use open-source intelligence (OSINT) tools to gather information."
+        ).to_pretty_xml()
+
+
+class GeneratedPlan(rg.Model):
+    """The complete output for a new plan generation request."""
+    steps: t.List[PlanStepOutput] = rg.element(default=[])
+
+    @classmethod
+    def xml_example(cls) -> str:
+        return cls(steps=[
+            PlanStepOutput(
+                description="Enumerate public-facing web servers.",
+                order=1,
+                notes="Focus on identifying technologies and potential vulnerabilities."
+            ),
+            PlanStepOutput(
+                description="Scan for open ports on discovered servers.",
+                order=2
+            )
+        ]).to_pretty_xml()
+
+
+@generator.prompt
+async def generate_testing_plan(objectives: str, current_state: str) -> GeneratedPlan:  # type: ignore
+    """
+    You are an expert penetration testing planner. Your role is to create a high-level, strategic plan to achieve a specific security assessment objective.
+
+    **Your Goal:**
+    Based on the provided `objectives` and a `current_state` summary of the environment, generate a structured, logical, and actionable testing plan.
+
+    **Input:**
+    1.  `objectives`: A string describing the high-level goal of the penetration test (e.g., "Become domain admin in NORTH", "Exfiltrate customer database").
+    2.  `current_state`: A summary of the database, indicating what is already known about the environment (e.g., number of hosts, credentials, active implants).
+
+    **Your Task:**
+    1.  **Analyze Inputs:** Carefully consider the main `objective` in the context of the `current_state`.
+    2.  **Formulate a Strategy:** Devise a high-level, step-by-step strategy to get from the `current_state` to achieving the `objective`.
+    3.  **Use Tools (Optional):** While the primary input is the summary, you can use your tools (e.g., `get_playbook_templates`) to understand the available capabilities, which can help you formulate more realistic plan steps.
+    4.  **Generate Plan Steps:** Create a list of `PlanStepOutput` objects. Each step should:
+        -   Have a clear and concise `description` of a strategic phase (e.g., "Perform initial reconnaissance," "Enumerate Active Directory," "Search for sensitive files on discovered shares").
+        -   Be assigned a logical `order` number, starting from 1.
+        -   Include optional `notes` for additional context if needed.
+    5.  **Return the Plan:** Your final output must be a `GeneratedPlan` object containing the complete list of steps.
+
+    **Example:**
+    -   If `objectives` is "Achieve Domain Admin" and `current_state` shows "0 credentials", your first steps should focus on reconnaissance and initial access, such as "Enumerate public-facing assets" and "Identify potential phishing targets."
+    -   If `current_state` already shows "5 credentials" and "2 active implants", you might skip initial access and start with steps like "Perform internal reconnaissance from existing implants" and "Attempt lateral movement with gathered credentials."
+    """
+    pass
+
+class SupervisorSummary(rg.Model):
+    """The final summary provided by the supervisor after a cycle."""
+    summary_text: str = rg.element()
+
+    @classmethod
+    def xml_example(cls) -> str:
+        return cls(summary_text="I have analyzed the event and taken the appropriate actions.").to_pretty_xml()
+
+
+@generator.prompt
+async def update_testing_plan(current_plan_summary: str, new_event: str) -> SupervisorSummary:  # type: ignore
+    """
+    You are an expert penetration testing supervisor. Your role is to analyze the current state of a security assessment plan and adapt it based on new events by calling tools.
+
+    **Your Goal:**
+    Your primary goal is to advance the plan's main objective. Analyze the provided `current_plan_summary` and the `new_event` (which includes a high-level state summary). Use your tools to modify the plan and create suggestions.
+
+    **Review the Plan:**
+    A summary of the current plan steps, their statuses, and any existing suggestions is provided in `current_plan_summary`.
+    - **Your primary goal is to build upon this existing plan, not to repeat it.** Do not use `create_plan_step` for actions that are already covered.
+    - **Review the 'Existing Suggestions' for each step.** If a suitable suggestion for your intended action already exists, do not create a duplicate.
+    - **When creating a new suggestion, you MUST associate it with the most relevant `plan_step_id` from the summary.** For example, a suggestion to run BloodHound should be linked to a plan step like "Enumerate Active Directory."
+
+    **Mandatory Workflow:**
+    You MUST follow these steps in order when deciding on an action:
+
+    1.  **Analyze and Decide:** Review the `current_plan_summary` (including existing suggestions) and `new_event` to decide on the next logical action.
+
+    2.  **Discover Playbooks:** If you decide a new suggestion is needed, find the right playbook. You must first discover the available search filters by calling `list_filters(model_name='playbook_template')` to get categories like 'tactic'.
+    
+    3.  **Find Specific Playbook:** Use the filters you discovered to call `get_playbook_templates`. Be specific in your search (e.g., `get_playbook_templates(tactic='Discovery')`) to find the correct `playbook_template_id`.
+
+    4.  **Validate Arguments (for EACH target):** Before creating a suggestion, you MUST call `validate_playbook_arguments` with the `playbook_template_id` and the specific `arguments` you intend to use (e.g., `{"c2_implant_id": "..."}`).
+        -   **Multiple Targets:** If you want to run the same playbook on 3 different implants, you MUST call `validate_playbook_arguments` 3 separate times, once for each implant's ID.
+
+    5.  **Create Suggestion (for EACH target):** ONLY if `validate_playbook_arguments` returns "Validation successful," you may then call `create_suggestion_for_plan_step` with the exact same arguments.
+        -   **Multiple Targets:** Following the example above, you will call `create_suggestion_for_plan_step` 3 separate times.
+
+    6.  **Track Progress:** As you work on a step by creating suggestions, use `update_plan_step` to move its status from 'pending' to 'in_progress'. When a step's objective is fully achieved, mark it as 'completed'.
+
+    **Final Output:**
+    After making all necessary tool calls, provide your final response using the `SupervisorSummary` model. Return a brief, one-sentence summary of the actions you took in the `summary_text` field.
+    """
+    pass

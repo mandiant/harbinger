@@ -21,6 +21,7 @@ import yaml
 import random
 import string
 import re
+import asyncio
 from harbinger.database.redis_pool import redis
 import harbinger.proto.v1.messages_pb2 as messages_pb2
 from harbinger.database.database import get_async_session
@@ -1998,6 +1999,29 @@ async def get_or_create_host(
             await db.rollback()
             created, host = await get_or_create_host(db, name, domain_id)
     return created, host
+
+
+async def get_database_statistics(db: AsyncSession) -> dict[str, int]:
+    """
+    Efficiently retrieves counts of key models from the database.
+    """
+    queries = {
+        "C2 Implants": select(func.count(models.C2Implant.id)),
+        "Credentials": select(func.count(models.Credential.id)),
+        "Hosts": select(func.count(models.Host.id)),
+        "Playbook Templates": select(func.count(models.PlaybookTemplate.id)),
+        "Domains": select(func.count(models.Domain.id)),
+        "Shares": select(func.count(models.Share.id)),
+        "Files": select(func.count(models.File.id)),
+        "C2 Tasks": select(func.count(models.C2Task.id)),
+        "Proxy Jobs": select(func.count(models.ProxyJob.id)),
+        "Suggestions": select(func.count(models.Suggestion.id)),
+    }
+
+    tasks = [db.scalar(query) for query in queries.values()]
+    results = await asyncio.gather(*tasks)
+    
+    return dict(zip(queries.keys(), results))
 
 
 @redis_cache_invalidate(
@@ -4643,6 +4667,12 @@ async def get_suggestions(
     limit: int = 10,
 ) -> Iterable[models.Suggestion]:
     q: Select = select(models.Suggestion)
+    
+    # Conditionally join the plan_step relationship only when the filter is active
+    # to prevent unnecessary joins and potential Cartesian products.
+    if filters.plan_step:
+        q = q.join(models.Suggestion.plan_step)
+
     q = q.outerjoin(models.Suggestion.labels)
     q = filters.filter(q)  # type: ignore
     q = filters.sort(q)  # type: ignore
@@ -4679,26 +4709,40 @@ async def get_suggestions_filters(db: AsyncSession, filters: filters.SuggestionF
     key_param_name="id",
     ttl_seconds=DEFAULT_CACHE_TTL,
 )
-async def get_suggestion(db: AsyncSession, id: UUID4) -> Optional[models.Suggestion]:
+async def get_suggestion(db: AsyncSession, id: UUID4 | str) -> Optional[models.Suggestion]:
     return await db.get(models.Suggestion, id)
 
 
+# async def create_suggestion(
+#     db: AsyncSession, suggestion: schemas.SuggestionCreate
+# ) -> Tuple[bool, models.Suggestion]:
+#     data = suggestion.model_dump()
+#     q = insert(models.Suggestion).values(**data).values(time_created=func.now())
+#     data["time_updated"] = func.now()
+#     update_stmt = q.on_conflict_do_update(
+#         models.Suggestion.__table__.primary_key, set_=data
+#     )
+#     result = await db.scalars(
+#         update_stmt.returning(models.Suggestion),
+#         execution_options={"populate_existing": True},
+#     )
+#     await db.commit()
+#     result = result.unique().one()
+#     created = result.time_updated == None
+#     return created, await db.get(models.Suggestion, result.id)
+
+
 async def create_suggestion(
-    db: AsyncSession, suggestions: schemas.SuggestionCreate
+    db: AsyncSession, suggestion: schemas.SuggestionCreate
 ) -> Tuple[bool, models.Suggestion]:
-    data = suggestions.model_dump()
-    q = insert(models.Suggestion).values(**data).values(time_created=func.now())
-    data["time_updated"] = func.now()
-    update_stmt = q.on_conflict_do_update(
-        models.Suggestion.__table__.primary_key, set_=data
-    )
-    result = await db.scalars(
-        update_stmt.returning(models.Suggestion),
-        execution_options={"populate_existing": True},
-    )
+    """
+    Creates a new suggestion in the database.
+    """
+    db_suggestion = models.Suggestion(**suggestion.model_dump())
+    db.add(db_suggestion)
     await db.commit()
-    result = result.unique().one()
-    return result.time_updated == None, result
+    await db.refresh(db_suggestion)
+    return True, db_suggestion
 
 
 async def update_suggestion(
@@ -4708,6 +4752,20 @@ async def update_suggestion(
         update(models.Suggestion)
         .where(models.Suggestion.id == id)
         .values(**suggestions.model_dump())
+    )
+    await db.execute(q)
+    await db.commit()
+
+
+async def delete_suggestion(db: AsyncSession, id: str | uuid.UUID) -> None:
+    """
+    Disassociates a suggestion from a plan step by setting its plan_step_id to NULL.
+    This effectively "archives" the suggestion without deleting it.
+    """
+    q = (
+        update(models.Suggestion)
+        .where(models.Suggestion.id == id)
+        .values(plan_step_id=None)
     )
     await db.execute(q)
     await db.commit()
@@ -4846,6 +4904,61 @@ async def get_objective(db: AsyncSession, id: UUID4) -> Optional[models.Objectiv
     return await db.get(models.Objectives, id)
 
 
+async def get_filters_for_model(
+    db: AsyncSession, model_name: str
+) -> list[schemas.Filter]:
+    """
+    Returns a list of filters for a given model.
+    """
+    filter_map = {
+        "action": (get_action_filters, filters.ActionFilter),
+        "c2_implant": (get_c2_implant_filters, filters.ImplantFilter),
+        "c2_job": (get_c2_jobs_filters, filters.C2JobFilter),
+        "c2_output": (get_c2_output_filters, filters.C2OutputFilter),
+        "c2_server": (get_c2_servers_filters, filters.C2ServerFilter),
+        "c2_task": (get_c2_task_filters, filters.C2TaskFilter),
+        "certificate_authority": (
+            get_certificate_authorities_filters,
+            filters.CertificateAuthorityFilter,
+        ),
+        "certificate_template": (
+            get_certificate_templates_filters,
+            filters.CertificateTemplateFilter,
+        ),
+        "checklist": (get_checklists_filters, filters.ChecklistFilter),
+        "credential": (get_credentials_filters, filters.CredentialFilter),
+        "domain": (get_domains_filters, filters.DomainFilter),
+        "file": (get_file_filters, filters.FileFilter),
+        "highlight": (get_highlights_filters, filters.HighlightFilter),
+        "host": (get_host_filters, filters.HostFilter),
+        "issue": (get_issue_filters, filters.IssueFilter),
+        "objective": (get_objectives_filters, filters.ObjectivesFilter),
+        "playbook": (get_playbooks_filters, filters.PlaybookFilter),
+        "playbook_template": (
+            get_playbook_template_filters,
+            filters.PlaybookTemplateFilter,
+        ),
+        "proxy": (get_proxy_filters, filters.ProxyFilter),
+        "share": (get_share_filters, filters.ShareFilter),
+        "share_file": (get_share_file_filters, filters.ShareFileFilter),
+        "situational_awareness": (
+            get_situational_awarenesss_filters,
+            filters.SituationalAwarenessFilter,
+        ),
+        "socks_job": (get_socks_job_filters, filters.SocksJobFilter),
+        "socks_server": (get_socks_server_filters, filters.SocksServerFilter),
+        "suggestion": (get_suggestions_filters, filters.SuggestionFilter),
+        "timeline": (get_timeline_filters, filters.TimeLineFilter),
+    }
+
+    if model_name not in filter_map:
+        raise ValueError(f"Unknown model name: {model_name}")
+
+    filter_func, filter_class = filter_map[model_name]
+    filter_instance = filter_class()
+    return await filter_func(db, filter_instance)
+
+
 async def create_objective(
     db: AsyncSession, objective: schemas.ObjectiveCreate
 ) -> Tuple[bool, models.Objectives]:
@@ -4874,3 +4987,160 @@ async def update_objective(
     )
     await db.execute(q)
     await db.commit()
+
+
+async def get_plans_paged(
+    db: AsyncSession, filters: filters.PlanFilter
+) -> Page[models.Plan]:
+    q: Select = select(models.Plan)
+    q = q.outerjoin(models.Plan.labels)
+    q = filters.filter(q)  # type: ignore
+    q = filters.sort(q)  # type: ignore
+    q = q.group_by(models.Plan.id)
+    return await paginate(db, q)
+
+
+async def get_plans(
+    db: AsyncSession,
+    filters: filters.PlanFilter,
+    offset: int = 0,
+    limit: int = 10,
+) -> Iterable[models.Plan]:
+    q: Select = select(models.Plan)
+    q = q.outerjoin(models.Plan.labels)
+    q = filters.filter(q)  # type: ignore
+    q = filters.sort(q)  # type: ignore
+    q = q.offset(offset).limit(limit)
+    result = await db.execute(q)
+    return result.scalars().unique().all()
+
+
+async def get_plans_filters(db: AsyncSession, filters: filters.PlanFilter):
+    result: list[schemas.Filter] = []
+    q: Select = (
+        select(func.count(models.Plan.id.distinct()).label("count_1"))
+        .outerjoin(models.LabeledItem)
+        .outerjoin(models.Label)
+    )
+    q = filters.filter(q)  # type: ignore
+
+    lb_entry = await get_labels_for_q(db, q)
+    result.extend(lb_entry)
+
+    for field in ['status']:
+        res = await create_filter_for_column(
+            db, q, getattr(models.Plan, field), field, field
+        )
+        result.append(res)
+
+    return result
+
+
+async def get_plan(db: AsyncSession, id: UUID4 | str) -> Optional[models.Plan]:
+    return await db.get(models.Plan, id)
+
+
+async def create_plan(db: AsyncSession, plan: schemas.PlanCreate) -> Tuple[bool, models.Plan]:
+    data = plan.model_dump()
+    q = insert(models.Plan).values(**data).values(time_created=func.now())
+    data['time_updated'] = func.now()
+    update_stmt = q.on_conflict_do_update("plan_name", set_=data)
+    result = await db.scalars(
+        update_stmt.returning(models.Plan),
+        execution_options={"populate_existing": True},
+    )
+    await db.commit()
+    result = result.unique().one()
+    return result.time_updated == None, result
+
+
+async def update_plan(db: AsyncSession, id: str | uuid.UUID, plan: schemas.PlanUpdate) -> None:
+    q = update(models.Plan).where(models.Plan.id == id).values(**plan.model_dump(exclude_unset=True, exclude_defaults=True, exclude_none=True))
+    await db.execute(q)
+    await db.commit()
+
+
+# CRUD
+async def get_plan_steps_paged(
+    db: AsyncSession, filters: filters.PlanStepFilter
+) -> Page[models.PlanStep]:
+    q: Select = select(models.PlanStep)
+    q = q.outerjoin(models.PlanStep.labels)
+    q = filters.filter(q)  # type: ignore
+    q = filters.sort(q)  # type: ignore
+    q = q.group_by(models.PlanStep.id)
+    return await paginate(db, q)
+
+
+async def get_plan_steps(
+    db: AsyncSession,
+    filters: filters.PlanStepFilter,
+    offset: int = 0,
+    limit: int = 10,
+) -> Iterable[models.PlanStep]:
+    q: Select = select(models.PlanStep)
+    q = q.outerjoin(models.PlanStep.labels)
+    q = filters.filter(q)  # type: ignore
+    q = filters.sort(q)  # type: ignore
+    q = q.offset(offset).limit(limit)
+    result = await db.execute(q)
+    return result.scalars().unique().all()
+
+
+async def get_plan_steps_filters(db: AsyncSession, filters: filters.PlanStepFilter):
+    result: list[schemas.Filter] = []
+    q: Select = (
+        select(func.count(models.PlanStep.id.distinct()).label("count_1"))
+        .outerjoin(models.LabeledItem)
+        .outerjoin(models.Label)
+    )
+    q = filters.filter(q)  # type: ignore
+
+    lb_entry = await get_labels_for_q(db, q)
+    result.extend(lb_entry)
+
+    for field in ['status']:
+        res = await create_filter_for_column(
+            db, q, getattr(models.PlanStep, field), field, field
+        )
+        result.append(res)
+
+    return result
+
+
+async def get_plan_step(db: AsyncSession, id: UUID4 | str) -> Optional[models.PlanStep]:
+    return await db.get(models.PlanStep, id)
+
+
+async def create_plan_step(db: AsyncSession, plan_step: schemas.PlanStepCreate) -> Tuple[bool, models.PlanStep]:
+    data = plan_step.model_dump()
+    q = insert(models.PlanStep).values(**data).values(time_created=func.now())
+    data['time_updated'] = func.now()
+    update_stmt = q.on_conflict_do_update("plan_id_order_uc", set_=data)
+    result = await db.scalars(
+        update_stmt.returning(models.PlanStep),
+        execution_options={"populate_existing": True},
+    )
+    await db.commit()
+    result = result.unique().one()
+    return result.time_updated == None, result
+
+
+async def update_plan_step(db: AsyncSession, id: str | uuid.UUID, plan_step: schemas.PlanStepUpdate) -> None:
+    q = update(models.PlanStep).where(models.PlanStep.id == id).values(**plan_step.model_dump(exclude_unset=True, exclude_none=True))
+    await db.execute(q)
+    await db.commit()
+
+
+async def get_highest_plan_step_order(db: AsyncSession, plan_id: str | uuid.UUID) -> int:
+    """
+    Retrieves the highest 'order' number for the steps in a given plan.
+    Returns 0 if the plan has no steps.
+    """
+    q = (
+        select(func.max(models.PlanStep.order))
+        .where(models.PlanStep.plan_id == plan_id)
+    )
+    result = await db.execute(q)
+    highest_order = result.scalar_one_or_none()
+    return highest_order if highest_order is not None else 0

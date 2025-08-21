@@ -898,18 +898,6 @@ class CreateDomainSuggestion:
 
 
 @workflow.defn(sandboxed=False)
-class CreateChecklist:
-
-    @workflow.run
-    async def run(self, req: schemas.SuggestionsRequest) -> None:
-        await workflow.execute_activity(
-            activities.create_domain_checklist,
-            req,
-            schedule_to_close_timeout=timedelta(hours=1),
-        )
-
-
-@workflow.defn(sandboxed=False)
 class CreateFileSuggestion:
 
     @workflow.run
@@ -975,4 +963,20 @@ class PrivEscSuggestions:
             activities.kerberoasting_suggestions,
             req,
             schedule_to_close_timeout=timedelta(hours=1),
+        )
+
+
+@workflow.defn(sandboxed=False)
+class GeneratePlanWorkflow:
+    @workflow.run
+    async def run(self, name: str, objective: str) -> None:
+        """
+        Workflow to generate a new plan. This is kept as a workflow for durability
+        of the user's initial request.
+        """
+        await workflow.execute_activity(
+            activities.create_plan_activity,
+            args=[name, objective],
+            schedule_to_close_timeout=timedelta(minutes=5),
+            task_queue=constants.WORKER_TASK_QUEUE,
         )

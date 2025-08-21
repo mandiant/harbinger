@@ -776,3 +776,29 @@ export interface Objective {
   time_updated: string;
   labels: Array<Label>;
 }
+
+// models.ts
+export interface Plan {
+id: string;
+name: string;
+description: string;
+graph: string;
+correct: boolean;
+status: string;
+time_created: string;
+time_updated: string;
+labels: Array<Label>;
+}
+
+// models.ts
+export interface PlanStep {
+  id: string;
+  plan_id: string;
+  description: string;
+  order: number;
+  notes: string;
+  status: string;
+  llm_status: string;
+  suggestions: Array<Suggestion>;
+  labels: Array<Label>;
+}

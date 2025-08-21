@@ -123,6 +123,9 @@ class {{name}}Base(BaseModel):
 class {{name}}Create({{name}}Base):
     pass
 
+class {{name}}Update({{name}}Base):
+    pass
+
 class {{name}}Created({{name}}Base):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4 | str
@@ -199,7 +202,7 @@ async def create_{{route[:-1]}}(
 )
 async def update_{{route[:-1]}}(
     id: UUID4,
-    {{route}}: schemas.{{name}}Create,
+    {{route}}: schemas.{{name}}Update,
     db: AsyncSession = Depends(get_db),
     user: models.User = Depends(current_active_user),
 ):
@@ -277,8 +280,8 @@ async def create_{{route[:-1]}}(db: AsyncSession, {{route}}: schemas.{{name}}Cre
     result = result.unique().one()
     return result.time_updated == None, result
 
-async def update_{{route[:-1]}}(db: AsyncSession, id: str | uuid.UUID, {{route}}: schemas.{{name}}Create) -> None:
-    q = update(models.{{name}}).where(models.{{name}}.id == id).values(**{{route}}.model_dump())
+async def update_{{route[:-1]}}(db: AsyncSession, id: str | uuid.UUID, {{route}}: schemas.{{name}}Update) -> None:
+    q = update(models.{{name}}).where(models.{{name}}.id == id).values(**{{route}}.model_dump(exclude_unset=True, exclude_defaults=True, exclude_none=True))
     await db.execute(q)
     await db.commit()
 """

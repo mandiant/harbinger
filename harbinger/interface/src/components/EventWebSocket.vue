@@ -27,6 +27,8 @@ import {
   ParseResult, Setting, SocksServer,
   C2ServerArguments,
   C2Output,
+  Plan,
+  PlanStep,
 } from '../models';
 import { useMeta } from 'quasar'
 import { defineTypedStore, TypedStore, BaseModel } from 'src/stores/datastore';
@@ -83,6 +85,8 @@ storeMap.set('c2_server_arguments', defineTypedStore<C2ServerArguments>('c2_serv
 storeMap.set('playbooks', defineTypedStore<Chain>('playbooks')());
 storeMap.set('playbook_step', defineTypedStore<any>('playbook_step')());
 storeMap.set('playbook_step_modifier', defineTypedStore<any>('playbook_step_modifier')());
+storeMap.set('plan', defineTypedStore<Plan>('plans')());
+storeMap.set('plan_step', defineTypedStore<PlanStep>('plan_steps')());
 
 // Certificate related:
 storeMap.set('certificate_authorities', defineTypedStore<CertificateAuthority>('certificate_authorities')());
@@ -217,6 +221,7 @@ function CreateWebSocket() {
               'highlight_id', 'hash_id', 'parse_result_id', 'socks_server_id', 'action_id',
               'certificate_authority_id', 'certificate_template_id', 'issue_id',
               'manual_timeline_task_id', 'suggestion_id', 'checklist_id', 'objective_id',
+              'plan_id', 'plan_step_id',
           ];
 
           for (const key of relatedObjectKeys) {

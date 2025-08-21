@@ -12,13 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 from harbinger.database import crud, schemas, filters
 from harbinger.database.database import SessionLocal
 import structlog
 from harbinger.config import get_settings
 import rigging as rg
 
+import typing as t
 from typing import List, Optional, Dict, Any, Iterable
+from harbinger.enums import PlanStepStatus
 from harbinger.graph import crud as graph_crud
 from harbinger.graph.database import get_async_neo4j_session_context
 
@@ -40,58 +43,29 @@ def sequence_to_string_list(sequence: Iterable, schema_class: Any) -> List[str]:
 
 
 @rg.tool
-async def get_all_c2_implant_info(
-    # order_by: Optional[List[str]] = None,
-    # search: Optional[str] = None,
-    # labels_id__in: Optional[List[str]] = None,
-    # labels_name__in: Optional[List[str]] = None,
-    # labels_category: Optional[str] = None,
-    # labels_name__not_in: Optional[List[str]] = None,
-    # c2_server_id: Optional[str] = None,
-    # host_id: Optional[str] = None,
-    # hostname: Optional[str] = None,
-    # os: Optional[str] = None,
-    # payload_type: Optional[str] = None,
-    # c2_type: Optional[str] = None,
-    # username: Optional[str] = None,
-    # domain: Optional[str] = None,
-) -> List[str]:
+async def get_all_c2_implant_info() -> List[str]:
     """
-    Retrieves information for all C2 implants, optionally filtered by various criteria.
+    Retrieves information for all ACTIVE C2 implants. Implants labeled "Dead" are automatically excluded.
     Each implant's information includes its associated labels. This tool is useful
-    for getting a list of implants based on their characteristics.
-    Args:
+    for getting a list of viable implants to target.
     Returns:
-        A list of string representations for each implant's information.
+        A list of string representations for each active implant's information.
     """
     async with SessionLocal() as db:
-        # implant_filter = filters.ImplantFilter(
-        #     order_by=order_by,
-        #     search=search,
-        #     c2_server_id=c2_server_id,
-        #     host_id=host_id,
-        #     hostname=hostname,
-        #     os=os,
-        #     payload_type=payload_type,
-        #     c2_type=c2_type,
-        #     username=username,
-        #     domain=domain
-        # )
-        # if labels_id__in or labels_name__in or labels_category or labels_name__not_in:
-        #     implant_filter.labels = filters.LabelFilter(
-        #         id__in=labels_id__in,
-        #         name__in=labels_name__in,
-        #         category=labels_category,
-        #         name__not_in=labels_name__not_in
-        #     )
-
-        implants = await crud.get_c2_implants(db)
+        # Filter out implants with the "Dead" label.
+        # The label ID for "Dead" is d734d03b-50d4-43e3-bb0e-e6bf56ec76b1
+        implants = await crud.get_c2_implants(db, not_labels=["Dead"], limit=1000)
+        
+        if not implants:
+            return ["No active C2 implants found."]
+        
         implants_list = []
         for implant in implants:
             labels = await crud.recurse_labels_c2_implant(db, implant.id)
-            c2_implant_dict = implant.__dict__
-            c2_implant_dict["labels"] = labels
-            implants_list.append(dict_to_string(c2_implant_dict))
+            c2_implant_dict = schemas.C2Implant.model_validate(implant).model_dump()
+            c2_implant_dict["labels"] = [schemas.Label.model_validate(l).model_dump() for l in labels]
+            implants_list.append(json.dumps(c2_implant_dict, default=str))
+            
         return implants_list
 
 
@@ -132,6 +106,8 @@ async def get_c2_tasks_executed(
             )
 
         tasks = await crud.get_c2_tasks(db, task_filter, limit=10000)
+        if not tasks:
+            return ["No C2 tasks found matching the criteria."]
         tasks_executed = []
         for task in tasks:
             task_dict = task.__dict__
@@ -178,6 +154,8 @@ async def get_playbooks(
                 category=labels_category,
             )
         playbooks = await crud.get_playbooks(db, playbook_filter, 0, 10000)
+        if not playbooks:
+            return ["No playbooks found matching the criteria."]
         return sequence_to_string_list(
             playbooks, schemas.ProxyChain
         )
@@ -220,6 +198,8 @@ async def get_playbook_templates(
                 category=labels_category,
             )
         playbook_templates = await crud.get_chain_templates(db, template_filter)
+        if not playbook_templates:
+            return ["No playbook templates found matching the criteria."]
         return sequence_to_string_list(playbook_templates, schemas.PlaybookTemplateView)
 
 
@@ -376,6 +356,8 @@ async def get_credentials_info(
                 search=domain_search,
             )
         credentials = await crud.get_credentials(db, credential_filter, limit=100000)
+        if not credentials:
+            return ["No credentials found."]
         return sequence_to_string_list(credentials, schemas.Credential)
 
 
@@ -555,17 +537,14 @@ async def get_hosts(
     Args:
         search: An optional search string to filter hosts from the graph database (Neo4j).
         neo4j_limit: The maximum number of hosts to retrieve from the graph database.
-        skip_label_id: The ID of the label used to mark hosts that should be skipped.
-                       Defaults to "e6a57aae-993a-4196-a23a-13a7e5f607a3".
     Returns:
-        A list of string representations for each filtered host.
+        A list of string representations for each filtered host. If no hosts are found,
+        returns a list containing the string "No hosts found.".
     """
     skip_label_id: str = "e6a57aae-993a-4196-a23a-13a7e5f607a3"
     async with SessionLocal() as db: # For SQL database access
         # 1. Get hosts from Neo4j
         async with get_async_neo4j_session_context() as graphsession:
-            # Assuming get_computers takes graphsession, search, skip, limit
-            # Your original code used an empty string for search.
             hosts_from_neo4j = await graph_crud.get_computers(graphsession, search, 0, neo4j_limit)
         log.info(f"Retrieved {len(hosts_from_neo4j)} hosts from Neo4j.")
 
@@ -584,14 +563,12 @@ async def get_hosts(
         # 3. Build a set of uppercase host basenames to skip
         to_skip: set[str] = set()
         for skip_host in skip_hosts_from_sql:
-            # Assuming skip_host.name is the correct attribute for the host name
             to_skip.add(f"{skip_host.name}".upper())
         log.info(f"Built skip list of size: {len(to_skip)}")
 
         # 4. Filter Neo4j hosts
         filtered_hosts_list = []
         for host in hosts_from_neo4j:
-            # Assuming host is a dictionary or object with a "name" key/attribute
             host_name = host.get("name") if isinstance(host, dict) else getattr(host, "name", None)
 
             if not host_name:
@@ -602,12 +579,12 @@ async def get_hosts(
                 basename = host_name.split(".")[0]
                 if basename.upper() in to_skip:
                     continue # Skip this host
-            # If no dot, or not in skip list, add it
+            
             filtered_hosts_list.append(dict_to_string(host))
         
         log.info(f"Returning {len(filtered_hosts_list)} filtered hosts.")
         if not filtered_hosts_list:
-            log.info(f"No hosts found after filtering. Skiplist size: {len(to_skip)}")
+            return ["No hosts found."]
         
         return filtered_hosts_list
 
@@ -663,3 +640,193 @@ async def get_network_shares(
         
         log.info(f"Returning {len(filtered_shares_unc_paths)} filtered network share UNC paths.")
         return filtered_shares_unc_paths
+
+
+@rg.tool
+async def list_filters(
+    model_name: str,
+) -> List[str]:
+    """
+    Retrieves a list of available filters for a given model.
+
+    Args:
+        model_name: The name of the model to retrieve filters for.
+            Valid options are: "action", "c2_implant", "c2_job", "c2_output",
+            "c2_server", "c2_task", "certificate_authority", "certificate_template",
+            "checklist", "credential", "domain", "file", "highlight", "host",
+            "issue", "objective", "playbook", "playbook_template", "proxy",
+            "share", "share_file", "situational_awareness", "socks_job",
+            "socks_server", "suggestion", "timeline".
+
+    Returns:
+        A list of string representations for each available filter.
+    """
+    async with SessionLocal() as db:
+        filters_list = await crud.get_filters_for_model(
+            db, model_name
+        )
+        return sequence_to_string_list(filters_list, schemas.Filter)
+
+
+@rg.tool
+async def create_suggestion_for_plan_step(plan_step_id: str, name: str, reason: str, playbook_template_id: str, arguments: str) -> str:
+    """
+    Creates a new suggestion linked to a specific plan step.
+    IMPORTANT: The `plan_step_id` and `playbook_template_id` MUST be the IDs of existing objects.
+    This tool validates that the IDs exist before creating the suggestion.
+    Use the `get_plan_steps` and `get_playbook_templates` tools to find valid IDs.
+    The arguments should be a json encoded dictionary.
+    Output: A dictionary representation of the created suggestion, or an error string.
+    """
+    try:
+        args_dict = json.loads(arguments)
+    except json.JSONDecodeError:
+        return "Error: The 'arguments' parameter must be a valid JSON-encoded dictionary string."
+
+    async with SessionLocal() as db:
+        # Validate plan_step_id
+        plan_step = await crud.get_plan_step(db, plan_step_id)
+        if not plan_step:
+            return f"Error: Plan Step with ID '{plan_step_id}' not found. Please use a valid ID."
+
+        # Validate playbook_template_id
+        playbook_template = await crud.get_playbook_template(playbook_template_id)
+        if not playbook_template:
+            return f"Error: Playbook Template with ID '{playbook_template_id}' not found. Please use a valid ID from get_playbook_templates."
+
+        # If validation passes, proceed to create the suggestion
+        suggestion_schema = schemas.SuggestionCreate(
+            plan_step_id=plan_step_id,
+            name=name,
+            reason=reason,
+            playbook_template_id=playbook_template_id,
+            arguments=args_dict
+        )
+        try:
+            _, created_suggestion = await crud.create_suggestion(db, suggestion_schema)
+            return f"Suggestion '{name}' created successfully with ID: {created_suggestion.id}"
+        except Exception as e:
+            log.error(f"Failed to create suggestion in database: {e}")
+            return f"Error: An unexpected database error occurred while creating the suggestion."
+
+
+@rg.tool
+async def create_plan_step(plan_id: str, description: str, notes: str = "") -> str:
+    """
+    Creates a new step at the end of the specified plan. The order is determined automatically.
+    Returns the ID of the newly created plan step.
+    """
+    async with SessionLocal() as db:
+        # Automatically determine the next order number
+        highest_order = await crud.get_highest_plan_step_order(db, plan_id)
+        next_order = highest_order + 1
+
+        _, new_step = await crud.create_plan_step(
+            db,
+            schemas.PlanStepCreate(
+                plan_id=plan_id,
+                description=description,
+                order=next_order,
+                notes=notes,
+            ),
+        )
+        if not new_step:
+            return "Error: Failed to create plan step."
+        return str(new_step.id)
+
+
+@rg.tool
+async def update_plan_step(
+    step_id: str,
+    status: t.Literal["pending", "in_progress", "completed", "failed", "blocked", "skipped"],
+    notes: Optional[str] = None,
+) -> str | bool:
+    """
+    Updates the status and notes of an existing plan step.
+    The 'status' parameter MUST be one of the following exact values: 'pending', 'in_progress', 'completed', 'failed', 'blocked', 'skipped'.
+    Returns True on success, or an error string on failure.
+    """
+    # Layer 3: Runtime Validation
+    valid_statuses = [s.value for s in PlanStepStatus]
+    if status not in valid_statuses:
+        return f"Error: Invalid status '{status}'. Please use one of the following: {', '.join(valid_statuses)}"
+
+    async with SessionLocal() as db:
+        update_data = schemas.PlanStepUpdate(status=status)
+        if notes is not None:
+            update_data.notes = notes
+        
+        updated_step = await crud.update_plan_step(
+            db,
+            id=step_id,
+            plan_step=update_data,
+        )
+        return updated_step is not None
+
+
+@rg.tool
+async def delete_suggestion(suggestion_id: str) -> str:
+    """
+    Disassociates a suggestion from its plan step by setting its `plan_step_id` to null.
+    This effectively removes the suggestion from the active plan for a cleaner view,
+    without permanently deleting it from the database.
+    """
+    async with SessionLocal() as db:
+        suggestion = await crud.get_suggestion(suggestion_id)
+        if not suggestion:
+            return f"Error: Suggestion with ID '{suggestion_id}' not found."
+        await crud.delete_suggestion(db, suggestion_id)
+    return f"Suggestion {suggestion_id} unlinked from plan successfully."
+
+
+@rg.tool
+async def update_suggestion(suggestion_id: str, name: Optional[str] = None, reason: Optional[str] = None, arguments: Optional[str] = None) -> str:
+    """
+    Updates the fields of an existing suggestion. All fields are optional.
+    Use this to refine or correct a suggestion.
+    """
+    async with SessionLocal() as db:
+        suggestion = await crud.get_suggestion(suggestion_id)
+        if not suggestion:
+            return f"Error: Suggestion with ID '{suggestion_id}' not found."
+
+        update_data = schemas.SuggestionCreate()
+        if name is not None:
+            update_data.name = name
+        if reason is not None:
+            update_data.reason = reason
+        if arguments is not None:
+            try:
+                update_data.arguments = json.loads(arguments)
+            except json.JSONDecodeError:
+                return "Error: The 'arguments' parameter must be a valid JSON-encoded dictionary string."
+
+        await crud.update_suggestion(db, suggestion_id, update_data)
+        return f"Suggestion {suggestion_id} updated successfully."
+
+
+@rg.tool
+async def validate_playbook_arguments(playbook_template_id: str, arguments: str) -> str:
+    """
+    Performs a dry run validation for playbook arguments.
+    It checks that the playbook_template_id exists and that any c2_implant_id included in the arguments corresponds to a real implant.
+    This prevents errors when creating suggestions.
+    """
+    try:
+        args_dict = json.loads(arguments)
+    except json.JSONDecodeError:
+        return "Error: The 'arguments' parameter must be a valid JSON-encoded dictionary string."
+
+    playbook_template = await crud.get_playbook_template(playbook_template_id)
+    if not playbook_template:
+        return f"Error: Playbook Template with ID '{playbook_template_id}' not found."
+
+    # This part is a simplified adaptation. A full implementation would parse the template's arg definitions.
+    # For now, we focus on the most common and critical validation: c2_implant_id.
+    if 'c2_implant_id' in args_dict:
+        implant_id = args_dict['c2_implant_id']
+        implant = await crud.get_c2_implant(implant_id)
+        if not implant:
+            return f"Error: C2 Implant with ID '{implant_id}' not found."
+
+    return "Validation successful."

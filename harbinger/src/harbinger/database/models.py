@@ -501,6 +501,8 @@ class LabeledItem(Base):
     suggestion_id = mapped_column(ForeignKey("suggestions.id"), nullable=True)
     checklist_id = mapped_column(ForeignKey("checklist.id"), nullable=True)
     objective_id = mapped_column(ForeignKey("objectives.id"), nullable=True)
+    plan_id = mapped_column(ForeignKey("plan.id"), nullable=True)
+    plan_step_id = mapped_column(ForeignKey("plan_step.id"), nullable=True)
 
     label = relationship(Label, lazy="joined", viewonly=True)
 
@@ -1072,6 +1074,8 @@ class Suggestion(Base):
 
     time_created = mapped_column(DateTime(timezone=True), server_default=func.now())
     time_updated = mapped_column(DateTime(timezone=True), onupdate=func.now())
+    plan_step_id = mapped_column(ForeignKey("plan_step.id"), nullable=True)
+    plan_step = relationship("PlanStep", back_populates="suggestions")
 
     labels = relationship(
         "Label", secondary="labeled_item", lazy="joined", viewonly=True
@@ -1118,5 +1122,43 @@ class Objectives(Base):
         "Label", secondary="labeled_item", lazy="joined", viewonly=True
     )
 
+
+class Plan(Base):
+    __tablename__ = "plan"
+    id = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = mapped_column(String, unique=True, nullable=False)
+    objective = mapped_column(String, nullable=True)
+    status = mapped_column(String, default="draft")
+    llm_status = mapped_column(String, default="draft")
+    time_created = mapped_column(DateTime(timezone=True), server_default=func.now())
+    time_updated = mapped_column(DateTime(timezone=True), onupdate=func.now())
+    steps = relationship("PlanStep", back_populates="plan", cascade="all, delete-orphan")
+    labels = relationship(
+        "Label", secondary="labeled_item", lazy="joined", viewonly=True
+    )
+
+
+class PlanStep(Base):
+    __tablename__ = "plan_step"
+    id = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    plan_id = mapped_column(UUID(as_uuid=True), ForeignKey("plan.id"), nullable=False)
+    description = mapped_column(String, nullable=False)
+    status = mapped_column(String, default="pending")
+    llm_status = mapped_column(String, default="draft")
+    order = mapped_column(Integer, nullable=False)
+    notes = mapped_column(String, nullable=True)
+    time_created = mapped_column(DateTime(timezone=True), server_default=func.now())
+    time_updated = mapped_column(DateTime(timezone=True), onupdate=func.now())
+    plan = relationship("Plan", back_populates="steps")
+    suggestions = relationship("Suggestion", back_populates="plan_step")
+    labels = relationship(
+        "Label", secondary="labeled_item", lazy="joined", viewonly=True
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "plan_id", "order", name="plan_id_order_uc"
+        ),
+    )
 
 Base.registry.configure()

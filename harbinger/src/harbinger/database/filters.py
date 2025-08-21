@@ -366,20 +366,6 @@ class HighlightFilter(Filter):
         search_model_fields = ['rule_type', 'hit']
 
 
-class SuggestionFilter(Filter): 
-    order_by: list[str] | None = ["-time_created"]
-    search: str | None = None
-    name: str | None = None
-    reason: str | None = None
-    playbook_template_id: str | UUID4 | None = None
-    c2_implant_id: str | UUID4 | None = None
-    labels: LabelFilter | None = FilterDepends(with_prefix("label", LabelFilter))
-
-    class Constants(Filter.Constants):
-        model = models.Suggestion
-        search_model_fields = ['name', 'reason']
-
-
 class ProxyFilter(Filter): 
     order_by: list[str] | None = ["-time_created"]
     search: str | None = None
@@ -438,3 +424,49 @@ class C2ServerFilter(Filter):
     class Constants(Filter.Constants):
         model = models.C2Server
         search_model_fields = ['name', 'hostname', 'username']
+
+
+class PlanStepFilter(Filter): 
+    order_by: list[str] | None = ["order"]
+    search: str | None = None
+    id__in: list[UUID4] | None = None
+    plan_id: str | UUID4 | None = None
+    description: str | None = None
+    status: str | None = None
+    llm_status: str | None = None
+    order: int | None = None
+    notes: str | None = None
+    labels: LabelFilter | None = FilterDepends(with_prefix("label", LabelFilter))
+
+    class Constants(Filter.Constants):
+        model = models.PlanStep
+        search_model_fields = ['description', 'status', 'notes']
+
+# Filters.py
+class PlanFilter(Filter): 
+    order_by: list[str] | None = ["-time_created"]
+    search: str | None = None
+    name: str | None = None
+    objective: str | None = None
+    status: str | None = None
+    llm_status: str | None = None
+    labels: LabelFilter | None = FilterDepends(with_prefix("label", LabelFilter))
+
+    class Constants(Filter.Constants):
+        model = models.Plan
+        search_model_fields = ['name', 'objective', 'status']
+
+
+class SuggestionFilter(Filter):
+    order_by: list[str] | None = ["-time_created"]
+    search: str | None = None
+    name: str | None = None
+    reason: str | None = None
+    playbook_template_id: str | UUID4 | None = None
+    c2_implant_id: str | UUID4 | None = None
+    plan_step: PlanStepFilter | None = FilterDepends(with_prefix("plan_step", PlanStepFilter))
+    labels: LabelFilter | None = FilterDepends(with_prefix("label", LabelFilter))
+
+    class Constants(Filter.Constants):
+        model = models.Suggestion
+        search_model_fields = ['name', 'reason']
