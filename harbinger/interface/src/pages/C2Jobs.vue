@@ -22,13 +22,21 @@
       <q-btn color="secondary" icon="refresh" @click="store.LoadData()">Refresh</q-btn>
     </div>
     <q-table :rows-per-page-options="[ 5, 10, 15, 20, 25, 50, 100 ]" title="C2 Jobs" :rows="data" row-key="id" :columns="columns" :loading="loading"
-      v-model:pagination="pagination" @request="store.onRequest" :visible-columns="visible">
-      <template v-slot:top> 
+      v-model:pagination="pagination" @request="store.onRequest" :visible-columns="visible" selection="multiple" v-model:selected="selected">
+      <template v-slot:top>
         <div class="row items-center" style="width: 100%;">
-          <div class="col-auto q-table__title">C2 Jobs</div>
+          <div class="col-auto q-table__title" v-if="selected.length === 0">C2 Jobs</div>
+          <div v-if="selected.length > 0" class="row items-center q-gutter-sm">
+            <bulk-label-actions :selected="selected" object-type="c2_job" @update="selected = []; store.LoadData()" />
+            <q-btn dense icon="clear" @click="selected = []" flat>
+              <q-tooltip>Clear Selection</q-tooltip>
+            </q-btn>
+            <div>{{ selected.length }} item(s) selected</div>
+          </div>
           <q-space />
-          <q-select v-model="visible" multiple borderless dense options-dense :display-value="$q.lang.table.columns"
-            emit-value map-options :options="columns" option-value="name" style="min-width: 150px">
+          <q-select v-if="selected.length === 0" v-model="visible" multiple borderless dense options-dense
+            :display-value="$q.lang.table.columns" emit-value map-options :options="columns" option-value="name"
+            style="min-width: 150px">
             <template v-slot:option="{ itemProps, opt, selected, toggleOption }">
               <q-item v-bind="itemProps">
                 <q-item-section>
@@ -42,12 +50,18 @@
           </q-select>
         </div>
         <div class="row" style="width: 100%;">
-          <filter-view object-type="c2/jobs" v-model="filters" @updateFilters="store.updateFilters"
-            class="full-width" />
+          <filter-view v-if="selected.length === 0" object-type="c2_jobs" v-model="filters"
+            @updateFilters="store.updateFilters" class="full-width" />
         </div>
+      </template>
+      <template v-slot:header-selection="scope">
+        <q-checkbox v-model="scope.selected" />
       </template>
       <template v-slot:body="props">
         <q-tr :props="props" class="cursor-pointer">
+          <q-td>
+            <q-checkbox v-model="props.selected" />
+          </q-td>
           <q-td key="id" :props="props" @click="Goto(props.row)">
             {{ props.row.id }}
           </q-td>
@@ -105,7 +119,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-
 import { C2Job } from '../models';
 import { api } from 'boot/axios';
 import { useQuasar } from 'quasar';
@@ -114,17 +127,19 @@ import { QTableProps } from 'quasar';
 import LabelsList from '../components/LabelsList.vue';
 import { Truncate } from 'src/truncate';
 import { defineTypedStore } from 'src/stores/datastore';
-import { storeToRefs } from 'pinia'
+import { storeToRefs } from 'pinia';
 import FilterView from '../components/FilterView.vue';
+import BulkLabelActions from 'src/components/BulkLabelActions.vue';
 
 
 const counter_store = useCounterStore();
+const selected = ref([]);
 
 counter_store.clear('c2_jobs');
 
 const $q = useQuasar();
 
-const useStore = defineTypedStore<C2Job>('c2/jobs');
+const useStore = defineTypedStore<C2Job>('c2_jobs');
 const store = useStore();
 const { loading, data, pagination, filters } = storeToRefs(store);
 store.Load();

@@ -86,7 +86,7 @@ const store = useCounterStore();
 
 const useDomains = defineTypedStore<Domain>('domains');
 const domainStore = useDomains();
-const visible = ref(['id', 'short_name', 'long_name', 'time_created'])
+const visible = ref(['short_name', 'long_name', 'time_created'])
 
 domainStore.Load()
 

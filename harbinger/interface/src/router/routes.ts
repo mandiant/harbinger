@@ -265,6 +265,7 @@ const routes: RouteRecordRaw[] = [
           parent: 'dashboard',
           display_name: 'Passwords',
           navParent: 'credentials',
+          showInMenu: true,
         },
       },
       {
@@ -276,6 +277,7 @@ const routes: RouteRecordRaw[] = [
           parent: 'dashboard',
           display_name: 'Kerberos',
           navParent: 'credentials',
+          showInMenu: true,
         },
       },
       {
@@ -647,6 +649,7 @@ const routes: RouteRecordRaw[] = [
           parent: 'dashboard',
           display_name: 'Hashes',
           navParent: 'credentials',
+          showInMenu: true,
         },
       },
       {
