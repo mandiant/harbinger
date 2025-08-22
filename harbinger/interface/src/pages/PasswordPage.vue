@@ -16,7 +16,7 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <div class="row q-gutter-sm">
       <q-btn color="secondary" icon="add_circle" to="passwords/add">Add password</q-btn>
       <q-btn color="secondary" icon="refresh" @click="store.LoadData()">Refresh</q-btn>
@@ -50,7 +50,7 @@
 </template>
 
 <script setup lang="ts">
-import BreadCrumb from '../components/BreadCrumb.vue';
+
 import { Password } from '../models';
 import { useCounterStore } from 'src/stores/object-counters';
 import { QTableProps } from 'quasar';

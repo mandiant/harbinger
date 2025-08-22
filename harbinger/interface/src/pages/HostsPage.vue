@@ -16,7 +16,7 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <q-btn color="secondary" icon="refresh" @click="hostStore.LoadData()">Refresh</q-btn>
     <q-table :rows-per-page-options="[ 5, 10, 15, 20, 25, 50, 100 ]" title="Hosts" :rows="data" row-key="id" :columns="columns" :loading="loading"
       v-model:pagination="pagination" @request="hostStore.onRequest">
@@ -52,7 +52,7 @@
 </template>
 
 <script setup lang="ts">
-import BreadCrumb from '../components/BreadCrumb.vue';
+
 import { useRouter } from 'vue-router';
 import { Host, Domain } from '../models';
 import { useCounterStore } from 'src/stores/object-counters';

@@ -16,7 +16,7 @@
 
 <template>
     <q-page padding>
-        <bread-crumb />
+        
         <highlight-list />
     </q-page>
 </template>

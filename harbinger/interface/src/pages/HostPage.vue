@@ -16,7 +16,7 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <div class="q-pa-md row q-gutter-md">
       <graph-node :objectid="object.objectid" v-if="object.objectid" />
       <q-card flat class="col-2" v-if="!object.objectid">
@@ -73,7 +73,7 @@
 
 <script setup lang="ts">
 import { toRefs, ref } from 'vue';
-import BreadCrumb from '../components/BreadCrumb.vue';
+
 import { Host } from '../models';
 import useLoadObject from 'src/load-object';
 import useLoadData from 'src/load-data';

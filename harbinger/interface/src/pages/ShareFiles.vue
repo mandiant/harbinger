@@ -16,13 +16,13 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <share-files />
   </q-page>
 </template>
 
 <script setup lang="ts">
-import BreadCrumb from '../components/BreadCrumb.vue';
+
 import ShareFiles from '../components/ShareFiles.vue';
 
 </script>

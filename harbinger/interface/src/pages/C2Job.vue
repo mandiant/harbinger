@@ -16,7 +16,7 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <c2-job :job_id="id" :extra="true" />
   </q-page>
 </template>
@@ -24,7 +24,7 @@
 <script setup lang="ts">
 import { toRefs } from 'vue';
 import C2Job from '../components/C2Job.vue';
-import BreadCrumb from '../components/BreadCrumb.vue';
+
 
 const props = defineProps({
   id: {

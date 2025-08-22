@@ -16,7 +16,7 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <div class="row q-gutter-sm">
       <q-btn color="secondary" icon="add_circle" to="credentials/add">Add credential</q-btn>
       <q-btn color="secondary" icon="refresh" @click="store.LoadData()">Refresh</q-btn>
@@ -95,7 +95,7 @@
 import { ref } from 'vue';
 
 import { Password, Credential, Kerberos } from '../models';
-import BreadCrumb from '../components/BreadCrumb.vue';
+
 import { useCounterStore } from 'src/stores/object-counters';
 import useMark from 'src/mark-owned';
 import { QTableProps } from 'quasar';

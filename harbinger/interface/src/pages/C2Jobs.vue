@@ -16,7 +16,7 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <div class="row q-gutter-sm">
       <q-btn color="secondary" icon="add_circle" to="c2_jobs/add_from_template">Create new C2 job</q-btn>
       <q-btn color="secondary" icon="refresh" @click="store.LoadData()">Refresh</q-btn>
@@ -105,7 +105,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import BreadCrumb from '../components/BreadCrumb.vue';
+
 import { C2Job } from '../models';
 import { api } from 'boot/axios';
 import { useQuasar } from 'quasar';

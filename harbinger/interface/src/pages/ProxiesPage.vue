@@ -16,7 +16,7 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <div class="row q-gutter-sm">
       <q-btn color="secondary" icon="add_circle" to="proxies/add">Add a proxy</q-btn>
       <q-btn color="secondary" icon="refresh" @click="store.LoadData()">Refresh</q-btn>
@@ -85,7 +85,7 @@
 </template>
 
 <script setup lang="ts">
-import BreadCrumb from '../components/BreadCrumb.vue';
+
 import { Proxy } from '../models';
 import { useCounterStore } from 'src/stores/object-counters';
 import { QTableProps } from 'quasar';

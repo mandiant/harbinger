@@ -27,6 +27,9 @@ declare module 'vue-router' {
     // must be declared by every route
     display_name: string;
     parent?: string;
+    navParent?: string;
+    showInMenu?: boolean;
+    group?: string;
   }
 }
 
@@ -45,7 +48,13 @@ const routes: RouteRecordRaw[] = [
         path: 'proxy_jobs',
         name: 'proxy_jobs',
         component: () => import('src/pages/ProxyJobs.vue'),
-        meta: { icon: 'work', parent: 'dashboard', display_name: 'Socks Jobs' },
+        meta: {
+          icon: 'work',
+          parent: 'dashboard',
+          display_name: 'Socks Jobs',
+          showInMenu: true,
+          group: 'Jobs and Playbooks',
+        },
       },
       {
         path: 'proxy_jobs/:id',
@@ -78,7 +87,13 @@ const routes: RouteRecordRaw[] = [
         path: 'playbooks',
         name: 'playbooks',
         component: () => import('src/pages/JobChains.vue'),
-        meta: { icon: 'menu_book', parent: 'dashboard', display_name: 'Playbooks' },
+        meta: {
+          icon: 'menu_book',
+          parent: 'dashboard',
+          display_name: 'Playbooks',
+          showInMenu: true,
+          group: 'Jobs and Playbooks',
+        },
       },
       {
         path: 'playbooks/:id',
@@ -131,6 +146,8 @@ const routes: RouteRecordRaw[] = [
           icon: 'fingerprint',
           parent: 'dashboard',
           display_name: 'Credentials',
+          showInMenu: true,
+          group: 'Harbinger data',
         },
       },
       {
@@ -151,6 +168,8 @@ const routes: RouteRecordRaw[] = [
           icon: 'share',
           parent: 'dashboard',
           display_name: 'Socks Proxies',
+          showInMenu: true,
+          group: 'C2 Connectors',
         },
       },
       {
@@ -171,6 +190,8 @@ const routes: RouteRecordRaw[] = [
           icon: 'article',
           parent: 'dashboard',
           display_name: 'Files',
+          showInMenu: true,
+          group: 'Harbinger data',
         },
       },
       {
@@ -222,6 +243,8 @@ const routes: RouteRecordRaw[] = [
           icon: 'corporate_fare',
           parent: 'dashboard',
           display_name: 'Domains',
+          showInMenu: true,
+          group: 'Harbinger data',
         },
       },
       {
@@ -241,6 +264,7 @@ const routes: RouteRecordRaw[] = [
           icon: 'key',
           parent: 'dashboard',
           display_name: 'Passwords',
+          navParent: 'credentials',
         },
       },
       {
@@ -251,6 +275,7 @@ const routes: RouteRecordRaw[] = [
           icon: 'fas fa-dog',
           parent: 'dashboard',
           display_name: 'Kerberos',
+          navParent: 'credentials',
         },
       },
       {
@@ -270,6 +295,8 @@ const routes: RouteRecordRaw[] = [
           icon: 'computer',
           parent: 'dashboard',
           display_name: 'Computers',
+          showInMenu: true,
+          group: 'BloodHound',
         },
       },
       {
@@ -280,6 +307,8 @@ const routes: RouteRecordRaw[] = [
           icon: 'person',
           parent: 'dashboard',
           display_name: 'Users',
+          showInMenu: true,
+          group: 'BloodHound',
         },
       },
       {
@@ -290,6 +319,8 @@ const routes: RouteRecordRaw[] = [
           icon: 'group',
           parent: 'dashboard',
           display_name: 'Groups',
+          showInMenu: true,
+          group: 'BloodHound',
         },
       },
       {
@@ -300,6 +331,8 @@ const routes: RouteRecordRaw[] = [
           icon: 'fas fa-virus',
           parent: 'dashboard',
           display_name: 'Implants',
+          showInMenu: true,
+          group: 'C2 Connectors',
         },
       },
       {
@@ -347,7 +380,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'tasks/',
+        path: 'tasks',
         name: 'c2_tasks',
         component: () => import('src/pages/C2Tasks.vue'),
         props: true,
@@ -355,6 +388,8 @@ const routes: RouteRecordRaw[] = [
           icon: 'task',
           parent: 'dashboard',
           display_name: 'Tasks',
+          showInMenu: true,
+          group: 'C2 Connectors',
         },
       },
       {
@@ -365,6 +400,8 @@ const routes: RouteRecordRaw[] = [
           icon: 'dns',
           parent: 'dashboard',
           display_name: 'Servers',
+          showInMenu: true,
+          group: 'C2 Connectors',
         },
       },
       {
@@ -397,6 +434,8 @@ const routes: RouteRecordRaw[] = [
           icon: 'dns',
           parent: 'dashboard',
           display_name: 'Socks Servers',
+          showInMenu: true,
+          group: 'C2 Connectors',
         },
       },
       {
@@ -418,6 +457,8 @@ const routes: RouteRecordRaw[] = [
           icon: 'fas fa-satellite-dish',
           parent: 'dashboard',
           display_name: 'C2 Jobs',
+          showInMenu: true,
+          group: 'Jobs and Playbooks',
         },
       },
       {
@@ -438,6 +479,8 @@ const routes: RouteRecordRaw[] = [
           icon: 'output',
           parent: 'dashboard',
           display_name: 'C2 Output',
+          showInMenu: true,
+          group: 'C2 Connectors',
         },
       },
       {
@@ -458,6 +501,8 @@ const routes: RouteRecordRaw[] = [
           icon: 'img:bloodhound.png',
           parent: 'dashboard',
           display_name: 'BloodHound Utils',
+          showInMenu: true,
+          group: 'BloodHound',
         },
       },
       {
@@ -469,6 +514,8 @@ const routes: RouteRecordRaw[] = [
           icon: 'computer',
           parent: 'dashboard',
           display_name: 'Hosts',
+          showInMenu: true,
+          group: 'Harbinger data',
         },
       },
       {
@@ -491,6 +538,8 @@ const routes: RouteRecordRaw[] = [
           icon: 'timeline',
           parent: 'dashboard',
           display_name: 'Timeline',
+          showInMenu: true,
+          group: 'Harbinger data',
         },
       },
       {
@@ -513,6 +562,8 @@ const routes: RouteRecordRaw[] = [
           icon: 'label',
           parent: 'dashboard',
           display_name: 'Labels',
+          showInMenu: true,
+          group: 'Harbinger data',
         },
       },
       {
@@ -535,6 +586,8 @@ const routes: RouteRecordRaw[] = [
           icon: 'travel_explore',
           parent: 'dashboard',
           display_name: 'Situational Awareness',
+          showInMenu: true,
+          group: 'Harbinger data',
         },
       },
       {
@@ -557,6 +610,8 @@ const routes: RouteRecordRaw[] = [
           icon: 'folder_shared',
           parent: 'dashboard',
           display_name: 'Shares',
+          showInMenu: true,
+          group: 'Harbinger data',
         },
       },
       {
@@ -579,6 +634,8 @@ const routes: RouteRecordRaw[] = [
           icon: 'folder_shared',
           parent: 'dashboard',
           display_name: 'Share files',
+          navParent: 'shares',
+          showInMenu: true,
         },
       },
       {
@@ -589,6 +646,7 @@ const routes: RouteRecordRaw[] = [
           icon: 'tag',
           parent: 'dashboard',
           display_name: 'Hashes',
+          navParent: 'credentials',
         },
       },
       {
@@ -609,6 +667,20 @@ const routes: RouteRecordRaw[] = [
           icon: 'check_circle',
           parent: 'dashboard',
           display_name: 'Actions',
+          showInMenu: true,
+          group: 'Jobs and Playbooks',
+        },
+      },
+      {
+        path: 'certificates',
+        name: 'certificates',
+        component: () => import('src/pages/CertificateAuthoritiesPage.vue'),
+        meta: {
+          icon: 'verified_user',
+          parent: 'dashboard',
+          display_name: 'Certificates',
+          showInMenu: true,
+          group: 'Harbinger data',
         },
       },
       {
@@ -619,6 +691,7 @@ const routes: RouteRecordRaw[] = [
           icon: 'badge',
           parent: 'dashboard',
           display_name: 'Certificate Authorities',
+          navParent: 'certificates',
         },
       },
       {
@@ -629,6 +702,7 @@ const routes: RouteRecordRaw[] = [
           icon: 'add_moderator',
           parent: 'dashboard',
           display_name: 'Certificate Templates',
+          navParent: 'certificates',
         },
       },
       {
@@ -639,6 +713,8 @@ const routes: RouteRecordRaw[] = [
           icon: 'priority_high',
           parent: 'dashboard',
           display_name: 'Issue',
+          showInMenu: true,
+          group: 'Harbinger data',
         },
       },
       {
@@ -669,6 +745,8 @@ const routes: RouteRecordRaw[] = [
           icon: 'check_circle',
           parent: 'dashboard',
           display_name: 'Highlight',
+          showInMenu: true,
+          group: 'Harbinger data',
         },
       },
       {
@@ -679,6 +757,8 @@ const routes: RouteRecordRaw[] = [
           icon: 'fas fa-robot',
           parent: 'dashboard',
           display_name: 'Suggestions',
+          showInMenu: true,
+          group: 'AI',
         },
       },
       {
@@ -752,6 +832,8 @@ const routes: RouteRecordRaw[] = [
         icon: 'check_circle',
         parent: 'dashboard',
         display_name: 'Plans',
+        showInMenu: true,
+        group: 'AI',
         },
     },
     {

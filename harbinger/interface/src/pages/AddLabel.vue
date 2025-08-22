@@ -16,7 +16,7 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <q-card flat class="q-pa-md">
       <q-card-section>
         <h5>Add a label</h5>
@@ -76,7 +76,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useQuasar } from 'quasar';
-import BreadCrumb from '../components/BreadCrumb.vue';
+
 import { api } from 'boot/axios';
 import { useRouter } from 'vue-router';
 

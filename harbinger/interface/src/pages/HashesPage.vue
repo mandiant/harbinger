@@ -16,7 +16,7 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <div class="row q-gutter-sm">
       <q-btn color="secondary" icon="refresh" @click="store.LoadData()">Refresh</q-btn>
       <q-btn color="secondary" icon="download" @click="exportHashes()">Export</q-btn>
@@ -48,7 +48,7 @@
 
 <script setup lang="ts">
 import { useQuasar, copyToClipboard } from 'quasar';
-import BreadCrumb from '../components/BreadCrumb.vue';
+
 import { Hash } from '../models';
 import { useCounterStore } from 'src/stores/object-counters';
 import { QTableProps } from 'quasar';
