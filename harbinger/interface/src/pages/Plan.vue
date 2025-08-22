@@ -16,7 +16,7 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <q-card flat class="q-pa-md" v-if="!plan && loading">
       <q-card-section>
         <q-skeleton type="text" class="text-h6" />
@@ -91,7 +91,8 @@
       <q-card-section>
         <p>{{ plan.description }}</p>
         <div class="text-caption text-grey">
-          Created: {{ new Date(plan.time_created).toLocaleString() }} | Last Updated: {{ new Date(plan.time_updated).toLocaleString() }}
+          Created: {{ date.formatDate(plan.time_created, 'YYYY-MM-DD HH:mm:ss') }} |
+          Last Updated: {{ date.formatDate(plan.time_updated, 'YYYY-MM-DD HH:mm:ss') }}
         </div>
       </q-card-section>
     </q-card>
@@ -152,10 +153,10 @@
 
 <script setup lang="ts">
 import { ref, toRefs, watch, computed } from 'vue';
-import { useQuasar } from 'quasar';
+import { useQuasar, date } from 'quasar';
 import { api } from 'boot/axios';
 import { Plan } from '../models';
-import BreadCrumb from '../components/BreadCrumb.vue';
+
 import PlanStepList from '../components/PlanStepList.vue';
 import LlmStatusIndicator from '../components/LlmStatusIndicator.vue';
 import LlmLogViewer from 'src/components/LlmLogViewer.vue';

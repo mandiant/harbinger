@@ -16,7 +16,7 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <div class="row q-gutter-sm">
       <q-btn color="secondary" icon="add_circle" to="domains/add">Add domain</q-btn>
       <q-btn color="secondary" icon="refresh" @click="domainStore.LoadData()">Refresh</q-btn>
@@ -71,7 +71,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import BreadCrumb from '../components/BreadCrumb.vue';
+
 import { Domain } from '../models';
 import { useCounterStore } from 'src/stores/object-counters';
 import { QTableProps } from 'quasar';
@@ -86,7 +86,7 @@ const store = useCounterStore();
 
 const useDomains = defineTypedStore<Domain>('domains');
 const domainStore = useDomains();
-const visible = ref(['id', 'short_name', 'long_name', 'time_created'])
+const visible = ref(['short_name', 'long_name', 'time_created'])
 
 domainStore.Load()
 

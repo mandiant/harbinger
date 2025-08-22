@@ -16,7 +16,7 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <q-btn color="secondary" icon="refresh" @click="loadData()">Refresh</q-btn>
     <q-table :rows-per-page-options="[ 5, 10, 15, 20, 25, 50, 100 ]"
       title="Groups"
@@ -47,7 +47,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import BreadCrumb from '../components/BreadCrumb.vue';
+
 import useloadData from 'src/load-data';
 import { GraphGroup } from '../models';
 import { QTableProps } from 'quasar';

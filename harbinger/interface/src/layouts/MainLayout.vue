@@ -71,6 +71,7 @@
     </q-drawer>
 
     <q-page-container>
+      <bread-crumb />
       <router-view />
       <!-- <q-page-sticky position="bottom-right" :offset="[18, 72]">
         <q-fab icon="keyboard_arrow_up" label="Quick Access" direction="up" color="secondary">
@@ -100,6 +101,7 @@ import { useRouter } from 'vue-router';
 import NavigationList from 'src/components/NavigationList.vue';
 import EventWebSocket from 'src/components/EventWebSocket.vue';
 import ProgressBars from 'src/components/ProgressBars.vue';
+import BreadCrumb from 'src/components/BreadCrumb.vue';
 
 const $q = useQuasar();
 const $router = useRouter();

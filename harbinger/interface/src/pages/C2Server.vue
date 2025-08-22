@@ -16,7 +16,7 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <c2-server :id="id" />
   </q-page>
 </template>

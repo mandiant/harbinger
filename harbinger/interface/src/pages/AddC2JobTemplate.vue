@@ -16,7 +16,7 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <q-card flat class="q-pa-md">
       <add-c2-job-template v-model="job_id" @update:model-value="Goto()" />
     </q-card>
@@ -25,7 +25,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import BreadCrumb from '../components/BreadCrumb.vue';
+
 import AddC2JobTemplate from 'src/components/AddC2JobTemplate.vue';
 import { useRouter } from 'vue-router';
 

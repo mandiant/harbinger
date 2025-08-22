@@ -16,12 +16,10 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
     <c2-output />
   </q-page>
 </template>
 
 <script setup lang="ts">
-import BreadCrumb from 'src/components/BreadCrumb.vue';
 import C2Output from 'src/components/C2Output.vue';
 </script>

@@ -16,7 +16,7 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <q-card flat class="q-pa-md">
       <q-card-section>
         <q-splitter v-model="splitterModel">
@@ -103,7 +103,7 @@ import { ref, watch, computed, toRaw } from 'vue';
 import { api } from 'boot/axios';
 import { useRouter } from 'vue-router';
 import JobTemplateForm from '../components/JobTemplateForm.vue';
-import BreadCrumb from '../components/BreadCrumb.vue';
+
 import { PlaybookTemplate, Schema } from '../models'
 import useloadData from 'src/load-data';
 import { useParamStore } from 'src/stores/ParamStore';

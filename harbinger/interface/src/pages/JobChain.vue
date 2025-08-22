@@ -16,7 +16,7 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <div class="q-pa-md row q-gutter-md">
       <q-card flat class="col-8">
         <q-card-section>
@@ -200,7 +200,7 @@ import { Chain, ChainStep } from '../models';
 import ProxyJob from '../components/ProxyJob.vue';
 import EmptyChainStep from '../components/EmptyChainStep.vue';
 import C2Job from '../components/C2Job.vue';
-import BreadCrumb from '../components/BreadCrumb.vue';
+
 import useloadData from 'src/load-data';
 import ChainStepsGraph from '../components/ChainStepsGraph.vue';
 import PlaybookStepModifiers from 'src/components/PlaybookStepModifiers.vue';

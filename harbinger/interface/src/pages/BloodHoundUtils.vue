@@ -16,7 +16,7 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <div class="q-gutter-y-md">
       <q-card>
         <q-tabs
@@ -58,7 +58,7 @@
 </template>
 
 <script setup lang="ts">
-import BreadCrumb from '../components/BreadCrumb.vue';
+
 import MarkObjects from '../components/MarkObjects.vue';
 import PredefinedQueries from '../components/PredefinedQueries.vue';
 // import PredefinedQueriesGraph from '../components/PredefinedQueriesGraph.vue';

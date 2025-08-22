@@ -1,6 +1,6 @@
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <q-card flat class="q-pa-md">
       <q-stepper
         v-model="step"
@@ -85,7 +85,7 @@
 import { useQuasar } from 'quasar';
 import { ref } from 'vue';
 import { api } from 'boot/axios';
-import BreadCrumb from '../components/BreadCrumb.vue';
+
 import { useRouter } from 'vue-router';
 import { useParamStore } from 'src/stores/ParamStore';
 import MonacoEditor from '../components/MonacoEditor.vue';

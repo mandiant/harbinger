@@ -16,7 +16,7 @@
 
 <template>
 <q-page padding>
-    <bread-crumb />
+    
     <view-object object_type="c2_output" :object_id="id" :object="object" />
 </q-page>
 </template>

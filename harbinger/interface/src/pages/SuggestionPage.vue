@@ -16,7 +16,7 @@
 
 <template>
 <q-page padding>
-    <bread-crumb />
+    
     <view-object object_type="suggestion" :object_id="id" :object="object" />
     <q-btn flat color="secondary" icon="add_circle" label="Create playbook" :to="{name: 'suggestion_create', params: { id: id } }" />
 </q-page>

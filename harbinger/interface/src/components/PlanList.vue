@@ -49,10 +49,10 @@
             {{ props.row.llm_status }}
         </q-td>
         <q-td key="time_created" :props="props">
-            {{ props.row.time_created }}
+            {{ date.formatDate(props.row.time_created, 'YYYY-MM-DD HH:mm:ss') }}
         </q-td>
         <q-td key="time_updated" :props="props">
-            {{ props.row.time_updated }}
+            {{ date.formatDate(props.row.time_updated, 'YYYY-MM-DD HH:mm:ss') }}
         </q-td>
         
         <q-td key="labels" :props="props">
@@ -77,6 +77,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { date } from 'quasar';
 import { Plan } from 'src/models'
 import { QTableProps } from 'quasar';
 import LabelsList from './LabelsList.vue';

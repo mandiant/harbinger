@@ -17,6 +17,7 @@
 import { store } from 'quasar/wrappers'
 import { createPinia } from 'pinia'
 import { Router } from 'vue-router';
+import { useNavigationStore } from './navigation';
 
 /*
  * When adding new properties to stores, you should also
@@ -43,6 +44,8 @@ export default store((/* { ssrContext } */) => {
 
   // You can add Pinia plugins here
   // pinia.use(SomePiniaPlugin)
+  const navigationStore = useNavigationStore(pinia);
+  navigationStore.generateMenu();
 
   return pinia
 })

@@ -16,7 +16,7 @@
 
 <template>
     <q-page padding>
-        <bread-crumb />
+        
         <q-card flat class="q-pa-md">
             <q-form @submit="onSubmit" @reset="onReset" class="q-gutter-md">
                 <q-input filled v-model="form.name" label="name" />

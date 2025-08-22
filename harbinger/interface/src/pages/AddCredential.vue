@@ -16,7 +16,7 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <q-card flat class="q-pa-md">
       <q-card-section>
         <h5>Add a credential</h5>
@@ -41,7 +41,7 @@ import { useQuasar } from 'quasar';
 import { ref } from 'vue';
 import { api } from 'boot/axios';
 import { useRouter } from 'vue-router';
-import BreadCrumb from '../components/BreadCrumb.vue';
+
 import { Password } from '../models';
 import DomainSelect from 'src/components/DomainSelect.vue';
 

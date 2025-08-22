@@ -16,7 +16,7 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <file-view :file_id="id" />
   </q-page>
 </template>

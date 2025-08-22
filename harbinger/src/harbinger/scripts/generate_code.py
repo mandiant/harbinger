@@ -358,13 +358,11 @@ export interface {{name}} {
 //{{name}}Page.vue
 <template>
 <q-page padding>
-    <bread-crumb />
     <{{name_vue}}-list />
 </q-page>
 </template>
 
 <script setup lang="ts">
-import BreadCrumb from 'src/components/BreadCrumb.vue';
 import {{name}}List from 'src/components/{{name}}List.vue';
 </script>
 """

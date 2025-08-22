@@ -17,17 +17,32 @@
 <template>
   <div>
     <q-table :rows-per-page-options="[ 5, 10, 15, 20, 25, 50, 100 ]" title="Processes" :rows="data" row-key="id" :loading="loading" :columns="columns"
-      v-model:pagination="pagination" @request="onRequest">
-      <template v-slot:top-right>
-        <q-input borderless dense debounce="500" v-model="search" placeholder="Search" autofocus>
+      v-model:pagination="pagination" @request="onRequest" selection="multiple" v-model:selected="selected">
+      <template v-slot:top>
+        <div class="col-2 q-table__title" v-if="selected.length === 0">Processes</div>
+        <div v-if="selected.length > 0" class="row items-center q-gutter-sm">
+            <bulk-label-actions :selected="selected" object-type="process" @update="selected = []; loadData()" />
+            <q-btn dense icon="clear" @click="selected = []" flat>
+              <q-tooltip>Clear Selection</q-tooltip>
+            </q-btn>
+            <div>{{ selected.length }} item(s) selected</div>
+          </div>
+        <q-space />
+        <q-input v-if="selected.length === 0" borderless dense debounce="500" v-model="search" placeholder="Search" autofocus>
           <template v-slot:append>
             <q-icon name="search" />
           </template>
         </q-input>
-        <q-toggle dense label="Labels" v-model="labels_only"/>
+        <q-toggle v-if="selected.length === 0" dense label="Labels" v-model="labels_only"/>
+      </template>
+      <template v-slot:header-selection="scope">
+        <q-checkbox v-model="scope.selected" />
       </template>
       <template v-slot:body="props">
         <q-tr :props="props">
+            <q-td>
+            <q-checkbox v-model="props.selected" />
+          </q-td>
           <q-td key="parent_process_id" :props="props">
             {{ props.row.parent_process_id }}
           </q-td>
@@ -64,10 +79,12 @@ import useloadData from '../load-data';
 import { Process } from '../models';
 import { QTableProps } from 'quasar';
 import LabelsList from './LabelsList.vue';
+import BulkLabelActions from './BulkLabelActions.vue';
 
 const { loading, data, pagination, loadData, onRequest, AddFilter } =
   useloadData<Array<Process>>('processes');
 
+const selected = ref([]);
 const search = ref('')
 const labels_only = ref(false)
 

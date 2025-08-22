@@ -1,7 +1,7 @@
 //AddPlan.vue
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <q-card>
       <q-card-section>
         <div class="text-h6">Create a new plan</div>

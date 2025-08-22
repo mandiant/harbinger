@@ -16,7 +16,7 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <q-btn color="secondary" icon="refresh" @click="loadData()">Refresh</q-btn>
     <q-table :rows-per-page-options="[ 5, 10, 15, 20, 25, 50, 100 ]" title="Components" :rows="data" row-key="id" :loading="loading">
     </q-table>
@@ -24,7 +24,7 @@
 </template>
 
 <script setup lang="ts">
-import BreadCrumb from '../components/BreadCrumb.vue';
+
 import useloadData from 'src/load-data';
 import { Component } from '../models';
 const { loading, data, loadData } =

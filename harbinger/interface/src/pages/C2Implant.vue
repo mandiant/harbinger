@@ -16,7 +16,7 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <c2-implant :id="id" />
   </q-page>
 </template>

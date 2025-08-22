@@ -16,7 +16,7 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <q-card flat class="q-pa-md">
       <q-card-section>
         <h5>Add a playbook template</h5>
@@ -47,7 +47,7 @@
 import { useQuasar } from 'quasar';
 import { ref } from 'vue';
 import { api } from 'boot/axios';
-import BreadCrumb from '../components/BreadCrumb.vue';
+
 import { v4 as uuidv4 } from 'uuid';
 import { useRouter } from 'vue-router';
 import { useParamStore } from 'src/stores/ParamStore';
