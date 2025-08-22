@@ -544,7 +544,7 @@ async def get_adminto_graph_for_name(session: AsyncSession, name: str) -> List[G
                     type=element.type,
                 )
             )
-        all_results.append(result)
+        all_results.append(inner_result)
     return all_results
 
 

@@ -876,12 +876,13 @@ async def create_timeline(timeline: schemas.CreateTimeline):
                             if task.object_type == "ManualTimelineTask":
                                 files = await crud.get_files(db, filters.FileFilter(manual_timeline_task_id=task.id))
                                 if files:
-                                    file = files[0]
-                                    if file.filetype == "cast":
-                                        data = await download_file(file.path, file.bucket)
-                                        async with aiofiles.open(cast_file, "wb") as f:
-                                            await f.write(data)
-                                        cast_exists = True
+                                    for file in files:
+                                        if file.filetype == "cast":
+                                            data = await download_file(file.path, file.bucket)
+                                            async with aiofiles.open(cast_file, "wb") as f:
+                                                await f.write(data)
+                                            cast_exists = True
+                                            break
                                 else:
                                     text = [
                                         '{"version": 2, "width": 160, "height": 46, "timestamp": 0, "env": {"SHELL": "/bin/bash", "TERM": "screen-256color"}}'
@@ -899,7 +900,7 @@ async def create_timeline(timeline: schemas.CreateTimeline):
 
                             if task.object_type == "ProxyJob":
                                 cast_files = list(
-                                    await crud.get_files(db, task.id, "output.cast")
+                                    await crud.get_files(db, filters.FileFilter(job_id=task.id, search="output.cast"))
                                 )
                                 if cast_files:
                                     log.info(
@@ -980,7 +981,7 @@ async def create_timeline(timeline: schemas.CreateTimeline):
                             log.warning(f"Unable to create attack path summary: {e}")
 
                     for file in await crud.get_files(
-                        db, filetype=schemas.FileType.implant_binary
+                        db, filters.FileFilter(filetype=schemas.FileType.implant_binary)
                     ):
                         artefacts.append([file.filename, file.md5sum, file.sha1sum])
 
@@ -1453,7 +1454,7 @@ async def summarize_socks_tasks():
                         )
                         continue
                     output = ""
-                    cast_files = list(await crud.get_files(db, task.id, "output.cast"))
+                    cast_files = list(await crud.get_files(db, filters.FileFilter(job_id=task.id, search="output.cast")))
                     if cast_files:
                         file = cast_files[0]
                         output = await cast_to_text(file.path, file.bucket)

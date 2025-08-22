@@ -809,17 +809,17 @@ async def get_file(db: AsyncSession, file_id: str | uuid.UUID) -> Optional[model
 
 async def get_files(
     db: AsyncSession,
-    job_id: str | UUID4 = "",
-    search: str = "",
-    filetype: str = "",
+    filters: filters.FileFilter,
 ) -> Iterable[models.File]:
-    q = select(models.File)
-    if job_id:
-        q = q.where(models.File.job_id == job_id)
-    if filetype:
-        q = q.where(models.File.filetype == filetype)
-    if search:
-        q = q.where(models.File.filename.ilike(f"%{search}%"))
+    """Gets files based on a filter."""
+    q: Select = select(models.File)
+    q = q.outerjoin(models.File.labels)
+    q = filters.filter(q)  # type: ignore
+    try:
+        q = filters.sort(q)  # type: ignore
+    except NotImplementedError:
+        pass
+    q = q.group_by(models.File.id)
     result = await db.execute(q)
     return result.unique().scalars().all()
 
