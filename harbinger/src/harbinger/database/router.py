@@ -34,10 +34,11 @@ from harbinger.worker.workflows import (
     CreateC2ImplantSuggestion,
     CreateDomainSuggestion,
     CreateFileSuggestion,
-    CreateChecklist,
     PlaybookDetectionRisk,
     PrivEscSuggestions,
+    GeneratePlanWorkflow,
 )
+
 from harbinger.connectors.socks.workflows import RunSocks, RunWindowsSocks
 from harbinger.connectors.workflows import C2ServerCommand
 from pydantic import UUID4
@@ -63,6 +64,7 @@ from fastapi import (
     WebSocket,
     WebSocketDisconnect,
     status,
+    HTTPException
 )
 from fastapi_pagination import Page, add_pagination
 from google.protobuf.json_format import MessageToJson
@@ -70,16 +72,25 @@ from harbinger.graph import crud as graph_crud
 from harbinger.graph.database import get_async_neo4j_session_context
 from sqlalchemy.ext.asyncio import AsyncSession
 import yaml
-import jsonref
 from harbinger.files.client import download_file
 from harbinger.worker.client import get_client
 from harbinger.config import constants
 from . import crud, models, schemas, progress_bar
 from temporalio import exceptions
 import logging
-from paramiko import SSHClient, AutoAddPolicy, AuthenticationException, SSHException, RSAKey
+from paramiko import (
+    SSHClient,
+    AutoAddPolicy,
+    AuthenticationException,
+    SSHException,
+    RSAKey,
+)
 import re
 from typing import AsyncGenerator
+from temporalio.client import Client
+from temporalio.service import RPCError, RPCStatusCode
+from harbinger.worker.supervisor_workflow import PlanSupervisorWorkflow
+from harbinger.enums import LlmStatus
 
 # Basic logging configuration
 logging.basicConfig(
@@ -1029,8 +1040,11 @@ async def get_current_active_user(
         logging.error(f"Authentication error: {e}")
         await websocket.close(code=1011, reason=f"Authentication error: {e}")
         return None
-    
+
+
 dummy_key = RSAKey.generate(2048)
+
+
 async def handle_ssh_websocket(
     websocket: WebSocket,
     username: str,
@@ -1060,13 +1074,13 @@ async def handle_ssh_websocket(
             logging.info("Generated dummy SSH key for tmate connection attempt.")
         except Exception as e:
             logging.error(f"Failed to generate dummy SSH key for tmate connection: {e}")
-            pkey = None # Proceed without it if generation fails, though connection might fail
+            pkey = None  # Proceed without it if generation fails, though connection might fail
 
         ssh_client.connect(
             hostname="tmate",
             port=2200,
             username=username,
-            pkey=pkey, # Pass the dummy key to force publickey auth negotiation
+            pkey=pkey,  # Pass the dummy key to force publickey auth negotiation
             password=None,
             timeout=10,
             compress=True,
@@ -1787,7 +1801,10 @@ async def get_job_statistics(user: models.User = Depends(current_active_user)):
 
 
 # Define the Redis Pub/Sub channel the Go service publishes to
-REDIS_PUBSUB_CHANNEL = "app_events_stream" # This MUST match the Go app's `redisPubSubChannel`
+REDIS_PUBSUB_CHANNEL = (
+    "app_events_stream"  # This MUST match the Go app's `redisPubSubChannel`
+)
+
 
 @router.websocket("/events")
 async def websocket_events(
@@ -1813,7 +1830,9 @@ async def websocket_events(
         return
 
     await websocket.accept()
-    logging.info(f"WebSocket client authenticated and accepted for user with token: {token}")
+    logging.info(
+        f"WebSocket client authenticated and accepted for user with token: {token}"
+    )
 
     # --- Redis Pub/Sub integration ---
     pubsub = redis.pubsub()
@@ -1828,7 +1847,7 @@ async def websocket_events(
                     if message["type"] == "message":
                         # The Go app now sends raw JSON bytes
                         payload_bytes = message["data"]
-                        payload_str = payload_bytes.decode('utf-8')
+                        payload_str = payload_bytes.decode("utf-8")
 
                         # Directly send the JSON string to the WebSocket client
                         await websocket.send_text(payload_str)
@@ -1840,7 +1859,6 @@ async def websocket_events(
             finally:
                 logging.info("Unsubscribing from Redis Pub/Sub.")
                 await pubsub.unsubscribe(REDIS_PUBSUB_CHANNEL)
-
 
         listener_task = asyncio.create_task(redis_listener())
 
@@ -1860,7 +1878,9 @@ async def websocket_events(
 
     except Exception as e:
         logging.error(f"Error setting up Redis Pub/Sub for WebSocket: {e}")
-        await websocket.close(code=1011, reason="Internal server error with event system")
+        await websocket.close(
+            code=1011, reason="Internal server error with event system"
+        )
 
 
 @router.get(
@@ -2409,6 +2429,7 @@ async def action_filters(
         filters,
     )
 
+
 @router.get(
     "/actions/{id}",
     response_model=Optional[schemas.Action],
@@ -2779,25 +2800,6 @@ async def create_file_suggestion(
 
 
 @router.post(
-    "/suggestions/checklist",
-    response_model=schemas.StatusResponse,
-    tags=["crud", "suggestions"],
-)
-async def create_checklist_suggestion(
-    suggestion: schemas.SuggestionsRequest,
-    user: models.User = Depends(current_active_user),
-):
-    client = await get_client()
-    await client.start_workflow(
-        CreateChecklist.run,
-        suggestion,
-        id=str(uuid.uuid4()),
-        task_queue=constants.WORKER_TASK_QUEUE,
-    )
-    return schemas.StatusResponse(message="Scheduled")
-
-
-@router.post(
     "/suggestions/playbook_detection",
     response_model=schemas.StatusResponse,
     tags=["crud", "suggestions"],
@@ -2997,3 +2999,326 @@ async def update_objectives(
     user: models.User = Depends(current_active_user),
 ):
     return await crud.update_objective(db, id, objective)
+
+
+@router.get(
+    "/plans/",
+    response_model=Page[schemas.Plan],
+    tags=["crud", "plans"],
+)
+async def list_plans(
+    filters: filters.PlanFilter = FilterDepends(filters.PlanFilter),
+    db: AsyncSession = Depends(get_db),
+    user: models.User = Depends(current_active_user),
+):
+    return await crud.get_plans_paged(db, filters)
+
+
+@router.get(
+    "/plans/filters", response_model=list[schemas.Filter], tags=["plans", "crud"]
+)
+async def plans_filters(
+    filters: filters.PlanFilter = FilterDepends(filters.PlanFilter),
+    db: AsyncSession = Depends(get_db),
+    user: models.User = Depends(current_active_user),
+):
+    return await crud.get_plans_filters(
+        db,
+        filters,
+    )
+
+
+@router.get(
+    "/plans/{id}",
+    response_model=Optional[schemas.Plan],
+    tags=["crud", "plans"],
+)
+async def get_plan(
+    id: UUID4,
+    db: AsyncSession = Depends(get_db),
+    user: models.User = Depends(current_active_user),
+):
+    return await crud.get_plan(db, id)
+
+
+@router.post("/plans/", response_model=schemas.PlanCreated, tags=["plans"])
+async def create_plan(
+    plan: schemas.PlanCreate,
+    db: AsyncSession = Depends(get_db),
+    user: models.User = Depends(current_active_user),
+):
+    """
+    Creates a new plan and starts the supervisor workflow for it.
+    """
+    # 1. Create the plan in the database
+    _, new_plan = await crud.create_plan(db, plan)
+    if not new_plan:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create the plan in the database.",
+        )
+
+    # 2. Start the Temporal workflow for the new plan
+    client = await get_client()
+    try:
+        await client.start_workflow(
+            PlanSupervisorWorkflow.run,
+            str(new_plan.id),
+            id=f"supervisor-{new_plan.id}",
+            task_queue=constants.WORKER_TASK_QUEUE,
+        )
+    except exceptions.WorkflowAlreadyStartedError:
+        # This can happen in a race condition. If it's already started, that's okay.
+        logging.warning(f"Workflow for plan {new_plan.id} already exists. This may be due to a race condition but is not a fatal error.")
+    except RPCError as e:
+        logging.error(f"Failed to start workflow for plan {new_plan.id}: {e}")
+        # We created the plan, but couldn't start the workflow.
+        # The frontend should be notified of this partial failure.
+        # We will update the plan's status to INACTIVE as a safety measure.
+        await crud.update_plan(db, new_plan.id, schemas.PlanUpdate(llm_status=LlmStatus.INACTIVE))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Plan created, but failed to start the supervisor workflow: {e.message}",
+        )
+    return new_plan
+
+
+@router.put(
+    "/plans/{id}", response_model=Optional[schemas.Plan], tags=["crud", "plans"]
+)
+async def update_plan(
+    id: UUID4,
+    plan_update: schemas.PlanUpdate,  # Assuming a PlanUpdate schema exists
+    db: AsyncSession = Depends(get_db),
+    user: models.User = Depends(current_active_user),
+):
+    """
+    Updates a plan's details. The supervisor will automatically start or stop
+    if the 'status' field is changed to/from 'running'.
+    """
+    await crud.update_plan(db, id, plan_update)
+    return await crud.get_plan(db, id)
+
+
+@router.post("/plans/{plan_id}/start_supervisor")
+async def start_plan_supervisor(plan_id: str, client: Client = Depends(get_client)):
+    """Starts the supervisor workflow for a given plan."""
+    try:
+        await client.start_workflow(
+            PlanSupervisorWorkflow.run,
+            plan_id,
+            id=f"supervisor-{plan_id}",
+            task_queue=constants.WORKER_TASK_QUEUE,
+        )
+        return {"status": f"Supervisor workflow started for plan {plan_id}"}
+    except RPCError as e:
+        if e.status == RPCStatusCode.ALREADY_EXISTS:
+            return {"status": f"Supervisor for plan {plan_id} is already running."}
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/plans/{plan_id}/stop_supervisor")
+async def stop_plan_supervisor(
+    plan_id: str,
+    client: Client = Depends(get_client),
+    db: AsyncSession = Depends(get_db),
+):
+    """Stops the supervisor workflow for a given plan."""
+    try:
+        handle = client.get_workflow_handle(f"supervisor-{plan_id}")
+        await handle.signal(PlanSupervisorWorkflow.stop)
+        return {"status": f"Stop signal sent to supervisor for plan {plan_id}"}
+    except RPCError as e:
+        if e.status == RPCStatusCode.NOT_FOUND:
+            # If the workflow is not found, it's already stopped.
+            # We can now trust the workflow's finally block to have set the DB state,
+            # but as a fallback, we'll ensure it's INACTIVE.
+            await crud.update_plan(
+                db, plan_id, schemas.PlanUpdate(llm_status=LlmStatus.INACTIVE)
+            )
+            return {
+                "status": f"Supervisor for plan {plan_id} was not running. Status ensured to be INACTIVE."
+            }
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/plans/{plan_id}/force_update")
+async def force_supervisor_update(plan_id: str, client: Client = Depends(get_client)):
+    """Forces an immediate update cycle for a running supervisor."""
+    try:
+        handle = client.get_workflow_handle(f"supervisor-{plan_id}")
+        await handle.signal(PlanSupervisorWorkflow.force_update)
+        return {"status": f"Force update signal sent to supervisor for plan {plan_id}"}
+    except RPCError as e:
+        if e.status == RPCStatusCode.NOT_FOUND:
+            raise HTTPException(
+                status_code=404, detail=f"Supervisor for plan {plan_id} is not running."
+            )
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ROUTER
+@router.get(
+    "/plan_steps/",
+    response_model=Page[schemas.PlanStep],
+    tags=["crud", "plan_steps"],
+)
+async def list_plan_steps(
+    filters: filters.PlanStepFilter = FilterDepends(filters.PlanStepFilter),
+    db: AsyncSession = Depends(get_db),
+    user: models.User = Depends(current_active_user),
+):
+    return await crud.get_plan_steps_paged(db, filters)
+
+
+@router.get(
+    "/plan_steps/filters",
+    response_model=list[schemas.Filter],
+    tags=["plan_steps", "crud"],
+)
+async def plan_steps_filters(
+    filters: filters.PlanStepFilter = FilterDepends(filters.PlanStepFilter),
+    db: AsyncSession = Depends(get_db),
+    user: models.User = Depends(current_active_user),
+):
+    return await crud.get_plan_steps_filters(
+        db,
+        filters,
+    )
+
+
+@router.get(
+    "/plan_steps/{id}",
+    response_model=Optional[schemas.PlanStep],
+    tags=["crud", "plan_steps"],
+)
+async def get_plan_step(
+    id: UUID4,
+    db: AsyncSession = Depends(get_db),
+    user: models.User = Depends(current_active_user),
+):
+    return await crud.get_plan_step(db, id)
+
+
+@router.post(
+    "/plan_steps/", response_model=schemas.PlanStep, tags=["crud", "plan_steps"]
+)
+async def create_plan_step(
+    plan_steps: schemas.PlanStepCreate,
+    db: AsyncSession = Depends(get_db),
+    user: models.User = Depends(current_active_user),
+):
+    _, resp = await crud.create_plan_step(db, plan_steps)
+    return resp
+
+
+@router.put(
+    "/plan_steps/{id}",
+    response_model=Optional[schemas.PlanStep],
+    tags=["crud", "plan_steps"],
+)
+async def update_plan_step(
+    id: UUID4,
+    plan_step: schemas.PlanStepUpdate,
+    db: AsyncSession = Depends(get_db),
+    user: models.User = Depends(current_active_user),
+):
+    return await crud.update_plan_step(db, id, plan_step)
+
+# ROUTER
+@router.get(
+    "/llm_logs/",
+    response_model=Page[schemas.LlmLog],
+    tags=["crud", "llm_logs"],
+)
+async def list_llm_logs(
+    filters: filters.LlmLogFilter = FilterDepends(filters.LlmLogFilter),
+    db: AsyncSession = Depends(get_db),
+    user: models.User = Depends(current_active_user)
+):
+    return await crud.get_llm_logs_paged(db, filters)
+
+
+@router.get(
+    "/llm_logs/filters", response_model=list[schemas.Filter], tags=["llm_logs", "crud"]
+)
+async def llm_logs_filters(
+    filters: filters.LlmLogFilter = FilterDepends(filters.LlmLogFilter),
+    db: AsyncSession = Depends(get_db),
+    user: models.User = Depends(current_active_user),
+):
+    return await crud.get_llm_logs_filters(
+        db,
+        filters,
+    )
+
+
+@router.get(
+    "/llm_logs/{id}",
+    response_model=Optional[schemas.LlmLog],
+    tags=["crud", "llm_logs"],
+)
+async def get_llm_log(
+    id: UUID4,
+    db: AsyncSession = Depends(get_db),
+    user: models.User = Depends(current_active_user),
+):
+    return await crud.get_llm_log(db, id)
+
+
+@router.websocket("/ws/plans/{plan_id}/llm_logs")
+async def websocket_llm_logs(
+    websocket: WebSocket,
+    plan_id: UUID4,
+):
+    """
+    WebSocket endpoint to stream real-time LLM logs for a specific plan.
+    """
+    cookie = websocket._cookies["fastapiusersauth"]
+    strat = get_redis_strategy()
+    async with SessionLocal() as session:
+        db = await anext(get_user_db(session))
+        manager = await anext(get_user_manager(db))
+        token = await strat.read_token(cookie, manager)
+
+    if not token:
+        logging.warning("Invalid or expired authentication token.")
+        await websocket.close(code=1008, reason="Invalid or expired token")
+        return
+
+    await websocket.accept()
+    channel = f"plan:llm_logs:{plan_id}"
+    pubsub = redis.pubsub()
+
+    async def redis_listener():
+        """Listens to the Redis channel and forwards messages to the WebSocket."""
+        try:
+            await pubsub.subscribe(channel)
+            logging.info(f"WebSocket subscribed to Redis channel: {channel}")
+            async for message in pubsub.listen():
+                if message["type"] == "message":
+                    await websocket.send_text(message["data"].decode("utf-8"))
+        except asyncio.CancelledError:
+            logging.info(f"Redis listener for {channel} cancelled.")
+        except Exception as e:
+            logging.error(f"Error in Redis listener for {channel}: {e}")
+        finally:
+            await pubsub.unsubscribe(channel)
+
+    listener_task = asyncio.create_task(redis_listener())
+
+    try:
+        # Keep the connection alive, waiting for the client to disconnect.
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        logging.info(f"WebSocket for plan {plan_id} disconnected.")
+    finally:
+        listener_task.cancel()
+        await listener_task # Ensure the listener task is fully cleaned up

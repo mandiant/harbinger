@@ -44,7 +44,7 @@ dependencies = [
   "aiodocker",
   "aiohttp",
   "websockets",
-  "protobuf==4.23.2",
+  "protobuf",
   "sqladmin",
   "alive-progress",
   "aiosmb",
@@ -60,9 +60,10 @@ dependencies = [
   "types-tabulate",
   "types-requests",
   "fastapi-filter",
-  "rigging==3.0.0",
+  "rigging>=3.3.2",
   "grpcio",
   "paramiko",
+  "openai<1.100.0",
 ]
 
 [project.optional-dependencies]

@@ -829,6 +829,8 @@ class LabeledItemBase(BaseModel):
     certificate_authority_id: str | UUID4 | None = None
     manual_timeline_task_id: str | UUID4 | None = None
     suggestion_id: str | UUID4 | None = None
+    plan_id: str | UUID4 | None = None
+    plan_step_id: str | UUID4 | None = None
 
 
 class LabeledItemCreate(LabeledItemBase):
@@ -2149,6 +2151,7 @@ class SuggestionBase(BaseModel):
     c2_implant_id: str | UUID4 | None = None
     arguments: dict | None = None
     command: str | None = None
+    plan_step_id: UUID4 | str | None = None
 
 
 class SuggestionCreate(SuggestionBase):
@@ -2253,6 +2256,92 @@ class GeneratedYamlOutput(BaseModel):
     yaml: str = Field(..., description="The generated playbook template YAML string.")
 
 
+class PlanStepBase(BaseModel):
+    description: str = ''
+    order: int = 0
+    notes: Optional[str] = None
+    status: str | None = ''
+    llm_status: str | None = ''
+    plan_id: str | UUID4 | None = None
+
+
+class PlanStepCreate(PlanStepBase):
+    pass
+
+
+class PlanStepUpdate(PlanStepBase):
+    pass
+
+
+class PlanStep(PlanStepBase):
+    id: UUID4
+    suggestions: List["Suggestion"] = []
+    time_created: datetime | None = None
+    time_updated: datetime | None = None
+    labels: List["Label"] = []
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PlanBase(BaseModel):
+    name: str
+    objective: str | None = None
+    status: str | None = ''
+    llm_status: str | None = ''
+
+
+class PlanCreate(PlanBase):
+    pass
+
+
+class PlanUpdate(PlanBase):
+    name: str | None = None
+
+
+class PlanCreated(ChecklistBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID4 | str
+
+
+class Plan(PlanBase):
+    id: UUID4
+    time_created: datetime | None = None
+    time_updated: datetime | None = None
+    # steps: List[PlanStep] = []
+    labels: List["Label"] = []
+    model_config = ConfigDict(from_attributes=True)
+
+
+# Using Enum for validation at the application layer
+class LogType(str, Enum):
+    REASONING = "REASONING"
+    TOOL_CALL = "TOOL_CALL"
+
+
+class LlmLogBase(BaseModel):
+    plan_id: str | UUID4 | None = None
+    log_type: str | None = None
+    time_created: datetime | None = None
+    content: dict | None = None
+    
+
+class LlmLogCreate(LlmLogBase):
+    log_type: LogType = LogType.REASONING
+
+
+class LlmLogUpdate(LlmLogBase):
+    pass
+
+
+class LlmLogCreated(LlmLogBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID4 | str
+
+
+class LlmLog(LlmLogBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID4 | str
+
+
 ManualTimelineTask.model_rebuild()
 Issue.model_rebuild()
 CertificateAuthority.model_rebuild()
@@ -2288,3 +2377,5 @@ C2ServerType.model_rebuild()
 HarbingerYaml.model_rebuild()
 Suggestion.model_rebuild()
 Checklist.model_rebuild()
+PlanStep.model_rebuild()
+Plan.model_rebuild()

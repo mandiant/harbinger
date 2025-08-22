@@ -71,7 +71,7 @@ async def read_events(redis: Redis, groupname: str, cb: Callable[[messages_pb2.E
 async def merge_db_neo4j_host(
     session: AsyncSession,
     host: models.Host,
-    domain: models.Domain,
+    domain: schemas.Domain,
     mark_owned: bool = False,
 ):
     hostname_neo4j = ""

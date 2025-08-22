@@ -743,6 +743,60 @@ const routes: RouteRecordRaw[] = [
         display_name: 'Objectives',
         },
     }
+    ,
+    {
+        path: 'plans',
+        name: 'plans',
+        component: () => import('src/pages/PlanPage.vue'),
+        meta: {
+        icon: 'check_circle',
+        parent: 'dashboard',
+        display_name: 'Plans',
+        },
+    },
+    {
+        path: 'plans/add',
+        name: 'add_plan',
+        component: () => import('src/pages/AddPlan.vue'),
+        meta: {
+        icon: 'check_circle',
+        parent: 'plans',
+        display_name: 'Add Plan',
+        },
+    },
+    {
+        path: 'plans/:id',
+        name: 'plan',
+        component: () => import('src/pages/Plan.vue'),
+        props: true,
+        meta: {
+        icon: 'check_circle',
+        parent: 'plans',
+        display_name: 'Plan',
+        },
+    }
+    ,
+    {
+        path: 'plan_steps',
+        name: 'plan_steps',
+        component: () => import('src/pages/PlanStepPage.vue'),
+        meta: {
+        icon: 'check_circle',
+        parent: 'dashboard',
+        display_name: 'PlanStep',
+        },
+    },
+    {
+        path: 'add_plan_steps',
+        name: 'add_plan_steps',
+        component: () => import('src/pages/AddPlanStep.vue'),
+        meta: {
+        icon: 'check_circle',
+        parent: 'plan_steps',
+        display_name: 'PlanStep',
+        },
+    }
+    
     ],
   },
   {

@@ -21,6 +21,13 @@ from temporalio.client import (
     ScheduleAlreadyRunningError,
 )
 from harbinger.worker import activities, workflows
+from harbinger.worker.supervisor_workflow import (
+    PlanSupervisorWorkflow,
+    generate_initial_steps_activity,
+    handle_events_activity,
+    poll_for_stream_events_activity,
+    create_consumer_group_activity,
+)
 from harbinger.worker.client import get_client
 from harbinger.database.redis_pool import redis
 import anyio
@@ -28,6 +35,7 @@ import structlog
 import signal
 from temporalio.service import RPCError
 from harbinger.config import constants
+from rigging.logging import configure_logging
 
 
 log = structlog.get_logger()
@@ -38,6 +46,7 @@ def cli():
 
 
 async def main():
+    configure_logging("info", "out.log", "trace")
     log.info("Starting worker")
     client = await get_client()
     file_parser = activities.FileParsing()
@@ -57,9 +66,10 @@ async def main():
             workflows.CreateC2ImplantSuggestion,
             workflows.CreateDomainSuggestion,
             workflows.CreateFileSuggestion,
-            workflows.CreateChecklist,
             workflows.PlaybookDetectionRisk,
             workflows.PrivEscSuggestions,
+            workflows.GeneratePlanWorkflow,
+            PlanSupervisorWorkflow,
         ],
         activities=[
             activities.get_playbook,
@@ -103,6 +113,14 @@ async def main():
             activities.c2_job_detection_risk,
             activities.get_c2_task_output,
             activities.create_share_root_list_suggestion,
+            activities.create_plan_activity,
+            # Supervisor Activities
+            generate_initial_steps_activity,
+            handle_events_activity,
+            poll_for_stream_events_activity,
+            create_consumer_group_activity,
+            activities.set_plan_status_activity,
+            activities.check_and_finalize_plan_activity,
         ],
     )
 

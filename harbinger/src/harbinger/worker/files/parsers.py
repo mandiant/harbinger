@@ -365,10 +365,10 @@ class Dir2JsonParser(BaseFileParser):
         domain = ""
         if file.c2_implant_id:
             implant = await crud.get_c2_implant(file.c2_implant_id)
-            if implant:
+            if implant and implant.host_id:
                 host_db = await crud.get_host(implant.host_id)
                 if host_db:
-                    host = host_db.name
+                    host = host_db.name or ''
                     if host_db.fqdn:
                         host = host_db.fqdn
                     elif host_db.domain_id:

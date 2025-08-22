@@ -61,13 +61,58 @@ from pydantic import BaseModel
 import traceback
 import yaml
 import logging
+from harbinger.enums import LlmStatus, PlanStatus, PlanStepStatus
 
 settings = get_settings()
 
 log = structlog.get_logger()
 
-litellm_logger = logging.getLogger('LiteLLM')
-litellm_logger.setLevel(logging.WARNING) 
+litellm_logger = logging.getLogger("LiteLLM")
+litellm_logger.setLevel(logging.WARNING)
+
+
+@activity.defn
+async def set_plan_status_activity(plan_id: str, status: LlmStatus) -> None:
+    """Sets the LLM-specific status of a plan."""
+    async with SessionLocal() as db:
+        await crud.update_plan(
+            db, plan_id, schemas.PlanUpdate(llm_status=status)
+        )
+
+
+@activity.defn
+async def check_and_finalize_plan_activity(plan_id: str) -> bool:
+    """
+    Checks if all steps in a plan are completed or skipped. If so,
+    marks the overall plan as COMPLETED.
+    """
+    async with SessionLocal() as db:
+        plan_steps = await crud.get_plan_steps(
+            db, filters=filters.PlanStepFilter(plan_id=plan_id), limit=10000
+        )
+
+        if not plan_steps:
+            # No steps, so the plan can be considered complete.
+            log.info("Plan has no steps, marking as completed.", plan_id=plan_id)
+            await crud.update_plan(
+                db, plan_id, schemas.PlanUpdate(status=PlanStatus.COMPLETED)
+            )
+            return True
+
+        for step in plan_steps:
+            if step.status not in [PlanStepStatus.COMPLETED, PlanStepStatus.SKIPPED]:
+                # Found a step that is not in a terminal state, so the plan is not complete.
+                return False
+
+        # If we get here, all steps are either completed or skipped.
+        log.info(
+            "All plan steps are in a terminal state. Marking plan as COMPLETED.",
+            plan_id=plan_id,
+        )
+        await crud.update_plan(
+            db, plan_id, schemas.PlanUpdate(status=PlanStatus.COMPLETED)
+        )
+        return True
 
 
 @activity.defn
@@ -831,12 +876,13 @@ async def create_timeline(timeline: schemas.CreateTimeline):
                             if task.object_type == "ManualTimelineTask":
                                 files = await crud.get_files(db, filters.FileFilter(manual_timeline_task_id=task.id))
                                 if files:
-                                    file = files[0]
-                                    if file.filetype == "cast":
-                                        data = await download_file(file.path, file.bucket)
-                                        async with aiofiles.open(cast_file, "wb") as f:
-                                            await f.write(data)
-                                        cast_exists = True
+                                    for file in files:
+                                        if file.filetype == "cast":
+                                            data = await download_file(file.path, file.bucket)
+                                            async with aiofiles.open(cast_file, "wb") as f:
+                                                await f.write(data)
+                                            cast_exists = True
+                                            break
                                 else:
                                     text = [
                                         '{"version": 2, "width": 160, "height": 46, "timestamp": 0, "env": {"SHELL": "/bin/bash", "TERM": "screen-256color"}}'
@@ -854,7 +900,7 @@ async def create_timeline(timeline: schemas.CreateTimeline):
 
                             if task.object_type == "ProxyJob":
                                 cast_files = list(
-                                    await crud.get_files(db, task.id, "output.cast")
+                                    await crud.get_files(db, filters.FileFilter(job_id=task.id, search="output.cast"))
                                 )
                                 if cast_files:
                                     log.info(
@@ -935,7 +981,7 @@ async def create_timeline(timeline: schemas.CreateTimeline):
                             log.warning(f"Unable to create attack path summary: {e}")
 
                     for file in await crud.get_files(
-                        db, filetype=schemas.FileType.implant_binary
+                        db, filters.FileFilter(filetype=schemas.FileType.implant_binary)
                     ):
                         artefacts.append([file.filename, file.md5sum, file.sha1sum])
 
@@ -1408,7 +1454,7 @@ async def summarize_socks_tasks():
                         )
                         continue
                     output = ""
-                    cast_files = list(await crud.get_files(db, task.id, "output.cast"))
+                    cast_files = list(await crud.get_files(db, filters.FileFilter(job_id=task.id, search="output.cast")))
                     if cast_files:
                         file = cast_files[0]
                         output = await cast_to_text(file.path, file.bucket)
@@ -2092,6 +2138,7 @@ async def load_data_for_ai(
             tools.get_previous_suggestions,
             tools.get_socks_servers_info,
             tools.get_situational_awareness_info,
+            tools.list_filters,
         ]
     )
     if c2_implant_id:
@@ -2139,3 +2186,55 @@ async def load_data_for_ai(
     }
 
     return data
+
+
+@activity.defn
+async def create_plan_activity(objective: str, name: str) -> str:
+    """
+    Activity to generate the initial plan using an LLM. This remains an activity
+    as it's a discrete, user-initiated task that benefits from Temporal's durability.
+    """
+    activity.logger.info(f"Generating plan '{name}' for objective: {objective}")
+    
+    current_state = "Use the tools to retrieve the current state of the assignement."
+    
+    async def log_message(chats: list[rg.Chat]) -> None:
+        for chat in chats:
+            for message in chat.generated:
+                log.info(message)
+
+    
+    pipeline = (
+        prompts.generator.chat()
+        .watch(log_message)
+        .using([
+            tools.get_all_c2_implant_info, tools.get_c2_tasks_executed, tools.get_playbooks,
+            tools.get_playbook_templates, tools.get_proxies_info, tools.get_previous_suggestions,
+            tools.get_socks_servers_info, tools.get_credentials_info, tools.get_situational_awareness_info,
+            tools.get_domains_info, tools.get_undownloaded_share_files, tools.get_unindexed_share_folders,
+            tools.get_hosts, tools.get_network_shares, tools.list_filters,
+            tools.create_suggestion_for_plan_step,
+        ])
+    )
+    run = prompts.generate_testing_plan.bind(pipeline)
+    llm_response: prompts.GeneratedPlan = await run(objective, current_state)
+    print(llm_response)
+    async with SessionLocal() as db:
+        plan_schema = schemas.PlanCreate(name=name, objective=objective)
+        _, plan = await crud.create_plan(db, plan=plan_schema)
+
+        for step_data in llm_response.steps:
+            step_schema = schemas.PlanStepCreate(plan_id=plan.id, **step_data.model_dump())
+            await crud.create_plan_step(db, plan_step=step_schema)
+            
+        activity.logger.info(f"Successfully created plan {plan.id} with {len(llm_response.steps)} steps.")
+        return str(plan.id)
+
+
+@activity.defn
+async def set_plan_status_activity(plan_id: str, status: LlmStatus) -> None:
+    """Sets the llm_status for a given plan."""
+    plan_uuid = uuid.UUID(plan_id)
+    async with SessionLocal() as db:
+        await crud.update_plan(db, plan_uuid, schemas.PlanUpdate(llm_status=status))
+    log.info("Set plan status", plan_id=plan_id, status=status)

@@ -239,6 +239,16 @@
       </q-item-section>
     </q-item>
 
+    <q-item clickable v-ripple to="/plans" exact :class="$q.dark.isActive ? 'text-white' : 'text-black'">
+      <q-item-section avatar>
+        <q-icon name="checklist" color="secondary" />
+      </q-item-section>
+      <q-item-section>Plans</q-item-section>
+      <q-item-section side v-if="data['plans'] > 0">
+        <q-badge color="secondary" :label="data['plans']" />
+      </q-item-section>
+    </q-item>
+
     <q-item clickable v-ripple to="/proxy_jobs" exact :class="$q.dark.isActive ? 'text-white' : 'text-black'">
       <q-item-section avatar>
         <q-icon name="share" color="secondary" />
