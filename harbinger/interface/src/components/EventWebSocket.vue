@@ -64,7 +64,7 @@ storeMap.set('highlights', defineTypedStore<Highlight>('highlights')());
 storeMap.set('hashes', defineTypedStore<Hash>('hashes')());
 storeMap.set('parse_results', defineTypedStore<ParseResult>('parse_results')());
 storeMap.set('settings', defineTypedStore<Setting>('settings')());
-storeMap.set('socks_servers', defineTypedStore<SocksServer>('socks_servers')());
+storeMap.set('socks_servers', defineTypedStore<SocksServer>('socks/servers')());
 storeMap.set('actions', defineTypedStore<Action>('actions')());
 storeMap.set('issues', defineTypedStore<Issue>('issues')());
 storeMap.set('suggestions', defineTypedStore<Suggestion>('suggestions')());

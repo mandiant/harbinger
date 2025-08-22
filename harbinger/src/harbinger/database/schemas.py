@@ -1490,6 +1490,11 @@ class ShareFileCreate(ShareFileBase):
             self.depth = depth
 
 
+class ShareFileUpdate(ShareFileBase):
+    name: str | None = None
+    type: str | None = None
+
+
 class ShareFile(ShareFileBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4

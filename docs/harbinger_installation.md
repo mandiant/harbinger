@@ -41,7 +41,7 @@ harbinger_server:
     harbinger_neo4j_user: neo4j
     harbinger_neo4j_password: neo4j_password_here
     # if you want to enable gemini based processing, leave empty if not needed
-    harbinger_gemini_api_key: api_key_here
+    harbinger_gemini_key: api_key_here
     # Change the hostname, will default to your inventory name.
     harbinger_domain_name: harbinger1.local
     # Change from this value if you want it to listen on another port
@@ -68,7 +68,7 @@ harbinger_server:
     harbinger_neo4j_user: neo4j
     harbinger_neo4j_password: neo4j_password_here
     # if you want to enable gemini based processing, leave empty if not needed
-    harbinger_gemini_api_key: api_key_here
+    harbinger_gemini_key: api_key_here
 ```
 
 Run the ansible playbook:

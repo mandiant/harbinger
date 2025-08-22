@@ -9,11 +9,10 @@ from alembic import op
 from harbinger.database.models import (
     Domain, Password, Kerberos, Credential, Proxy, InputFile,
     Component, ProxyJob, File, Playbook, PlaybookStep, PlaybookStepModifier,
-    C2Job, Host, Process, PlaybookTemplate, Label, LabeledItem,
+    C2Job, Host, Process, Label, LabeledItem,
     C2Server, C2ServerStatus, C2Implant, SituationalAwareness, Share,
-    ShareFile, Highlight, Hash, ParseResult, Setting,
-    SocksServer, Action, CertificateAuthority, CertificateTemplate,
-    C2ServerType, C2ServerArguments, Suggestion
+    ShareFile, Highlight, Hash, ParseResult, SocksServer, Action, CertificateAuthority,
+    CertificateTemplate, C2ServerType, C2ServerArguments, Suggestion
 )
 
 
@@ -85,9 +84,9 @@ def upgrade():
     models_to_trigger = [
         Domain, Password, Kerberos, Credential, Proxy, ProxyJob, InputFile,
         Component, File, Playbook, PlaybookStep, PlaybookStepModifier,
-        C2Job, Host, Process, PlaybookTemplate, Label, LabeledItem,
+        C2Job, Host, Process, Label, LabeledItem,
         C2Server, C2ServerStatus, C2Implant, SituationalAwareness, Share,
-        ShareFile, Highlight, Hash, ParseResult, Setting, SocksServer, Action,
+        ShareFile, Highlight, Hash, ParseResult, SocksServer, Action,
         CertificateAuthority, CertificateTemplate, C2ServerType,
         C2ServerArguments, Suggestion
     ]
@@ -106,9 +105,9 @@ def downgrade():
     models_to_trigger = [
         Domain, Password, Kerberos, Credential, Proxy, ProxyJob, InputFile,
         Component, File, Playbook, PlaybookStep, PlaybookStepModifier,
-        C2Job, Host, Process, PlaybookTemplate, Label, LabeledItem,
+        C2Job, Host, Process, Label, LabeledItem,
         C2Server, C2ServerStatus, C2Implant, SituationalAwareness, Share,
-        ShareFile, Highlight, Hash, ParseResult, Setting, SocksServer, Action,
+        ShareFile, Highlight, Hash, ParseResult, SocksServer, Action,
         CertificateAuthority, CertificateTemplate, C2ServerType,
         C2ServerArguments, Suggestion
     ]
