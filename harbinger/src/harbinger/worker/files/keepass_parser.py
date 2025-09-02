@@ -65,29 +65,18 @@ class KeePassParser(BaseFileParser):
         database_name = os.path.splitext(base)[0]
 
         file_signature = hexlify(data[0:8])
-        version = struct.unpack("<I", data[8:12])[0]
 
         try:
-            if version >= 0x00040000:
-                return self._process_kdbx4_database(filename, data)
-            if version == 0x00030001:
-                return self._process_3x_database(data, database_name)
-            if file_signature in self.processing_mapping:
-                return self.processing_mapping[file_signature](data, database_name)
+            return self.processing_mapping[file_signature](data, database_name)
         except KeyError:
             log.error("KeePass signature unrecognized")
-        except Exception as e:
-            log.error(f"ERROR processing {filename}: {str(e)}")
         return None
 
     def _stringify_hex(self, hex_bytes: bytes) -> str:
         return hexlify(hex_bytes).decode("utf-8")
 
     def _process_1x_database(
-        self,
-        data: bytes,
-        database_name: str,
-        max_inline_size: int = 1024,
+        self, data: bytes, database_name: str, max_inline_size: int = 1024
     ) -> str:
         index = 8
         algorithm = -1
@@ -152,16 +141,24 @@ class KeePassParser(BaseFileParser):
 
             if btFieldID == 0:
                 end_reached = True
+
             if btFieldID == 4:
                 master_seed = self._stringify_hex(data[index : index + uSize])
+
             if btFieldID == 5:
                 transform_seed = self._stringify_hex(data[index : index + uSize])
+
             if btFieldID == 6:
                 transform_rounds = struct.unpack("Q", data[index : index + 8])[0]
+
             if btFieldID == 7:
                 iv_parameters = self._stringify_hex(data[index : index + uSize])
+
             if btFieldID == 9:
-                expected_start_bytes = self._stringify_hex(data[index : index + uSize])
+                expected_start_bytes = self._stringify_hex(
+                    data[index : index + uSize]
+                )
+
             index += uSize
 
         dataStartOffset = index
@@ -169,132 +166,10 @@ class KeePassParser(BaseFileParser):
 
         return f"$keepass$*2*{transform_rounds}*{dataStartOffset}*{master_seed}*{transform_seed}*{iv_parameters}*{expected_start_bytes}*{firstEncryptedBytes}"
 
-    def _parse_kdf_parameters(self, kdf_data: bytes) -> dict:
-        params = {}
-        index = 0
-        if not kdf_data:
-            return params
-        index += 2  # version
-        while index < len(kdf_data):
-            value_type = kdf_data[index]
-            index += 1
-            if value_type == 0:
-                break
-            key_len = struct.unpack("<I", kdf_data[index : index + 4])[0]
-            index += 4
-            key_name = kdf_data[index : index + key_len].decode("utf-8", errors="ignore")
-            index += key_len
-            val_len = struct.unpack("<I", kdf_data[index : index + 4])[0]
-            index += 4
-            if val_len > 0:
-                value = kdf_data[index : index + val_len]
-                index += val_len
-                if value_type == 0x04 and val_len == 4:
-                    params[key_name] = struct.unpack("<I", value)[0]
-                elif value_type == 0x05 and val_len == 8:
-                    params[key_name] = struct.unpack("<Q", value)[0]
-                elif value_type == 0x08 and val_len == 1:
-                    params[key_name] = bool(value[0])
-                elif value_type == 0x18:
-                    params[key_name] = value.decode("utf-8", errors="ignore")
-                elif value_type == 0x42:
-                    params[key_name] = value
-                    if key_name == "$UUID" and len(value) >= 16:
-                        params["$UUID_bytes"] = value
-        return params
-
-    def _process_kdbx4_database(self, filename: str, data: bytes) -> str:
-        with open(filename, "rb") as f:
-            f.seek(0)
-            complete_header_data = f.read(12)
-            header_fields = {}
-            while True:
-                field_id_byte = f.read(1)
-                if not field_id_byte or field_id_byte[0] == 0:
-                    break
-                field_id = field_id_byte[0]
-                field_size = struct.unpack("<I", f.read(4))[0]
-                field_data = f.read(field_size)
-                header_fields[field_id] = field_data
-                complete_header_data += (
-                    field_id_byte + struct.pack("<I", field_size) + field_data
-                )
-            header_hash = f.read(8)
-            complete_header_data += b"\x00" + header_hash
-            f.read(32)
-            header_hmac = f.read(32)
-
-        master_seed = header_fields.get(4, b"")
-        kdf_params_data = header_fields.get(11, b"")
-        kdf_params = self._parse_kdf_parameters(kdf_params_data)
-        kdf_uuid_bytes = kdf_params.get("$UUID", b"")
-        kdf_uuid_str = (
-            f"{struct.unpack('>I', struct.pack('<I', struct.unpack('<I', kdf_uuid_bytes[:4])[0]))[0]:08x}"
-            if kdf_uuid_bytes and len(kdf_uuid_bytes) >= 4
-            else "00000000"
-        )
-        iterations = kdf_params.get("I", kdf_params.get("R", 0))
-        memory = kdf_params.get("M", 0)
-        parallelism = kdf_params.get("P", 0)
-        salt = kdf_params.get("S", b"")
-        v = kdf_params.get("V", 0)
-        transform_seed = salt
-        database_name = os.path.basename(filename)
-
-        return f"$keepass$*4*{iterations}*{kdf_uuid_str}*{memory}*{v}*{parallelism}*{self._stringify_hex(master_seed)}*{self._stringify_hex(transform_seed)}*{self._stringify_hex(complete_header_data)}*{self._stringify_hex(header_hmac)}"
-
-    def _process_3x_database(self, data: bytes, database_name: str) -> str:
-        index = 12
-        end_reached = False
-        master_seed = b""
-        transform_seed = b""
-        transform_rounds = 0
-        iv_parameters = b""
-        expected_start_bytes = b""
-        algorithm = 0
-        kdf_params_data = b""
-
-        while not end_reached:
-            btFieldID = struct.unpack("B", data[index : index + 1])[0]
-            index += 1
-            uSize = struct.unpack("<I", data[index : index + 4])[0]
-            index += 4
-            if btFieldID == 0:
-                end_reached = True
-                continue
-            # ... (rest of the parsing logic for 3.x)
-            index += uSize
-
-        header_hash = data[index : index + 32]
-        index += 32
-        header_hmac = data[index : index + 32]
-        index += 32
-        first_encrypted_bytes = data[index : index + 32]
-
-        if kdf_params_data:
-            kdf_params = self._parse_kdf_parameters(kdf_params_data)
-            kdf_uuid_bytes = kdf_params.get("$UUID_bytes", b"")
-            kdf_uuid_str = (
-                f"{struct.unpack('<I', kdf_uuid_bytes[:4])[0]:08x}"
-                if kdf_uuid_bytes and len(kdf_uuid_bytes) >= 4
-                else "00000000"
-            )
-            kdf_uuid_str = "".join(
-                [kdf_uuid_str[i : i + 2] for i in range(6, -1, -2)]
-            )
-            iterations = kdf_params.get("I", kdf_params.get("R", transform_rounds))
-            memory = kdf_params.get("M", 0)
-            parallelism = kdf_params.get("P", 0)
-            salt = kdf_params.get("S", transform_seed)
-            complete_header_data = data[:index]
-            return f"$keepass$*4*{iterations}*{kdf_uuid_str}*{memory}*{parallelism}*{self._stringify_hex(master_seed)}*{self._stringify_hex(salt)}*{self._stringify_hex(complete_header_data)}*{self._stringify_hex(header_hmac)}"
-        else:
-            return f"$keepass$*3*{transform_rounds}*{algorithm}*{self._stringify_hex(master_seed)}*{self._stringify_hex(transform_seed)}*{self._stringify_hex(iv_parameters)}*{self._stringify_hex(expected_start_bytes)}*{self._stringify_hex(header_hash)}*{self._stringify_hex(header_hmac)}*{self._stringify_hex(first_encrypted_bytes)}"
-
     @property
     def processing_mapping(self):
         return {
-            b"03d9a29a67fb4bb5": self._process_2x_database,
-            b"03d9a29a66fb4bb5": self._process_2x_database,
-            b"03d9a29a65fb4bb5": self._process_1x_database,
+            b"03d9a29a67fb4bb5": self._process_2x_database,  # "2.X"
+            b"03d9a29a66fb4bb5": self._process_2x_database,  # "2.X pre release"
+            b"03d9a29a65fb4bb5": self._process_1x_database,  # "1.X"
         }
