@@ -16,7 +16,7 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <q-card flat class="q-pa-md" v-if="job">
       <q-linear-progress :value="100" rounded color="positive" class="q-mt-sm" v-if="job.status === 'completed'" />
       <q-linear-progress :value="100" rounded color="negative" class="q-mt-sm" v-else-if="job.status === 'error'" />
@@ -44,7 +44,7 @@ import { api } from 'boot/axios';
 import { ref, toRefs, computed, watch } from 'vue';
 import { useQuasar } from 'quasar';
 import { ProxyJob } from '../models';
-import BreadCrumb from '../components/BreadCrumb.vue';
+
 import ProxyJobComponent from 'src/components/ProxyJob.vue';
 import { defineTypedStore } from 'src/stores/datastore';
 

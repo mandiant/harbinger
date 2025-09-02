@@ -16,14 +16,14 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <c2-task :task_id="task_id" />
   </q-page>
 </template>
 
 <script setup lang="ts">
 import { toRefs } from 'vue';
-import BreadCrumb from '../components/BreadCrumb.vue';
+
 import C2Task from 'src/components/C2Task.vue';
 const props = defineProps({
   task_id: {

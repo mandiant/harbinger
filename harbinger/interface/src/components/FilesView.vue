@@ -30,13 +30,36 @@
       </q-btn>
     </div>
     <q-table :rows-per-page-options="[ 5, 10, 15, 20, 25, 50, 100 ]" title="Files" :rows="data" row-key="id" :columns="columns" :loading="loading"
-      v-model:pagination="pagination" @request="fileStore.onRequest" :visible-columns="visible">
-      <template v-slot:top>
-        <div class="col-2 q-table__title">Files</div>
+      v-model:pagination="pagination" @request="fileStore.onRequest" :visible-columns="visible" selection="multiple" v-model:selected="selected">
+      <template v-slot:top="props">
+        <div class="col-2 q-table__title" v-if="selected.length === 0">Files</div>
+
+        <div v-if="selected.length > 0" class="row items-center q-gutter-sm">
+          <bulk-label-actions :selected="selected" object-type="file" @update="selected = []; fileStore.LoadData()" />
+          <q-btn dense icon="clear" @click="selected = []" flat>
+            <q-tooltip>Clear Selection</q-tooltip>
+          </q-btn>
+          <div>{{ selected.length }} item(s) selected</div>
+        </div>
+
         <q-space />
-        <filter-view object-type="files" v-model="filters" v-on:updateFilters="fileStore.updateFilters" />
-        <q-select v-model="visible" multiple borderless dense options-dense :display-value="$q.lang.table.columns"
-          emit-value map-options :options="columns" option-value="name" style="min-width: 150px">
+
+        <filter-view v-if="selected.length === 0" object-type="files" v-model="filters" v-on:updateFilters="fileStore.updateFilters" />
+        
+        <q-select
+          v-if="selected.length === 0"
+          v-model="visible"
+          multiple
+          borderless
+          dense
+          options-dense
+          :display-value="$q.lang.table.columns"
+          emit-value
+          map-options
+          :options="columns"
+          option-value="name"
+          style="min-width: 150px"
+        >
           <template v-slot:option="{ itemProps, opt, selected, toggleOption }">
             <q-item v-bind="itemProps">
               <q-item-section>
@@ -49,8 +72,16 @@
           </template>
         </q-select>
       </template>
+
+      <template v-slot:header-selection="scope">
+        <q-checkbox v-model="scope.selected" />
+      </template>
+
       <template v-slot:body="props">
         <q-tr :props="props" class="cursor-pointer">
+          <q-td>
+            <q-checkbox v-model="props.selected" />
+          </q-td>
           <q-td key="id" :props="props">
             {{ props.row.id }}
           </q-td>
@@ -156,7 +187,10 @@ import { useFileStore } from 'src/stores/files';
 import { useRouter } from 'vue-router';
 import FilterView from '../components/FilterView.vue';
 import { defineTypedStore } from 'src/stores/datastore';
-import { storeToRefs } from 'pinia'
+import { storeToRefs } from 'pinia';
+import BulkLabelActions from './BulkLabelActions.vue';
+
+const selected = ref([]);
 
 // Data store which caches files.
 const useFiles = defineTypedStore<File>('files');
@@ -171,7 +205,7 @@ fileStore.Load();
 
 const $q = useQuasar();
 
-const visible = ref(['id', 'filetype', 'filename', 'magic_mimetype', 'magika_mimetype', 'labels'])
+const visible = ref(['filetype', 'filename', 'magic_mimetype', 'magika_mimetype', 'labels'])
 
 const showDialog = ref(false);
 const output = ref('');

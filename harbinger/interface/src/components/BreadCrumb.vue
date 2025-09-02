@@ -30,12 +30,19 @@
 </template>
 
 <script setup lang="ts">
-import { RouteLocation, useRouter } from 'vue-router';
-import { ref } from 'vue';
+import { RouteLocation, useRouter, useRoute } from 'vue-router';
+import { ref, watch } from 'vue';
 
 const $router = useRouter();
-
+const route = useRoute();
 const routes = ref<Array<RouteLocation>>([]);
+
+function buildBreadcrumbs(routeName: string | null | undefined) {
+  routes.value = [];
+  if (routeName) {
+    LoadParent(routeName.toString());
+  }
+}
 
 function LoadParent(routename: string) {
   let resolved = $router.resolve({ name: routename });
@@ -49,9 +56,10 @@ function LoadParent(routename: string) {
   }
 }
 
-if ($router.currentRoute.value.name) {
-  LoadParent($router.currentRoute.value.name.toString());
-}
+watch(() => route.name, (newRouteName) => {
+  buildBreadcrumbs(newRouteName);
+}, { immediate: true });
+
 
 function getIcon(route: RouteLocation) {
   if (route.meta.icon) {

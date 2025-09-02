@@ -16,7 +16,7 @@
 
 <template>
     <q-page padding>
-        <bread-crumb />
+        
         <q-card flat class="q-pa-md">
             <q-card-section>
                 <h5>Add an entry to the timeline</h5>

@@ -16,7 +16,7 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <q-card flat class="q-pa-md">
       <q-card-section>
         <h5>Use AI to suggest actions</h5>
@@ -44,7 +44,7 @@ import { useQuasar } from 'quasar';
 import { ref } from 'vue';
 import { api } from 'boot/axios';
 import { useRouter } from 'vue-router';
-import BreadCrumb from '../components/BreadCrumb.vue';
+
 import C2ImplantSelect from '../components/C2ImplantSelect.vue';
 
 

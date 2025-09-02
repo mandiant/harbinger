@@ -16,7 +16,7 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <q-card flat class="q-pa-md">
       <q-card-section>
         <h5>Add a c2 server</h5>
@@ -46,7 +46,7 @@ import { useQuasar } from 'quasar';
 import { ref, watch } from 'vue';
 import { api } from 'boot/axios';
 import { useRouter } from 'vue-router';
-import BreadCrumb from '../components/BreadCrumb.vue';
+
 import useloadData from 'src/load-data';
 import { C2ServerType } from 'src/models'
 

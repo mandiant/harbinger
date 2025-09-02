@@ -16,7 +16,7 @@
 
 <template>
     <q-page padding>
-      <bread-crumb />
+      
       <certificate-template-list />
     </q-page>
   </template>

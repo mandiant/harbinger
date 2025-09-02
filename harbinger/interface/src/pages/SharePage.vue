@@ -16,7 +16,7 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <share-view :share_id="id"/>
   </q-page>
 </template>
@@ -24,7 +24,7 @@
 <script setup lang="ts">
 import { toRefs } from 'vue';
 
-import BreadCrumb from '../components/BreadCrumb.vue';
+
 import ShareView from 'src/components/ShareView.vue';
 
 const props = defineProps({

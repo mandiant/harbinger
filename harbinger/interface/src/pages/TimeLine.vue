@@ -16,7 +16,7 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <div class="row q-gutter-sm">
       <q-btn color="secondary" icon="refresh" @click="timelineStore.LoadData()">Refresh</q-btn>
       <q-btn color="secondary" icon="add_circle" to="timeline/add">Add entry</q-btn>
@@ -87,7 +87,7 @@
 
 <script setup lang="ts">
 import { useQuasar } from 'quasar';
-import BreadCrumb from '../components/BreadCrumb.vue';
+
 import { Timeline } from '../models';
 import { QTableProps } from 'quasar';
 import { Truncate } from 'src/truncate';

@@ -16,7 +16,7 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <q-card flat class="q-pa-md">
       <q-card-section>
         <add-proxy-job-template v-model="job_id" @update:model-value="Goto()" />
@@ -27,7 +27,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import BreadCrumb from '../components/BreadCrumb.vue';
+
 import AddProxyJobTemplate from 'src/components/AddProxyJobTemplate.vue';
 import { useRouter } from 'vue-router';
 

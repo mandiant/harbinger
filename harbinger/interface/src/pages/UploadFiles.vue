@@ -16,7 +16,7 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <q-card flat class="q-pa-md">
       <q-card-section>
         <h5>Upload multiple files</h5>
@@ -49,5 +49,5 @@
 </style>
 
 <script setup lang="ts">
-import BreadCrumb from '../components/BreadCrumb.vue';
+
 </script>

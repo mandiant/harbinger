@@ -16,7 +16,7 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <q-card flat class="q-pa-md">
       <q-card-section>
         <q-form @submit="onSubmit" @reset="onReset" class="q-gutter-md">
@@ -44,7 +44,7 @@ import { ref } from 'vue';
 import { api } from 'boot/axios'
 import { useRouter } from 'vue-router';
 
-import BreadCrumb from '../components/BreadCrumb.vue';
+
 
 const hour_offset = ref(0);
 const loading = ref(false);
