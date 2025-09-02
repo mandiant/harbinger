@@ -16,7 +16,7 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <q-tabs v-model="tab" dense class="text-grey" active-color="primary" indicator-color="primary" align="justify"
       narrow-indicator>
       <q-tab icon="settings" name="harbinger" label="Harbinger Settings"
@@ -34,7 +34,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import BreadCrumb from '../components/BreadCrumb.vue';
+
 import HarbingerSettings from 'src/components/HarbingerSettings.vue';
 import UserSettings from 'src/components/UserSettings.vue';
 

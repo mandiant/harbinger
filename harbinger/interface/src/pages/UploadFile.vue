@@ -16,7 +16,7 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <q-card flat class="q-pa-md">
       <q-card-section>
         <h5>Upload a file</h5>
@@ -37,7 +37,7 @@ import { ref } from 'vue';
 import { useQuasar } from 'quasar';
 import { api } from 'src/boot/axios';
 import { useRouter } from 'vue-router';
-import BreadCrumb from '../components/BreadCrumb.vue';
+
 import { useFileStore } from 'src/stores/files';
 
 const $q = useQuasar();

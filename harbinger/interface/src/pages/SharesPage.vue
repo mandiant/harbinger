@@ -16,13 +16,13 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <shares-list />
   </q-page>
 </template>
 
 <script setup lang="ts">
-import BreadCrumb from '../components/BreadCrumb.vue';
+
 import SharesList from 'src/components/SharesList.vue';
 import { useCounterStore } from 'src/stores/object-counters';
 

@@ -16,7 +16,7 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <div class="row q-gutter-sm">
       <q-btn color="secondary" icon="add_circle" to="labels/add">
         Add label
@@ -50,7 +50,7 @@
 </template>
 
 <script setup lang="ts">
-import BreadCrumb from '../components/BreadCrumb.vue';
+
 import { Label } from '../models';
 import { QTableProps } from 'quasar';
 import { useCounterStore } from 'src/stores/object-counters';

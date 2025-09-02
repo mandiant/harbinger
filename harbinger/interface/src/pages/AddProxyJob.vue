@@ -16,7 +16,7 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <q-card flat class="q-pa-md">
       <q-card-section>
         <h5>Add a socks job</h5>
@@ -29,7 +29,7 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
 import { ref, watch } from 'vue';
-import BreadCrumb from '../components/BreadCrumb.vue';
+
 import AddProxyJob from 'src/components/AddProxyJob.vue';
 
 const $router = useRouter();

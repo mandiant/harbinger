@@ -16,20 +16,28 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <div class="row q-gutter-sm">
       <q-btn color="secondary" icon="add_circle" to="credentials/add">Add credential</q-btn>
       <q-btn color="secondary" icon="refresh" @click="store.LoadData()">Refresh</q-btn>
     </div>
     <q-table :rows-per-page-options="[5, 10, 15, 20, 25, 50, 100]" title="Credential" :rows="data" row-key="id"
       :columns="columns" :loading="loading" v-model:pagination="pagination" @request="store.onRequest"
-      :visible-columns="visible">
-      <template v-slot:top> 
+      :visible-columns="visible" selection="multiple" v-model:selected="selected">
+      <template v-slot:top>
         <div class="row items-center" style="width: 100%;">
-          <div class="col-auto q-table__title">Credentials</div>
+          <div class="col-auto q-table__title" v-if="selected.length === 0">Credentials</div>
+          <div v-if="selected.length > 0" class="row items-center q-gutter-sm">
+            <bulk-label-actions :selected="selected" object-type="credential" @update="selected = []; store.LoadData()" />
+            <q-btn dense icon="clear" @click="selected = []" flat>
+              <q-tooltip>Clear Selection</q-tooltip>
+            </q-btn>
+            <div>{{ selected.length }} item(s) selected</div>
+          </div>
           <q-space />
-          <q-select v-model="visible" multiple borderless dense options-dense :display-value="$q.lang.table.columns"
-            emit-value map-options :options="columns" option-value="name" style="min-width: 150px">
+          <q-select v-if="selected.length === 0" v-model="visible" multiple borderless dense options-dense
+            :display-value="$q.lang.table.columns" emit-value map-options :options="columns" option-value="name"
+            style="min-width: 150px">
             <template v-slot:option="{ itemProps, opt, selected, toggleOption }">
               <q-item v-bind="itemProps">
                 <q-item-section>
@@ -43,13 +51,18 @@
           </q-select>
         </div>
         <div class="row" style="width: 100%;">
-          <filter-view object-type="credentials" v-model="filters" @updateFilters="store.updateFilters"
-            class="full-width" />
+          <filter-view v-if="selected.length === 0" object-type="credentials" v-model="filters"
+            @updateFilters="store.updateFilters" class="full-width" />
         </div>
       </template>
-
+      <template v-slot:header-selection="scope">
+        <q-checkbox v-model="scope.selected" />
+      </template>
       <template v-slot:body="props">
         <q-tr :props="props">
+          <q-td>
+            <q-checkbox v-model="props.selected" />
+          </q-td>
           <q-td key="id" :props="props">
             {{ props.row.id }}
           </q-td>
@@ -93,9 +106,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-
 import { Password, Credential, Kerberos } from '../models';
-import BreadCrumb from '../components/BreadCrumb.vue';
 import { useCounterStore } from 'src/stores/object-counters';
 import useMark from 'src/mark-owned';
 import { QTableProps } from 'quasar';
@@ -103,9 +114,11 @@ import LabelsList from '../components/LabelsList.vue';
 import FilterView from '../components/FilterView.vue';
 import { Truncate } from 'src/truncate';
 import { defineTypedStore } from 'src/stores/datastore';
-import { storeToRefs } from 'pinia'
+import { storeToRefs } from 'pinia';
+import BulkLabelActions from 'src/components/BulkLabelActions.vue';
 
 const counter_store = useCounterStore();
+const selected = ref([]);
 
 counter_store.clear('credentials');
 

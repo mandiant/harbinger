@@ -16,7 +16,7 @@
 
 <template>
 <q-page padding>
-    <bread-crumb />
+    
     <check-list />
 </q-page>
 </template>

@@ -16,13 +16,13 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <files-view />
 </q-page>
 </template>
 
 <script setup lang="ts">
-import BreadCrumb from '../components/BreadCrumb.vue';
+
 import { useCounterStore } from 'src/stores/object-counters';
 import FilesView from 'src/components/FilesView.vue';
 const store = useCounterStore();

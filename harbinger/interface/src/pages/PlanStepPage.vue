@@ -1,7 +1,7 @@
 //PlanStepPage.vue
 <template>
 <q-page padding>
-    <bread-crumb />
+    
     <plan_step-list />
 </q-page>
 </template>

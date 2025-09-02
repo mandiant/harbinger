@@ -16,15 +16,32 @@
 
 <template>
   <q-page padding>
-    <bread-crumb />
+    
     <div class="row q-gutter-sm">
       <q-btn color="secondary" icon="refresh" @click="store.LoadData()">Refresh</q-btn>
       <q-btn color="secondary" icon="download" @click="exportHashes()">Export</q-btn>
     </div>
     <q-table :rows-per-page-options="[ 5, 10, 15, 20, 25, 50, 100 ]" title="Hashes" :rows="data" row-key="id" :columns="columns" :loading="loading"
-      v-model:pagination="pagination" @request="store.onRequest">
+      v-model:pagination="pagination" @request="store.onRequest" selection="multiple" v-model:selected="selected">
+      <template v-slot:top>
+        <div class="col-2 q-table__title" v-if="selected.length === 0">Hashes</div>
+        <div v-if="selected.length > 0" class="row items-center q-gutter-sm">
+            <bulk-label-actions :selected="selected" object-type="hash" @update="selected = []; store.LoadData()" />
+            <q-btn dense icon="clear" @click="selected = []" flat>
+              <q-tooltip>Clear Selection</q-tooltip>
+            </q-btn>
+            <div>{{ selected.length }} item(s) selected</div>
+          </div>
+        <q-space />
+      </template>
+      <template v-slot:header-selection="scope">
+        <q-checkbox v-model="scope.selected" />
+      </template>
       <template v-slot:body="props">
         <q-tr :props="props" class="cursor-pointer">
+            <q-td>
+            <q-checkbox v-model="props.selected" />
+          </q-td>
           <q-td key="type" :props="props">
             {{ props.row.type }}
           </q-td>
@@ -47,21 +64,23 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
 import { useQuasar, copyToClipboard } from 'quasar';
-import BreadCrumb from '../components/BreadCrumb.vue';
 import { Hash } from '../models';
 import { useCounterStore } from 'src/stores/object-counters';
 import { QTableProps } from 'quasar';
 import LabelsList from '../components/LabelsList.vue';
 import { api } from 'src/boot/axios';
 import { defineTypedStore } from 'src/stores/datastore';
-import { storeToRefs } from 'pinia'
+import { storeToRefs } from 'pinia';
+import BulkLabelActions from 'src/components/BulkLabelActions.vue';
 
 const useStore = defineTypedStore<Hash>('hashes');
 const store = useStore();
 const { loading, data, pagination } = storeToRefs(store);
 store.Load();
 
+const selected = ref([]);
 const $q = useQuasar();
 
 const counter_store = useCounterStore();

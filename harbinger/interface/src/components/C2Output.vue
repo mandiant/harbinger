@@ -17,6 +17,7 @@
 <template>
   <q-card-section class="row q-gutter-sm">
     <div class="text-h6">Output</div>
+    {{  task_id }}
     <q-btn color="secondary" icon="download" @click="exportOutput()">Export</q-btn>
     <q-btn color="secondary" icon="refresh" @click="store.LoadData">Refresh</q-btn>
   </q-card-section>

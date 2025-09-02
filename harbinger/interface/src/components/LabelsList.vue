@@ -61,6 +61,9 @@ const emit = defineEmits(['update:modelValue']);
 
 // from https://stackoverflow.com/a/12043228
 function calcColor(label: Label) {
+  if (!label.color || typeof label.color !== 'string') {
+    return 'black'; // Return a default color if none is provided
+  }
   var c = label.color.substring(1);      // strip #
   var rgb = parseInt(c, 16);   // convert rrggbb to decimal
   var r = (rgb >> 16) & 0xff;  // extract red
