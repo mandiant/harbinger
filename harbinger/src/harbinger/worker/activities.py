@@ -39,6 +39,7 @@ from exiftool import ExifToolHelper
 from exiftool.exceptions import ExifToolExecuteError
 from pathlib import Path
 from harbinger.worker.files import parsers
+from harbinger.worker.files.keepass_parser import KeePassParser
 from harbinger.files.client import upload_file, download_file
 from harbinger.config import get_settings
 from sqlalchemy.exc import IntegrityError
@@ -69,15 +70,6 @@ log = structlog.get_logger()
 
 litellm_logger = logging.getLogger("LiteLLM")
 litellm_logger.setLevel(logging.WARNING)
-
-
-@activity.defn
-async def set_plan_status_activity(plan_id: str, status: LlmStatus) -> None:
-    """Sets the LLM-specific status of a plan."""
-    async with SessionLocal() as db:
-        await crud.update_plan(
-            db, plan_id, schemas.PlanUpdate(llm_status=status)
-        )
 
 
 @activity.defn
@@ -664,7 +656,10 @@ class FileParsing:
 
     @activity.defn(name="process_kdbx")
     async def process_kdbx(self, file: schemas.File) -> None:
-        pass
+        async with SessionLocal() as session:
+            async with get_async_neo4j_session_context() as graphsession:
+                p = KeePassParser()
+                await p.base_parse(session, graphsession, file)
 
     @activity.defn(name="process_cast")
     async def process_cast(self, file: schemas.File) -> None:
