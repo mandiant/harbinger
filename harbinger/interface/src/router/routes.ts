@@ -45,7 +45,7 @@ const routes: RouteRecordRaw[] = [
         meta: { icon: 'dashboard', display_name: 'Dashboard' },
       },
       {
-        path: 'proxy_jobs',
+        path: '/proxy_jobs',
         name: 'proxy_jobs',
         component: () => import('src/pages/ProxyJobs.vue'),
         meta: {
@@ -57,14 +57,14 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'proxy_jobs/:id',
+        path: '/proxy_jobs/:id',
         name: 'proxy_job',
         component: () => import('src/pages/ProxyJob.vue'),
         props: true,
         meta: { icon: 'work', parent: 'proxy_jobs', display_name: 'Socks Job' },
       },
       {
-        path: 'proxy_jobs/add',
+        path: '/proxy_jobs/add',
         name: 'add_proxy_job',
         component: () => import('src/pages/AddProxyJob.vue'),
         meta: {
@@ -74,7 +74,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'proxy_jobs/add_from_template',
+        path: '/proxy_jobs/add_from_template',
         name: 'add_proxy_job_from_template',
         component: () => import('src/pages/AddProxyJobTemplate.vue'),
         meta: {
@@ -84,7 +84,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'playbooks',
+        path: '/playbooks',
         name: 'playbooks',
         component: () => import('src/pages/JobChains.vue'),
         meta: {
@@ -96,20 +96,20 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'playbooks/:id',
+        path: '/playbooks/:id',
         name: 'playbook',
         component: () => import('src/pages/JobChain.vue'),
         props: true,
         meta: { icon: 'link', parent: 'playbooks', display_name: 'Playbook' },
       },
       {
-        path: 'playbooks/add',
+        path: '/playbooks/add',
         name: 'add_playbook',
         component: () => import('src/pages/AddProxyJobChain.vue'),
         meta: { icon: 'add', parent: 'playbooks', display_name: 'Add a playbook' },
       },
       {
-        path: 'playbooks/add_from_template',
+        path: '/playbooks/add_from_template',
         name: 'add_playbook_from_template',
         component: () => import('src/pages/AddProxyJobChainFromTemplate.vue'),
         meta: {
@@ -119,7 +119,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'playbooks/add_template',
+        path: '/playbooks/add_template',
         name: 'add_playbook_template',
         component: () => import('src/pages/AddChainTemplate.vue'),
         meta: {
@@ -129,7 +129,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'playbooks/add_template_ai',
+        path: '/playbooks/add_template_ai',
         name: 'add_playbook_template_ai',
         component: () => import('src/pages/CreatePlaybookTemplateAI.vue'),
         meta: {
@@ -139,7 +139,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'credentials',
+        path: '/credentials',
         name: 'credentials',
         component: () => import('src/pages/CredentialsPage.vue'),
         meta: {
@@ -151,7 +151,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'credentials/add',
+        path: '/credentials/add',
         component: () => import('src/pages/AddCredential.vue'),
         name: 'add_credential',
         meta: {
@@ -161,7 +161,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'proxies',
+        path: '/proxies',
         name: 'proxies',
         component: () => import('src/pages/ProxiesPage.vue'),
         meta: {
@@ -173,7 +173,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'proxies/add',
+        path: '/proxies/add',
         name: 'proxy',
         component: () => import('src/pages/AddProxy.vue'),
         meta: {
@@ -183,7 +183,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'files',
+        path: '/files',
         name: 'files',
         component: () => import('src/pages/FilesPage.vue'),
         meta: {
@@ -195,7 +195,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'files/add',
+        path: '/files/add',
         name: 'add-file',
         component: () => import('src/pages/UploadFile.vue'),
         meta: {
@@ -205,7 +205,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'files/add_multiple',
+        path: '/files/add_multiple',
         name: 'add-multiple-files',
         component: () => import('src/pages/UploadFiles.vue'),
         meta: {
@@ -215,7 +215,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'files/:id',
+        path: '/files/:id',
         name: 'file',
         component: () => import('src/pages/FilePage.vue'),
         props: true,
@@ -226,7 +226,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'components',
+        path: '/components',
         name: 'components',
         component: () => import('src/pages/ComponentsPage.vue'),
         meta: {
@@ -236,7 +236,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'domains',
+        path: '/domains',
         name: 'domains',
         component: () => import('src/pages/DomainPage.vue'),
         meta: {
@@ -248,7 +248,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'domains/add',
+        path: '/domains/add',
         component: () => import('src/pages/AddDomain.vue'),
         meta: {
           icon: 'add',
@@ -257,7 +257,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'passwords',
+        path: '/passwords',
         name: 'passwords',
         component: () => import('src/pages/PasswordPage.vue'),
         meta: {
@@ -269,7 +269,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'kerberos',
+        path: '/kerberos',
         name: 'kerberos',
         component: () => import('src/pages/KerberosPage.vue'),
         meta: {
@@ -281,7 +281,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'passwords/add',
+        path: '/passwords/add',
         component: () => import('src/pages/AddPassword.vue'),
         meta: {
           icon: 'add',
@@ -290,7 +290,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'computers',
+        path: '/computers',
         name: 'computers',
         component: () => import('src/pages/GraphComputers.vue'),
         meta: {
@@ -302,7 +302,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'users',
+        path: '/users',
         name: 'users',
         component: () => import('src/pages/GraphUsers.vue'),
         meta: {
@@ -314,7 +314,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'groups',
+        path: '/groups',
         name: 'groups',
         component: () => import('src/pages/GraphGroups.vue'),
         meta: {
@@ -326,7 +326,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'implants',
+        path: '/implants',
         name: 'implants',
         component: () => import('src/pages/C2Implants.vue'),
         meta: {
@@ -338,7 +338,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'implants/:id',
+        path: '/implants/:id',
         name: 'implant',
         component: () => import('src/pages/C2Implant.vue'),
         props: true,
@@ -349,7 +349,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'implants/:id/tasks/:task_id',
+        path: '/implants/:id/tasks/:task_id',
         name: 'implant_task',
         component: () => import('src/pages/C2Task.vue'),
         props: true,
@@ -360,7 +360,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'tasks/:task_id',
+        path: '/tasks/:task_id',
         name: 'c2_task',
         component: () => import('src/pages/C2Task.vue'),
         props: true,
@@ -371,7 +371,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'task_output/:id',
+        path: '/task_output/:id',
         name: 'c2_task_output',
         component: () => import('src/pages/C2TaskOutput.vue'),
         props: true,
@@ -382,7 +382,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'tasks',
+        path: '/tasks',
         name: 'c2_tasks',
         component: () => import('src/pages/C2Tasks.vue'),
         props: true,
@@ -395,7 +395,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'servers',
+        path: '/servers',
         name: 'servers',
         component: () => import('src/pages/C2Servers.vue'),
         meta: {
@@ -407,7 +407,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'servers/add',
+        path: '/servers/add',
         name: 'add_server',
         component: () => import('src/pages/AddC2Server.vue'),
         props: true,
@@ -418,7 +418,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'servers/:id',
+        path: '/servers/:id',
         name: 'server',
         component: () => import('src/pages/C2Server.vue'),
         props: true,
@@ -429,7 +429,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'socks_servers',
+        path: '/socks_servers',
         name: 'socks_servers',
         component: () => import('src/pages/SocksServers.vue'),
         meta: {
@@ -441,7 +441,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'c2_jobs/:id',
+        path: '/c2_jobs/:id',
         name: 'c2_job',
         component: () => import('src/pages/C2Job.vue'),
         props: true,
@@ -452,7 +452,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'c2_jobs',
+        path: '/c2_jobs',
         name: 'c2_jobs',
         component: () => import('src/pages/C2Jobs.vue'),
         meta: {
@@ -464,7 +464,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'c2_jobs/add_from_template',
+        path: '/c2_jobs/add_from_template',
         name: 'add_c2_job_from_template',
         component: () => import('src/pages/AddC2JobTemplate.vue'),
         meta: {
@@ -474,7 +474,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'output',
+        path: '/output',
         name: 'output',
         component: () => import('src/pages/C2Output.vue'),
         meta: {
@@ -486,7 +486,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'processes',
+        path: '/processes',
         name: 'processes',
         component: () => import('src/pages/ProcessPage.vue'),
         meta: {
@@ -496,7 +496,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'bloodhound_utils',
+        path: '/bloodhound_utils',
         name: 'bloodhound_utils',
         component: () => import('src/pages/BloodHoundUtils.vue'),
         meta: {
@@ -508,7 +508,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'hosts',
+        path: '/hosts',
         name: 'hosts',
         component: () => import('src/pages/HostsPage.vue'),
         props: true,
@@ -521,7 +521,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'hosts/:id',
+        path: '/hosts/:id',
         name: 'host',
         component: () => import('src/pages/HostPage.vue'),
         props: true,
@@ -532,7 +532,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'timeline',
+        path: '/timeline',
         name: 'timeline',
         component: () => import('src/pages/TimeLine.vue'),
         props: true,
@@ -545,7 +545,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'timeline/create',
+        path: '/timeline/create',
         name: 'create_timeline',
         component: () => import('src/pages/CreateTimeLine.vue'),
         props: true,
@@ -556,7 +556,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'labels',
+        path: '/labels',
         name: 'labels',
         component: () => import('src/pages/LabelsList.vue'),
         props: true,
@@ -569,7 +569,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'labels/add',
+        path: '/labels/add',
         name: 'add_labels',
         component: () => import('src/pages/AddLabel.vue'),
         props: true,
@@ -580,7 +580,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'situational_awareness',
+        path: '/situational_awareness',
         name: 'situational_awareness',
         component: () => import('src/pages/SituationalAwareness.vue'),
         props: true,
@@ -593,7 +593,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'situational_awareness/add',
+        path: '/situational_awareness/add',
         name: 'add_situational_awareness',
         component: () => import('src/pages/AddSituationalAwareness.vue'),
         props: true,
@@ -604,7 +604,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'shares',
+        path: '/shares',
         name: 'shares',
         component: () => import('src/pages/SharesPage.vue'),
         props: true,
@@ -617,7 +617,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'shares/:id',
+        path: '/shares/:id',
         name: 'share',
         component: () => import('src/pages/SharePage.vue'),
         props: true,
@@ -628,7 +628,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'share_files',
+        path: '/share_files',
         name: 'share_files',
         component: () => import('src/pages/ShareFiles.vue'),
         props: true,
@@ -641,7 +641,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'hashes',
+        path: '/hashes',
         name: 'hashes',
         component: () => import('src/pages/HashesPage.vue'),
         meta: {
@@ -653,7 +653,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'settings',
+        path: '/settings',
         name: 'settings',
         component: () => import('src/pages/SettingsPage.vue'),
         meta: {
@@ -663,7 +663,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'actions',
+        path: '/actions',
         name: 'actions',
         component: () => import('src/pages/ActionsPage.vue'),
         meta: {
@@ -675,7 +675,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'certificates',
+        path: '/certificates',
         name: 'certificates',
         component: () => import('src/pages/CertificateAuthoritiesPage.vue'),
         meta: {
@@ -687,7 +687,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'certificate_authorities',
+        path: '/certificate_authorities',
         name: 'certificate_authorities',
         component: () => import('src/pages/CertificateAuthoritiesPage.vue'),
         meta: {
@@ -698,7 +698,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'certificate_templates',
+        path: '/certificate_templates',
         name: 'certificate_templates',
         component: () => import('src/pages/CertificateTemplatesPage.vue'),
         meta: {
@@ -709,7 +709,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'issues',
+        path: '/issues',
         name: 'issues',
         component: () => import('src/pages/IssuePage.vue'),
         meta: {
@@ -721,7 +721,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'issues/add',
+        path: '/issues/add',
         name: 'add_issues',
         component: () => import('src/pages/AddIssue.vue'),
         meta: {
@@ -731,7 +731,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'timeline/add',
+        path: '/timeline/add',
         name: 'add_manual_timeline_tasks',
         component: () => import('src/pages/AddManualTimelineTask.vue'),
         meta: {
@@ -741,7 +741,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'highlights',
+        path: '/highlights',
         name: 'highlights',
         component: () => import('src/pages/HighlightPage.vue'),
         meta: {
@@ -753,7 +753,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'suggestions',
+        path: '/suggestions',
         name: 'suggestions',
         component: () => import('src/pages/SuggestionsPage.vue'),
         meta: {
@@ -765,7 +765,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'suggestions/:id/create',
+        path: '/suggestions/:id/create',
         name: 'suggestion_create',
         props: true,
         component: () => import('src/pages/SuggestionCreatePage.vue'),
@@ -776,7 +776,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'suggestions/:id',
+        path: '/suggestions/:id',
         name: 'suggestion',
         props: true,
         component: () => import('src/pages/SuggestionPage.vue'),
@@ -787,7 +787,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'suggestions/add',
+        path: '/suggestions/add',
         name: 'add_suggestions',
         component: () => import('src/pages/AddSuggestion.vue'),
         meta: {
@@ -797,7 +797,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'checklist',
+        path: '/checklist',
         name: 'checklist',
         component: () => import('src/pages/ChecklistPage.vue'),
         meta: {
@@ -807,7 +807,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'objectives',
+        path: '/objectives',
         name: 'objectives',
         component: () => import('src/pages/ObjectivesPage.vue'),
         meta: {
@@ -817,7 +817,7 @@ const routes: RouteRecordRaw[] = [
         },
     },
     {
-        path: 'objectives/add',
+        path: '/objectives/add',
         name: 'add_objective',
         component: () => import('src/pages/AddObjective.vue'),
         meta: {
@@ -828,7 +828,7 @@ const routes: RouteRecordRaw[] = [
     }
     ,
     {
-        path: 'plans',
+        path: '/plans',
         name: 'plans',
         component: () => import('src/pages/PlanPage.vue'),
         meta: {
@@ -840,7 +840,7 @@ const routes: RouteRecordRaw[] = [
         },
     },
     {
-        path: 'plans/add',
+        path: '/plans/add',
         name: 'add_plan',
         component: () => import('src/pages/AddPlan.vue'),
         meta: {
@@ -850,7 +850,7 @@ const routes: RouteRecordRaw[] = [
         },
     },
     {
-        path: 'plans/:id',
+        path: '/plans/:id',
         name: 'plan',
         component: () => import('src/pages/Plan.vue'),
         props: true,
@@ -862,7 +862,7 @@ const routes: RouteRecordRaw[] = [
     }
     ,
     {
-        path: 'plan_steps',
+        path: '/plan_steps',
         name: 'plan_steps',
         component: () => import('src/pages/PlanStepPage.vue'),
         meta: {
@@ -872,7 +872,7 @@ const routes: RouteRecordRaw[] = [
         },
     },
     {
-        path: 'add_plan_steps',
+        path: '/add_plan_steps',
         name: 'add_plan_steps',
         component: () => import('src/pages/AddPlanStep.vue'),
         meta: {

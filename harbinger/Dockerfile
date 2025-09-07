@@ -95,6 +95,8 @@ RUN mkdir /workdir
 
 RUN chown $USER_UID:$USER_GID /workdir
 
+RUN chown $USER_UID:$USER_GID /server
+
 VOLUME /workdir
 
 USER user:user
