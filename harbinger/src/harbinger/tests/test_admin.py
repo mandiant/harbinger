@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from harbinger.database import models
+from harbinger import models
 from harbinger.config import admin
 
 from sqlalchemy.orm.decl_api import DeclarativeMeta

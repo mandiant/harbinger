@@ -18,7 +18,7 @@ from harbinger.config import get_settings
 from harbinger.database.users import current_active_user
 from fastapi import APIRouter, Depends, Response
 
-from harbinger.database import models
+from harbinger import models
 
 from harbinger.graph.database import get_async_neo4j_session_context
 from harbinger.graph import crud, schemas

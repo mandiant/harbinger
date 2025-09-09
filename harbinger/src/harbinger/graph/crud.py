@@ -16,7 +16,8 @@ from enum import Enum
 from typing import Dict, List, Optional, Type
 from harbinger.database.cache import redis_cache_neo4j_cm_fixed_key
 from neo4j import AsyncSession, graph, Query as Neo4jQuery
-from harbinger.database import models, schemas
+from harbinger import models
+from harbinger.database import schemas
 from dataclasses import dataclass
 from neo4j.exceptions import Neo4jError
 import functools

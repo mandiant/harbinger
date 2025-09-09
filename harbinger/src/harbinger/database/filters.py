@@ -14,7 +14,7 @@
 
 from fastapi_filter import FilterDepends, with_prefix
 from fastapi_filter.contrib.sqlalchemy import Filter
-from harbinger.database import models
+from harbinger import models
 from pydantic import UUID4
 
 

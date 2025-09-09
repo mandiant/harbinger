@@ -21,7 +21,8 @@ from harbinger.config.process import get_process_mapping
 from harbinger.graph.database import get_async_neo4j_session_context
 import pytz
 from temporalio import activity
-from harbinger.database import crud, models, schemas, progress_bar, filters
+from harbinger.database import crud, schemas, progress_bar, filters
+from harbinger import models
 from harbinger.database.database import SessionLocal
 from harbinger.worker.genai import prompts, tools
 import concurrent.futures

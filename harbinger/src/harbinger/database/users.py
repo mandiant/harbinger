@@ -18,7 +18,7 @@ from typing import Optional
 from harbinger.config import get_settings
 from harbinger.database.crud import get_user_db
 from harbinger.database.redis_pool import redis
-from harbinger.database.models import User
+from harbinger.models import User
 from fastapi import Depends, Request
 from fastapi_users import BaseUserManager, FastAPIUsers, UUIDIDMixin
 from fastapi_users.authentication import (

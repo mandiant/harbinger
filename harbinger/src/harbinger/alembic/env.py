@@ -22,7 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from alembic import context
 from harbinger.config import get_settings
-from harbinger.database.models import Base
+from harbinger.models import Base
 
 settings = get_settings()
 
