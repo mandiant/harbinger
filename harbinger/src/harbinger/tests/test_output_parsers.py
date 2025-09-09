@@ -14,7 +14,7 @@
 
 import unittest
 from harbinger.worker.output import OUTPUT_PARSERS, IPConfigParser, EnvParser
-from harbinger.database import models
+from harbinger import models
 from unittest import mock
 
 ipconfig_data = """{6929494D-CB96-4E0C-AE4C-3FB5DF62D6C0}

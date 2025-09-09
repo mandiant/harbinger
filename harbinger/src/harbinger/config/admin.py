@@ -16,7 +16,8 @@ import contextlib
 import random
 import string
 from fastapi import FastAPI
-from harbinger.database import database, models
+from harbinger.database import database
+from harbinger import models
 from harbinger.database.users import get_user_manager, auth_backend_cookie
 
 from sqladmin import Admin, ModelView

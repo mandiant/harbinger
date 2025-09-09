@@ -6,7 +6,7 @@ Create Date: 2025-06-26 06:33:51.157226
 
 """
 from alembic import op
-from harbinger.database.models import (
+from harbinger.models import (
     Domain, Password, Kerberos, Credential, Proxy, InputFile,
     Component, ProxyJob, File, Playbook, PlaybookStep, PlaybookStepModifier,
     C2Job, Host, Process, Label, LabeledItem,

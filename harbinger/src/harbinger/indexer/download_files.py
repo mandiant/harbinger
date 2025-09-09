@@ -28,7 +28,8 @@ from alive_progress import alive_bar
 from anyio.abc import TaskGroup
 from asyauth.common.credentials import UniCredential
 from asysocks.unicomm.common.proxy import UniProxyTarget
-from harbinger.database import crud, schemas, models
+from harbinger.database import crud, schemas
+from harbinger import models
 from harbinger.database.database import SessionLocal
 from temporalio.client import Client
 from harbinger.config import constants

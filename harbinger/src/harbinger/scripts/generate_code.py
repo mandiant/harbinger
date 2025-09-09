@@ -16,7 +16,7 @@ import jinja2
 from sqlalchemy.orm.decl_api import DeclarativeMeta
 from jinja2.sandbox import SandboxedEnvironment
 
-from harbinger.database import models
+from harbinger import models
 import os
 import re
 

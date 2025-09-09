@@ -21,7 +21,8 @@ from asyncio import create_subprocess_exec
 
 import aiofiles
 from harbinger.config import get_settings
-from harbinger.database import crud, models, schemas
+from harbinger.database import crud, schemas
+from harbinger import models
 from harbinger.files.client import download_file, upload_file
 from harbinger.graph import crud as graph_crud
 from harbinger.worker.utils import merge_db_neo4j_host

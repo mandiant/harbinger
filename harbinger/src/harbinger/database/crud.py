@@ -49,7 +49,8 @@ from harbinger.database.cache import (
     redis_cache_fixed_key,
 )
 
-from . import models, schemas
+from harbinger import models
+from harbinger.database import schemas
 
 import logging
 

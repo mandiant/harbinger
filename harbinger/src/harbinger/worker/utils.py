@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from harbinger.config import get_settings
-from harbinger.database import crud, models, schemas
+from harbinger.database import crud, schemas
 from harbinger.graph import crud as graph_crud
 from harbinger.graph.database import get_async_neo4j_session_context
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,8 +22,7 @@ from typing import Awaitable, Callable, Optional
 from anyio.abc import TaskGroup
 
 import structlog
-from harbinger.config import get_settings
-from harbinger.database import crud, schemas, models
+from harbinger import models
 import harbinger.proto.v1.messages_pb2 as messages_pb2
 from redis import Redis
 from redis import ResponseError
