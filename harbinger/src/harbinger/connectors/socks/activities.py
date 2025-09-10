@@ -14,7 +14,8 @@
 
 import asyncio
 from temporalio import activity
-from harbinger.database import crud, schemas
+from harbinger.database import crud
+from harbinger import schemas
 import harbinger.proto.v1.messages_pb2 as messages_pb2
 from harbinger.connectors.socks import schemas as socks_schemas
 from harbinger.database.database import SessionLocal

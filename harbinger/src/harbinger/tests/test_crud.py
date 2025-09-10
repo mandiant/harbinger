@@ -31,7 +31,8 @@ from alembic import command
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 
 # Assume these are your application modules
-from harbinger.database import crud, schemas, filters, database # Import database module itself
+from harbinger import schemas
+from harbinger.database import crud, filters, database # Import database module itself
 from harbinger.config import get_settings # Import the original get_settings
 # Assuming redis_cache and its 'redis' client are here - ADJUST IF NECESSARY
 # from harbinger.common.cache import redis_cache, redis # Example path

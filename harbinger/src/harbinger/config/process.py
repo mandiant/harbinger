@@ -15,7 +15,7 @@
 import pathlib
 from typing import Dict
 import yaml
-from harbinger.database import schemas
+from harbinger import schemas
 
 
 def get_process_mapping() -> Dict[str, str]:

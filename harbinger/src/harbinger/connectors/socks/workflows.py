@@ -17,7 +17,7 @@ from datetime import timedelta
 import structlog
 from harbinger.connectors.socks import activities
 from harbinger.connectors.socks import schemas as socks_schemas
-from harbinger.database import schemas
+from harbinger import schemas
 from harbinger.config import constants
 
 

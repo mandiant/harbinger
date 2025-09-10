@@ -14,7 +14,6 @@
 
 from pydantic import UUID4
 from harbinger.job_templates.schemas import BaseTemplateModel
-from harbinger.database import schemas
 from sqlalchemy.ext.asyncio import AsyncSession
 from harbinger.job_templates.schemas import env
 

@@ -30,7 +30,8 @@ from pathlib import Path
 from base64 import b64decode, b64encode
 from impacket.krb5.ccache import CCache
 from sqlalchemy.ext.asyncio import AsyncSession
-from harbinger.database import crud, schemas
+from harbinger.database import crud
+from harbinger import schemas
 from datetime import datetime
 import structlog
 from pydantic import UUID4, TypeAdapter

@@ -50,7 +50,7 @@ from harbinger.database.cache import (
 )
 
 from harbinger import models
-from harbinger.database import schemas
+from harbinger import schemas
 
 import logging
 

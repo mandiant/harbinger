@@ -18,7 +18,7 @@ import structlog
 from harbinger.connectors import activities
 
 
-from harbinger.database import schemas
+from harbinger import schemas
 
 log = structlog.get_logger()
 
