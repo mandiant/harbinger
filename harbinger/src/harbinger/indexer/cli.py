@@ -20,7 +20,7 @@ from harbinger.indexer.list_shares import ListShares
 from harbinger.indexer.list_files import ShareEnum
 from harbinger.indexer.download_files import Downloader
 from harbinger.indexer.upload_file import Uploader
-from harbinger.database import crud
+from harbinger import crud
 import structlog
 import anyio
 from asyauth.common.credentials import NTLMCredential

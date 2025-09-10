@@ -14,7 +14,7 @@
 
 import uuid
 import yaml
-from harbinger.database import crud
+from harbinger import crud
 from harbinger import schemas
 from sqlalchemy.exc import IntegrityError
 from harbinger.config import get_settings

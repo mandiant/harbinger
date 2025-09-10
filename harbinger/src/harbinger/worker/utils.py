@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from harbinger.config import get_settings
-from harbinger.database import crud
+from harbinger import crud
 from harbinger import schemas
 from harbinger.graph import crud as graph_crud
 from harbinger.graph.database import get_async_neo4j_session_context

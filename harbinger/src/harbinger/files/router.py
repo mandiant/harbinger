@@ -19,7 +19,7 @@ from harbinger.worker.client import get_client
 from harbinger.worker.workflows import ParseFile
 from harbinger.database.redis_pool import redis
 from harbinger.config import get_settings
-from harbinger.database import crud
+from harbinger import crud
 from harbinger import schemas
 from harbinger import models
 from harbinger.database.users import current_active_user

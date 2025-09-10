@@ -46,7 +46,7 @@ from harbinger.database.redis_pool import redis_no_decode as redis
 import harbinger.proto.v1.messages_pb2 as messages_pb2
 import sqlalchemy.exc
 from harbinger.config import get_settings
-from harbinger.database.crud import get_user_db
+from harbinger.crud import get_user_db
 from harbinger.database.database import SessionLocal
 from harbinger.database.users import (
     current_active_user,
@@ -75,7 +75,8 @@ import yaml
 from harbinger.files.client import download_file
 from harbinger.worker.client import get_client
 from harbinger.config import constants
-from harbinger.database import crud, progress_bar
+from harbinger import crud
+from harbinger.database import progress_bar
 from harbinger import schemas
 from harbinger import models
 from temporalio import exceptions

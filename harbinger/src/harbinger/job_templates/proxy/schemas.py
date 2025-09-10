@@ -19,7 +19,7 @@ from harbinger.config import get_settings
 from harbinger.job_templates.proxy.base import JobTemplateModel
 from harbinger.job_templates.schemas import env
 from pydantic import Field, field_validator, ValidationInfo
-from harbinger.database import crud
+from harbinger import crud
 from enum import Enum
 from sqlalchemy.ext.asyncio import AsyncSession
 from harbinger.files.client import upload_file

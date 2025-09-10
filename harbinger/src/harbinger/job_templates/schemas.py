@@ -15,7 +15,6 @@
 import json
 from typing import Dict, List, Literal, Type
 
-from harbinger.database import crud
 from harbinger.job_templates import schemas
 from jinja2 import PackageLoader
 from jinja2.sandbox import SandboxedEnvironment

@@ -20,7 +20,7 @@ import structlog
 from aiosmb.commons.connection.factory import SMBConnectionFactory
 from aiosmb.commons.interfaces.directory import SMBDirectory
 from harbinger.database.database import SessionLocal
-from harbinger.database import crud
+from harbinger import crud
 from harbinger import schemas
 from asyauth.common.credentials import UniCredential
 from aiosmb.commons.connection.target import SMBTarget, SMBConnectionDialect
