@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from pydantic import BaseModel
-from harbinger.database import schemas
+from harbinger import schemas
 
 
 class FileDownloads(BaseModel):

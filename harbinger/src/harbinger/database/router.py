@@ -75,7 +75,8 @@ import yaml
 from harbinger.files.client import download_file
 from harbinger.worker.client import get_client
 from harbinger.config import constants
-from harbinger.database import crud, schemas, progress_bar
+from harbinger.database import crud, progress_bar
+from harbinger import schemas
 from harbinger import models
 from temporalio import exceptions
 import logging

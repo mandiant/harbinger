@@ -23,9 +23,8 @@ import uuid
 from pydantic import (
     ValidationError as PydanticValidationError,
 )
-from harbinger.database import schemas
+from harbinger import schemas
 from harbinger.worker.genai import prompt_vars
-from harbinger.database import schemas
 
 
 settings = get_settings()

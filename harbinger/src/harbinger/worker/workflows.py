@@ -21,7 +21,8 @@ import structlog
 import re
 
 from harbinger.worker import activities
-from harbinger.database import schemas, progress_bar
+from harbinger import schemas
+from harbinger.database import progress_bar
 from harbinger.connectors.socks.workflows import RunSocks, RunWindowsSocks
 from harbinger.connectors.socks import activities as socks_activities
 from harbinger.connectors.socks import schemas as socks_schemas

@@ -34,7 +34,8 @@ from temporalio import activity, workflow
 from temporalio.exceptions import ApplicationError
 from rigging.chat import Chat
 
-from harbinger.database import crud, filters, schemas
+from harbinger.database import crud, filters
+from harbinger import schemas
 from harbinger.database.database import SessionLocal
 from harbinger.database.redis_pool import redis
 from harbinger.enums import LlmStatus

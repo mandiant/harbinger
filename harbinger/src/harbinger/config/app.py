@@ -14,7 +14,7 @@
 
 from harbinger.config import get_settings
 from harbinger.database import database, router
-from harbinger.database.schemas import UserRead, UserUpdate
+from harbinger.schemas import UserRead, UserUpdate
 from harbinger.database.users import auth_backend_cookie, fastapi_users
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware

@@ -15,7 +15,8 @@
 import anyio
 import click
 from harbinger.database.database import SessionLocal
-from harbinger.database import crud, schemas
+from harbinger.database import crud
+from harbinger import schemas
 import structlog
 from harbinger.config import get_settings
 import asyncio

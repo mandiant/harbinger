@@ -14,7 +14,7 @@
 
 import unittest
 from datetime import datetime
-from harbinger.database.schemas import ShareFileCreate, FileList
+from harbinger.schemas import ShareFileCreate, FileList
 
 
 class TestFileListParser(unittest.IsolatedAsyncioTestCase):

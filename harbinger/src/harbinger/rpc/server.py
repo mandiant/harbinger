@@ -14,7 +14,7 @@
 
 import asyncio
 import uuid
-from harbinger.database import schemas
+from harbinger import schemas
 from harbinger.worker import activities, workflows
 from harbinger.worker.client import get_client
 from harbinger.database.redis_pool import redis

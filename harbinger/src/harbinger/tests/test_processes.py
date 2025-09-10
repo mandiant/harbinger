@@ -14,7 +14,7 @@
 
 import unittest
 from harbinger.config.process import get_process_mapping
-from harbinger.database import schemas
+from harbinger import schemas
 
 class TestProcesses(unittest.TestCase):
 

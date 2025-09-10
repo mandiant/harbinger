@@ -21,7 +21,7 @@ from datetime import datetime
 import anyio
 import structlog
 import uuid
-from harbinger.database import schemas
+from harbinger import schemas
 from anyio.abc import TaskGroup
 from harbinger.database.redis_pool import redis
 from harbinger.worker.client import get_client

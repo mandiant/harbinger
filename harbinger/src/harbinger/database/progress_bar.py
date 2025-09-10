@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import json # Import json for serialization
-from harbinger.database import schemas
+from harbinger import schemas
 from harbinger.database.redis_pool import redis
 from harbinger.config import constants
 from typing import Callable, Awaitable

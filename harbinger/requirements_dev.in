@@ -1,6 +1,9 @@
 -c requirements.txt
-testcontainers
 pip-tools
 pytest
 pytest-cov
+testcontainers
 grpcio-tools
+isort
+autoflake
+ruff

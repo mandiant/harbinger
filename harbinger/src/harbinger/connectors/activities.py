@@ -15,7 +15,8 @@
 import os
 from temporalio import activity
 from harbinger.config import get_settings
-from harbinger.database import crud, schemas
+from harbinger.database import crud
+from harbinger import schemas
 from harbinger.database.database import SessionLocal
 import structlog
 import aiodocker
