@@ -17,7 +17,7 @@ import click
 import os
 from pathlib import Path
 from harbinger.config import get_settings
-from harbinger.database import crud
+from harbinger import crud
 from harbinger.files.client import upload_file, download_file
 from harbinger.worker.client import get_client
 from harbinger.database.database import SessionLocal

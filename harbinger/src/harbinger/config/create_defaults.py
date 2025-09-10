@@ -14,7 +14,7 @@
 
 import asyncio
 import pathlib
-from harbinger.database import crud
+from harbinger import crud
 from harbinger import schemas
 from harbinger.database.database import SessionLocal
 from sqlalchemy.exc import IntegrityError

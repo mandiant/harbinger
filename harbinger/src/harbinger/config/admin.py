@@ -25,7 +25,7 @@ from sqladmin.authentication import AuthenticationBackend
 from starlette.requests import Request
 from harbinger.config import get_settings
 from harbinger.database.database import get_async_session
-from harbinger.database.crud import get_user_db
+from harbinger.crud import get_user_db
 from fastapi_users.exceptions import InvalidPasswordException
 
 get_async_session_context = contextlib.asynccontextmanager(get_async_session)

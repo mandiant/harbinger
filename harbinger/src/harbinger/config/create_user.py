@@ -18,7 +18,7 @@ import asyncio
 import contextlib
 
 from harbinger.database.database import get_async_session
-from harbinger.database.crud import get_user_db
+from harbinger.crud import get_user_db
 from harbinger.schemas import UserCreate
 from harbinger.database.users import get_user_manager
 from fastapi_users.exceptions import UserAlreadyExists

@@ -13,7 +13,8 @@
 # limitations under the License.
 
 import json
-from harbinger.database import crud, filters
+from harbinger import crud
+from harbinger.database import filters
 from harbinger import schemas
 from harbinger.database.database import SessionLocal
 import structlog

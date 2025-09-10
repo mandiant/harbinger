@@ -19,7 +19,7 @@ from aiosmb.commons.interfaces.machine import SMBMachine
 from sqlalchemy.ext.asyncio import AsyncSession
 import structlog
 from harbinger.database.database import SessionLocal
-from harbinger.database import crud
+from harbinger import crud
 from harbinger import schemas
 from asyauth.common.credentials import UniCredential
 from asysocks.unicomm.common.proxy import UniProxyTarget
