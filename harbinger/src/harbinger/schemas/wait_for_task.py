@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-from pydantic import (BaseModel)
+from pydantic import BaseModel
 
 
 from .c2_implant import C2Implant
@@ -23,4 +23,3 @@ from .c2_task import C2Task
 class WaitForTask(BaseModel):
     c2_task: C2Task
     c2_implant: C2Implant
-

@@ -4,7 +4,7 @@ from harbinger import models
 from pydantic import UUID4
 
 
-class SituationalAwarenessFilter(Filter): 
+class SituationalAwarenessFilter(Filter):
     order_by: list[str] | None = ["-time_created"]
     search: str | None = None
     name: str | None = None
@@ -13,5 +13,4 @@ class SituationalAwarenessFilter(Filter):
 
     class Constants(Filter.Constants):
         model = models.SituationalAwareness
-        search_model_fields = ['name', 'category', 'value_string']
-
+        search_model_fields = ["name", "category", "value_string"]

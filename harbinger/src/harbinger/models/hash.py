@@ -36,8 +36,12 @@ def sha256(context):
 
 class Hash(Base):
     __tablename__ = "hashes"
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    time_created: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    time_created: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
     hash: Mapped[str] = mapped_column(String)
     type: Mapped[str] = mapped_column(String)
     hashcat_id: Mapped[int] = mapped_column(Integer)

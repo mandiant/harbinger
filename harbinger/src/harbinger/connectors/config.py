@@ -29,7 +29,9 @@ class ConnectorSettings(BaseSettings):
 
     harbinger_grpc_host: str = "localhost:50051"
 
-    model_config = SettingsConfigDict(env_file='.env', env_file_encoding='utf-8', extra='ignore')
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8", extra="ignore"
+    )
 
 
 @lru_cache()

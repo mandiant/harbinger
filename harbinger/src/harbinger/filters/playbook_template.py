@@ -15,4 +15,3 @@ class PlaybookTemplateFilter(Filter):
     class Constants(Filter.Constants):
         model = models.PlaybookTemplate
         search_model_fields = ["name", "yaml", "tactic", "technique"]
-

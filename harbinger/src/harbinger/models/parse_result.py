@@ -29,17 +29,25 @@ if TYPE_CHECKING:
 
 class ParseResult(Base):
     __tablename__ = "parse_results"
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    time_created: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    time_created: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
     file_id: Mapped[UUID] = mapped_column(ForeignKey("files.id"), nullable=True)
     parser: Mapped[str] = mapped_column(String)
     log: Mapped[str] = mapped_column(String)
     c2_task_id: Mapped[UUID] = mapped_column(ForeignKey("c2_tasks.id"), nullable=True)
-    c2_task_output_id: Mapped[UUID] = mapped_column(ForeignKey("c2_task_output.id"), nullable=True)
+    c2_task_output_id: Mapped[UUID] = mapped_column(
+        ForeignKey("c2_task_output.id"), nullable=True
+    )
     proxy_job_output_id: Mapped[UUID] = mapped_column(
         ForeignKey("proxy_job_output.id"), nullable=True
     )
-    proxy_job_id: Mapped[UUID] = mapped_column(ForeignKey("proxy_jobs.id"), nullable=True)
+    proxy_job_id: Mapped[UUID] = mapped_column(
+        ForeignKey("proxy_jobs.id"), nullable=True
+    )
 
     labels = relationship(
         "Label", secondary="labeled_item", lazy="joined", viewonly=True

@@ -16,7 +16,7 @@
 from enum import Enum
 from typing import List
 
-from pydantic import (UUID4, BaseModel, ConfigDict)
+from pydantic import UUID4, BaseModel, ConfigDict
 
 
 from .label import Label
@@ -33,21 +33,18 @@ class ExecutorTypeName(str, Enum):
     windows = "windows"
 
 
-
-
-
-
 class SocksServerBase(BaseModel):
     type: SocksServerType
     hostname: str
     operating_system: ExecutorTypeName
     status: str | None = ""
 
+
 class SocksServerCreate(SocksServerBase):
     id: UUID4 | None = None
+
 
 class SocksServer(SocksServerBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4
     labels: List["Label"] | None = []
-

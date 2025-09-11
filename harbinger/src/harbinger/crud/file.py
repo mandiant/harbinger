@@ -6,8 +6,11 @@ from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from harbinger import models, schemas
 from harbinger import filters
-from harbinger.database.cache import (invalidate_cache_entry, redis_cache,
-                                      redis_cache_invalidate)
+from harbinger.database.cache import (
+    invalidate_cache_entry,
+    redis_cache,
+    redis_cache_invalidate,
+)
 from harbinger.database.database import SessionLocal
 from pydantic import UUID4
 from sqlalchemy import Select, delete, or_, select, update
@@ -418,6 +421,7 @@ async def get_file_by_hash(db: AsyncSession, hash_value: str) -> Optional[models
         )
     )
     return q.scalars().first()
+
 
 async def save_objects(
     db: AsyncSession,

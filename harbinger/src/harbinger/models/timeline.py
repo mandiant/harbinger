@@ -22,8 +22,8 @@ from harbinger.database.types import mapped_column
 
 class TimeLine(AbstractConcreteBase, Base):
     strict_attrs = True
-    time_started: Mapped[DateTime] = mapped_column(DateTime(timezone=True))                                                                             
-    time_completed: Mapped[DateTime] = mapped_column(DateTime(timezone=True))                                                                             
+    time_started: Mapped[DateTime] = mapped_column(DateTime(timezone=True))
+    time_completed: Mapped[DateTime] = mapped_column(DateTime(timezone=True))
     status: Mapped[str] = mapped_column(String)
     ai_summary: Mapped[str] = mapped_column(String)
     processing_status: Mapped[str] = mapped_column(String)

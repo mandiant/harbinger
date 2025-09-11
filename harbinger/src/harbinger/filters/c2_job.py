@@ -5,7 +5,7 @@ from pydantic import UUID4
 from .label import LabelFilter
 
 
-class C2JobFilter(Filter): 
+class C2JobFilter(Filter):
     order_by: list[str] | None = ["-time_created"]
     search: str | None = None
     status: str | None = None
@@ -21,5 +21,4 @@ class C2JobFilter(Filter):
 
     class Constants(Filter.Constants):
         model = models.C2Job
-        search_model_fields = ['status', 'c2_type', 'command', 'arguments', 'message']
-
+        search_model_fields = ["status", "c2_type", "command", "arguments", "message"]

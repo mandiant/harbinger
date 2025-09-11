@@ -5,7 +5,7 @@ from pydantic import UUID4
 from .label import LabelFilter
 
 
-class ChecklistFilter(Filter): 
+class ChecklistFilter(Filter):
     order_by: list[str] | None = ["-time_created"]
     search: str | None = None
     domain_id: str | UUID4 | None = None
@@ -17,5 +17,4 @@ class ChecklistFilter(Filter):
 
     class Constants(Filter.Constants):
         model = models.Checklist
-        search_model_fields = ['phase', 'name', 'status']
-
+        search_model_fields = ["phase", "name", "status"]

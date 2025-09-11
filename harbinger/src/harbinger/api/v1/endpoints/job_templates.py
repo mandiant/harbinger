@@ -44,9 +44,6 @@ settings = get_settings()
 router = APIRouter()
 
 
-
-
-
 @router.get(
     "/playbooks/",
     response_model=Page[schemas.PlaybookTemplateView],

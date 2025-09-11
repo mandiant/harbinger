@@ -72,7 +72,6 @@ USERDOMAIN_ROAMINGPROFILE=BLARG"""
 
 
 class TestMythicC2(unittest.IsolatedAsyncioTestCase):
-
     def test_output_parsers(self):
         for parser in OUTPUT_PARSERS:
             p = parser(mock.AsyncMock)

@@ -16,7 +16,7 @@
 from datetime import datetime
 from typing import List
 
-from pydantic import (UUID4, BaseModel, ConfigDict)
+from pydantic import UUID4, BaseModel, ConfigDict
 
 
 from .label import Label
@@ -28,17 +28,19 @@ class ObjectiveBase(BaseModel):
     status: str | None = None
     time_created: datetime | None = None
     time_updated: datetime | None = None
-    
+
+
 class ObjectiveCreate(ObjectiveBase):
     pass
+
 
 class ObjectiveCreated(ObjectiveBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4 | str
+
 
 class Objective(ObjectiveBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4 | str
 
     labels: List["Label"] | None = None
-

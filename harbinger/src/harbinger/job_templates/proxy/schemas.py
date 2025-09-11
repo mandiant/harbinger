@@ -237,8 +237,8 @@ class Custom(JobTemplateModel):
                 result.append(file)
         return result
 
-    @field_validator('arguments')
+    @field_validator("arguments")
     @classmethod
     def remove_newlines_from_arguments(cls, v: str, info: ValidationInfo) -> str:
         """Removes newline characters from the arguments string."""
-        return v.replace('\n', ' ').replace('\r', '')
+        return v.replace("\n", " ").replace("\r", "")

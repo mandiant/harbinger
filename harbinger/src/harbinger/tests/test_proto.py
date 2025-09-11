@@ -14,10 +14,8 @@
 
 import unittest
 
-class TestProto(unittest.TestCase):
 
+class TestProto(unittest.TestCase):
     # Check if the import is not broken.
     def test_proto(self):
         import harbinger.proto.v1.messages_pb2 as messages_pb2
-
-

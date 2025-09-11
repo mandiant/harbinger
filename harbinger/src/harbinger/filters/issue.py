@@ -5,7 +5,7 @@ from pydantic import UUID4
 from .label import LabelFilter
 
 
-class IssueFilter(Filter): 
+class IssueFilter(Filter):
     order_by: list[str] | None = ["-time_created"]
     search: str | None = None
     name: str | None = None
@@ -16,5 +16,4 @@ class IssueFilter(Filter):
 
     class Constants(Filter.Constants):
         model = models.Issue
-        search_model_fields = ['name', 'description', 'impact', 'exploitability']
-
+        search_model_fields = ["name", "description", "impact", "exploitability"]

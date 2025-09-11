@@ -3,6 +3,7 @@ import requests
 import configparser
 from pathlib import Path
 
+
 def setup(subparsers):
     """Setup the login command."""
     parser = subparsers.add_parser("login", help="Login to Harbinger")
@@ -11,12 +12,13 @@ def setup(subparsers):
     parser.add_argument("--password", help="Password")
     parser.set_defaults(func=run)
 
+
 def run(args):
     """Login to Harbinger and save the cookie."""
     api_url = args.api_url or os.environ.get("HBR_API_URL")
     if not api_url:
         api_url = input("Enter Harbinger API URL: ")
-    api_url = api_url.rstrip('/')
+    api_url = api_url.rstrip("/")
 
     username = args.username or input("Username: ")
     password = args.password or input("Password: ")
@@ -42,14 +44,14 @@ def run(args):
         config = configparser.ConfigParser()
         if config_file.exists():
             config.read(config_file)
-        
-        if 'auth' not in config:
-            config['auth'] = {}
-        
-        config['auth']['cookie'] = cookie
-        config['auth']['api_url'] = api_url
 
-        with open(config_file, 'w') as f:
+        if "auth" not in config:
+            config["auth"] = {}
+
+        config["auth"]["cookie"] = cookie
+        config["auth"]["api_url"] = api_url
+
+        with open(config_file, "w") as f:
             config.write(f)
 
         print("Login successful. Cookie saved.")

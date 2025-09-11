@@ -5,7 +5,7 @@ from pydantic import UUID4
 from .label import LabelFilter
 
 
-class CertificateTemplateFilter(Filter): 
+class CertificateTemplateFilter(Filter):
     order_by: list[str] | None = ["template_name"]
     search: str | None = None
     template_name: str | None = None
@@ -25,5 +25,9 @@ class CertificateTemplateFilter(Filter):
 
     class Constants(Filter.Constants):
         model = models.CertificateTemplate
-        search_model_fields = ['template_name', 'display_name', 'validity_period', 'renewal_period']
-
+        search_model_fields = [
+            "template_name",
+            "display_name",
+            "validity_period",
+            "renewal_period",
+        ]

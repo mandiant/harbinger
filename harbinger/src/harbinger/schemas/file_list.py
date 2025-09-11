@@ -16,9 +16,7 @@ import ntpath
 from datetime import datetime, timedelta
 from typing import List
 
-from pydantic import (BaseModel, Field,
-                      field_validator,
-                      model_validator)
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from .share_file import ShareFileCreate
 
@@ -151,11 +149,11 @@ class FileList(BaseModel):
     host: str
     parent_path: str
     name: str
-    domain: str = ''
+    domain: str = ""
 
-    unc_path: str = ''
-    sharename: str = ''
-    share_unc_path: str = ''
+    unc_path: str = ""
+    sharename: str = ""
+    share_unc_path: str = ""
     depth: int = 0
 
     size: int = 0
@@ -165,8 +163,7 @@ class FileList(BaseModel):
 
     parents: List["ShareFileCreate"] | None = None
 
-
-    def to_base_parsed_share_file(self) -> 'BaseParsedShareFile':
+    def to_base_parsed_share_file(self) -> "BaseParsedShareFile":
         result = BaseParsedShareFile(
             name=self.name,
             domain=self.domain,
@@ -188,18 +185,18 @@ class FileList(BaseModel):
                     name=parent.name,
                     size=parent.size or 0,
                     type="dir",
-                    unc_path=parent.unc_path or '',
+                    unc_path=parent.unc_path or "",
                     depth=parent.depth or 0,
                 )
             )
-        
+
         for file in self.files or []:
             result.children.append(
                 BaseParsedShareFile(
                     name=file.name,
                     size=file.size or 0,
-                    type=file.type or '',
-                    unc_path=file.unc_path or '',
+                    type=file.type or "",
+                    unc_path=file.unc_path or "",
                     depth=file.depth or 0,
                 )
             )
@@ -232,7 +229,7 @@ class FileList(BaseModel):
             self.share_unc_path = f"\\\\{self.host}\\{self.sharename}"
             self.name = self.name.replace(share, self.share_unc_path)
             if "." in self.host:
-                self.host, self.domain = self.host.split('.', 1)
+                self.host, self.domain = self.host.split(".", 1)
         else:
             hostpart = [x for x in self.name.split("\\") if x]
             if "." in hostpart[0]:
@@ -278,4 +275,3 @@ class FileList(BaseModel):
         self.unc_path = ntpath.join(self.share_unc_path, *split)
         for file in self.files or []:
             file.fix_fields(self.unc_path, self.depth)
-

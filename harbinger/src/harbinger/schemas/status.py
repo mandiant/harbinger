@@ -15,8 +15,6 @@
 from enum import Enum
 
 
-
-
 class Status(str, Enum):
     created = "created"
     starting = "starting"
@@ -45,4 +43,3 @@ class Status(str, Enum):
         except ValueError:
             return False
         return True
-

@@ -25,11 +25,15 @@ from harbinger.database.types import mapped_column
 
 class Label(Base):
     __tablename__ = "labels"
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     name: Mapped[str] = mapped_column(String, unique=True)
     category: Mapped[str] = mapped_column(String)
     color: Mapped[str] = mapped_column(String)
-    time_created: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    time_created: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
 
     def __str__(self):
         return f"Label: {self.name}"

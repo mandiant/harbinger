@@ -14,36 +14,43 @@
 
 from enum import Enum
 
-from pydantic import (BaseModel)
-
+from pydantic import BaseModel
 
 
 class ArgumentNameEnum(str, Enum):
-    hostname = 'hostname'
-    username = 'username'
-    password = 'password'
-    ca_certificate = 'ca_certificate'
-    certificate = 'certificate'
-    private_key = 'private_key'
-    token = 'token'
-    port = 'port'
+    hostname = "hostname"
+    username = "username"
+    password = "password"
+    ca_certificate = "ca_certificate"
+    certificate = "certificate"
+    private_key = "private_key"
+    token = "token"
+    port = "port"
 
 
 class RequiredArgument(BaseModel):
     name: ArgumentNameEnum
-    regex: str | None = ''
+    regex: str | None = ""
     default: str | int | None = None
-    error: str | None = 'Please fill in this value'
+    error: str | None = "Please fill in this value"
     type: str | None = None
 
     def default_type(self) -> str | None:
         match self.name:
-            case ArgumentNameEnum.ca_certificate | ArgumentNameEnum.certificate | ArgumentNameEnum.private_key:
+            case (
+                ArgumentNameEnum.ca_certificate
+                | ArgumentNameEnum.certificate
+                | ArgumentNameEnum.private_key
+            ):
                 return "textarea"
             case ArgumentNameEnum.port:
                 return "number"
-            case ArgumentNameEnum.hostname | ArgumentNameEnum.username | ArgumentNameEnum.password | ArgumentNameEnum.token:
+            case (
+                ArgumentNameEnum.hostname
+                | ArgumentNameEnum.username
+                | ArgumentNameEnum.password
+                | ArgumentNameEnum.token
+            ):
                 return "text"
             case _:
                 return None
-

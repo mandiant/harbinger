@@ -15,20 +15,20 @@
 
 from datetime import datetime
 
-from pydantic import (UUID4, BaseModel, ConfigDict)
-
+from pydantic import UUID4, BaseModel, ConfigDict
 
 
 class ProxyJobOutputBase(BaseModel):
     job_id: UUID4 | str
     output: str
 
+
 class ProxyJobOutputCreate(ProxyJobOutputBase):
     pass
+
 
 class ProxyJobOutput(ProxyJobOutputBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4
     created_at: datetime | None = None
     output_type: str | None = None
-

@@ -34,9 +34,7 @@ async def export_c2_output(
     )
 
 
-@router.get(
-    "/", response_model=Page[schemas.C2Output], tags=["c2", "implants", "crud"]
-)
+@router.get("/", response_model=Page[schemas.C2Output], tags=["c2", "implants", "crud"])
 async def read_c2_output(
     db: AsyncSession = Depends(get_db),
     filters: filters.C2OutputFilter = FilterDepends(filters.C2OutputFilter),

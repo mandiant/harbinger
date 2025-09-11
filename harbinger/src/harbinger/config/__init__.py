@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     neo4j_user: str = ""
     neo4j_password: str = ""
 
-    lifetime_seconds: int = 3600*24*7
+    lifetime_seconds: int = 3600 * 24 * 7
     cookie_samesite: str = "strict"
 
     dev_mode: bool = False
@@ -40,7 +40,9 @@ class Settings(BaseSettings):
 
     temporal_host: str
 
-    model_config = SettingsConfigDict(env_file='.env', env_file_encoding='utf-8', extra='ignore')
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8", extra="ignore"
+    )
 
     bofhound: str = "/opt/tools/bofhound_venv/bin/bofhound"
 

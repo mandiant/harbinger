@@ -25,7 +25,7 @@ database_objects = dict(
     [
         (name, cls)
         for name, cls in models.__dict__.items()
-        if type(cls) == DeclarativeMeta and name != 'Base' and name != 'TimeLine'
+        if type(cls) == DeclarativeMeta and name != "Base" and name != "TimeLine"
     ]
 )
 
@@ -59,9 +59,9 @@ ts_type_map = {
 }
 
 for name in database_objects.keys():
-    print(f'Processing {name}')
-    name_vue = re.sub(r'(?<!^)(?=[A-Z])', '_', name).lower()
-    route = name_vue + 's'
+    print(f"Processing {name}")
+    name_vue = re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
+    route = name_vue + "s"
 
     os.makedirs(f"gen/{name}", exist_ok=True)
     obj = database_objects[name]
@@ -73,14 +73,14 @@ for name in database_objects.keys():
     for column in obj.__table__.columns:  # type: ignore
         # print(column, str(column.type), column.name)
         column_type = str(column.type)
-        if '(' in column_type:
-            column_type = column_type.split('(')[0]
+        if "(" in column_type:
+            column_type = column_type.split("(")[0]
 
         try:
             ts_fields.append({"name": column.name, "value": ts_type_map[column_type]})
         except KeyError:
             pass
-    
+
         if column.name == "id":
             continue
         if str(column_type) == "JSON":
@@ -111,7 +111,7 @@ class {{ name }}Filter(Filter):
         name=name, filters=filters, names=names, route=route, constraint=constraint
     )
 
-    with open(f"gen/{name}/filters.py", 'w') as f:
+    with open(f"gen/{name}/filters.py", "w") as f:
         f.write(resp)
 
     schemas_template = """
@@ -141,7 +141,7 @@ class {{name}}({{name}}Base):
         name=name, filters=filters, names=names, route=route, constraint=constraint
     )
 
-    with open(f"gen/{name}/schemas.py", 'w') as f:
+    with open(f"gen/{name}/schemas.py", "w") as f:
         f.write(resp)
 
     router_schema = """
@@ -213,7 +213,7 @@ async def update_{{route[:-1]}}(
         name=name, filters=filters, names=names, route=route, constraint=constraint
     )
 
-    with open(f"gen/{name}/router.py", 'w') as f:
+    with open(f"gen/{name}/router.py", "w") as f:
         f.write(resp)
 
     crud_schema = """
@@ -290,9 +290,8 @@ async def update_{{route[:-1]}}(db: AsyncSession, id: str | uuid.UUID, {{route}}
         name=name, filters=filters, names=names, route=route, constraint=constraint
     )
 
-    with open(f"gen/{name}/crud.py", 'w') as f:
+    with open(f"gen/{name}/crud.py", "w") as f:
         f.write(resp)
-
 
     test_template = """
     async def test_{{route}}(self):
@@ -312,7 +311,7 @@ async def update_{{route[:-1]}}(db: AsyncSession, id: str | uuid.UUID, {{route}}
         name=name, filters=filters, names=names, route=route, constraint=constraint
     )
 
-    with open(f"gen/{name}/tests.py", 'w') as f:
+    with open(f"gen/{name}/tests.py", "w") as f:
         f.write(resp)
 
     admin_template = """
@@ -325,13 +324,16 @@ class {{ name }}Admin(ModelView, model=models.{{ name }}):
 """
     templ = env.from_string(admin_template)
     resp = templ.render(
-        name=name, filters=filters, names=names, route=route, constraint=constraint, fields_short=[name["name"] for name in ts_fields],
+        name=name,
+        filters=filters,
+        names=names,
+        route=route,
+        constraint=constraint,
+        fields_short=[name["name"] for name in ts_fields],
     )
 
-    with open(f"gen/{name}/admin.py", 'w') as f:
+    with open(f"gen/{name}/admin.py", "w") as f:
         f.write(resp)
-
-
 
     models_template = """
 // models.ts
@@ -351,7 +353,7 @@ export interface {{name}} {
         name_vue=name_vue,
         fields_short=[name["name"] for name in ts_fields],
     )
-    with open(f"gen/{name}/models.ts", 'w') as f:
+    with open(f"gen/{name}/models.ts", "w") as f:
         f.write(resp)
 
     page_template = """
@@ -377,7 +379,7 @@ import {{name}}List from 'src/components/{{name}}List.vue';
         name_vue=name_vue,
         fields_short=[name["name"] for name in ts_fields],
     )
-    with open(f"gen/{name}/{name}Page.vue", 'w') as f:
+    with open(f"gen/{name}/{name}Page.vue", "w") as f:
         f.write(resp)
 
     component_page = """
@@ -459,7 +461,7 @@ const columns: QTableProps['columns'] = [{% for field in ts_fields %}
         name_vue=name_vue,
         fields_short=[name["name"] for name in ts_fields],
     )
-    with open(f"gen/{name}/{name}List.vue", 'w') as f:
+    with open(f"gen/{name}/{name}List.vue", "w") as f:
         f.write(resp)
 
     add_page_template = """
@@ -546,9 +548,8 @@ form.value = {} as Form;
         name_vue=name_vue,
         fields_short=[name["name"] for name in ts_fields],
     )
-    with open(f"gen/{name}/Add{name}.vue", 'w') as f:
+    with open(f"gen/{name}/Add{name}.vue", "w") as f:
         f.write(resp)
-
 
     routes_template = """
 // routes.ts
@@ -584,5 +585,5 @@ form.value = {} as Form;
         name_vue=name_vue,
         fields_short=[name["name"] for name in ts_fields],
     )
-    with open(f"gen/{name}/routes.ts", 'w') as f:
+    with open(f"gen/{name}/routes.ts", "w") as f:
         f.write(resp)

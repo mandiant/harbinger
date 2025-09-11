@@ -28,7 +28,9 @@ if TYPE_CHECKING:
 
 class PlaybookTemplate(Base):
     __tablename__ = "playbook_templates"
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     name: Mapped[str] = mapped_column(String)
     tactic: Mapped[str] = mapped_column(String)
     technique: Mapped[str] = mapped_column(String)

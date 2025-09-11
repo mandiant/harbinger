@@ -16,7 +16,7 @@ from datetime import datetime
 from enum import Enum
 from typing import List
 
-from pydantic import (UUID4, BaseModel, ConfigDict)
+from pydantic import UUID4, BaseModel, ConfigDict
 
 
 from .file import File
@@ -38,8 +38,10 @@ class C2JobBase(BaseModel):
     playbook_id: UUID4 | str | None = None
     add_labels: list[str] | None = None
 
+
 class C2JobCreate(C2JobBase):
     input_files: list[str] | None = None
+
 
 class C2Job(C2JobBase):
     model_config = ConfigDict(from_attributes=True)
@@ -55,9 +57,11 @@ class C2Job(C2JobBase):
     labels: List["Label"] | None = None
     input_files: List[File] | None = None
 
+
 class C2JobDetectionRiskRequest(SuggestionBaseRequest):
-    additional_prompt: str = ''
+    additional_prompt: str = ""
     c2_job_id: UUID4 | str
+
 
 class C2JobTaskMapping(BaseModel):
     c2_job_id: str | UUID4

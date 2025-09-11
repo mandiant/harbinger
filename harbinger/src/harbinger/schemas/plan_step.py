@@ -16,7 +16,7 @@
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import (UUID4, BaseModel, ConfigDict)
+from pydantic import UUID4, BaseModel, ConfigDict
 
 
 from .label import Label
@@ -24,18 +24,21 @@ from .suggestion import Suggestion
 
 
 class PlanStepBase(BaseModel):
-    description: str = ''
+    description: str = ""
     order: int = 0
     notes: Optional[str] = None
-    status: str | None = ''
-    llm_status: str | None = ''
+    status: str | None = ""
+    llm_status: str | None = ""
     plan_id: str | UUID4 | None = None
+
 
 class PlanStepCreate(PlanStepBase):
     pass
 
+
 class PlanStepUpdate(PlanStepBase):
     pass
+
 
 class PlanStep(PlanStepBase):
     id: UUID4
@@ -44,4 +47,3 @@ class PlanStep(PlanStepBase):
     time_updated: datetime | None = None
     labels: List["Label"] = []
     model_config = ConfigDict(from_attributes=True)
-

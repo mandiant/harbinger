@@ -14,9 +14,8 @@
 
 import uuid
 
-from pydantic import (BaseModel, ConfigDict, model_validator)
+from pydantic import BaseModel, ConfigDict, model_validator
 from typing_extensions import Self
-
 
 
 class ProgressBar(BaseModel):
@@ -29,7 +28,7 @@ class ProgressBar(BaseModel):
 
     model_config = ConfigDict(validate_default=True)
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def validate_percentage(self) -> Self:
         self.percentage = self.current / self.max
         if not self.id:
@@ -39,4 +38,3 @@ class ProgressBar(BaseModel):
     def increase(self, step: int = 0):
         self.current += step
         self.percentage = self.current / self.max
-

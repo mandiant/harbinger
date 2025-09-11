@@ -13,8 +13,7 @@
 # limitations under the License.
 
 
-from pydantic import (BaseModel)
-
+from pydantic import BaseModel
 
 
 class NPBlobMetadata(BaseModel):
@@ -23,21 +22,26 @@ class NPBlobMetadata(BaseModel):
     mime_essence: str | None = ""
     num_bytes: int | None = 0
 
+
 class NPOffset(BaseModel):
     column: int
     line: int
+
 
 class NPSnippet(BaseModel):
     after: str | None = ""
     before: str | None = ""
     matching: str | None = ""
 
+
 class NPSpan(BaseModel):
     start: NPOffset
     end: NPOffset
 
+
 class NPLocation(BaseModel):
     source_span: NPSpan
+
 
 class NPMatch(BaseModel):
     blob_id: str | None = ""
@@ -52,6 +56,7 @@ class NPMatch(BaseModel):
     snippet: NPSnippet
     status: str | None = ""
     structural_id: str | None = ""
+
 
 class NoseyParkerOutput(BaseModel):
     finding_id: str | None = ""

@@ -18,8 +18,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 import asyncio
-import copy # Import copy module
-import importlib # Import importlib
+import copy  # Import copy module
+import importlib  # Import importlib
 
 
 from redis import asyncio as aioredis
@@ -34,8 +34,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sess
 from harbinger import schemas
 from harbinger import crud
 from harbinger import filters
-from harbinger.database import database # Import database module itself
-from harbinger.config import get_settings # Import the original get_settings
+from harbinger.database import database  # Import database module itself
+from harbinger.config import get_settings  # Import the original get_settings
 # Assuming redis_cache and its 'redis' client are here - ADJUST IF NECESSARY
 # from harbinger.common.cache import redis_cache, redis # Example path
 
@@ -59,7 +59,6 @@ class FixedPostgresContainer(PostgresContainer):
         return super().get_container_host_ip()
 
 
-
 class FixedRedisContainer(RedisContainer):
     def get_container_host_ip(self) -> str:
         if inside_container() and Path("/run/docker.sock").exists():
@@ -68,7 +67,6 @@ class FixedRedisContainer(RedisContainer):
 
 
 class TestCrud(unittest.IsolatedAsyncioTestCase):
-
     # No need for custom __init__ in IsolatedAsyncioTestCase
     # def __init__(self, methodName):
     #     super().__init__(methodName)
@@ -90,7 +88,7 @@ class TestCrud(unittest.IsolatedAsyncioTestCase):
             print("Starting PostgreSQL container...")
             self.postgres = FixedPostgresContainer(
                 "postgres:14",
-                driver='asyncpg',
+                driver="asyncpg",
                 username="postgres",
                 password="postgres",
                 dbname="postgres",
@@ -123,8 +121,8 @@ class TestCrud(unittest.IsolatedAsyncioTestCase):
             self.mock_settings_obj.pg_dsn = psql_url
 
             self.settings_patcher = mock.patch(
-                "harbinger.database.database.get_settings", # Patch where it's used in database.py
-                return_value=self.mock_settings_obj
+                "harbinger.database.database.get_settings",  # Patch where it's used in database.py
+                return_value=self.mock_settings_obj,
             )
             self.mock_settings = self.settings_patcher.start()
             self.addCleanup(self.settings_patcher.stop)
@@ -132,24 +130,30 @@ class TestCrud(unittest.IsolatedAsyncioTestCase):
 
             # --- Force Reload relevant modules ---
             print("Reloading database module to apply patched settings...")
-            importlib.reload(database) # Reload database to re-create engine/SessionLocal
+            importlib.reload(
+                database
+            )  # Reload database to re-create engine/SessionLocal
             print("Reloading crud module to re-apply decorators...")
-            importlib.reload(crud) # Reload crud to make decorators capture new SessionLocal
+            importlib.reload(
+                crud
+            )  # Reload crud to make decorators capture new SessionLocal
             print("Modules reloaded.")
 
             # --- Database Migrations ---
             print("Running Alembic migrations...")
             alembic_cfg = Config()
-            alembic_cfg.set_main_option('script_location', str(here / '..' / 'alembic'))
+            alembic_cfg.set_main_option("script_location", str(here / ".." / "alembic"))
             sync_psql_url = psql_url.replace("+asyncpg", "")
-            alembic_cfg.set_main_option('sqlalchemy.url', sync_psql_url)
-            await asyncio.to_thread(command.upgrade, alembic_cfg, 'head')
+            alembic_cfg.set_main_option("sqlalchemy.url", sync_psql_url)
+            await asyncio.to_thread(command.upgrade, alembic_cfg, "head")
             print("Alembic upgrade complete.")
 
             # --- Setup Test Database Session (using the reloaded SessionLocal) ---
             # Use the SessionLocal from the *reloaded* database module
             self.SessionLocal = database.SessionLocal
-            print(f"Using SessionLocal bound to engine: {self.SessionLocal.kw['bind'].url}") # Verify URL
+            print(
+                f"Using SessionLocal bound to engine: {self.SessionLocal.kw['bind'].url}"
+            )  # Verify URL
 
             # --- Create Test Redis Client ---
             print("Creating test Redis client...")
@@ -160,11 +164,10 @@ class TestCrud(unittest.IsolatedAsyncioTestCase):
 
             # --- Patch Redis Client ---
             # Patch the 'redis' client object used by the 'redis_cache' decorator
-            redis_patch_target = "harbinger.database.cache.redis" # Assumes client is named 'redis' in cache.py
+            redis_patch_target = "harbinger.database.cache.redis"  # Assumes client is named 'redis' in cache.py
             print(f"Patching Redis client at '{redis_patch_target}'...")
             self.redis_patcher = mock.patch(
-                redis_patch_target,
-                new=self.test_redis_client
+                redis_patch_target, new=self.test_redis_client
             )
             self.mock_redis = self.redis_patcher.start()
             self.addCleanup(self.redis_patcher.stop)
@@ -175,7 +178,6 @@ class TestCrud(unittest.IsolatedAsyncioTestCase):
             # Manually run cleanup if setup fails mid-way
             await self.asyncTearDown()
             raise
-
 
     async def asyncTearDown(self):
         """Runs after each test method."""
@@ -233,18 +235,14 @@ class TestCrud(unittest.IsolatedAsyncioTestCase):
             self.assertIsNotNone(domain2.id)
             self.assertEqual(domain.id, domain2.id)
             self.assertTrue(await crud.set_long_name(db, domain.id, "test.local"))
-            domain3 = await crud.get_domain(
-                domain.id
-            )  # Assuming this is not cached
+            domain3 = await crud.get_domain(domain.id)  # Assuming this is not cached
             self.assertIsNotNone(domain3)
             if domain3:
                 self.assertEqual(domain3.long_name, "test.local")
 
     async def test_password_with_cache(self):
         # Test specifically checks cache interaction
-        password_value = (
-            f"test_password_{uuid.uuid4()}"  # Unique password per test run
-        )
+        password_value = f"test_password_{uuid.uuid4()}"  # Unique password per test run
         created_password_id = None
 
         # 1. Create the password (should trigger DB write and event)
@@ -333,12 +331,8 @@ class TestCrud(unittest.IsolatedAsyncioTestCase):
             self.assertIsNotNone(c2_implants2)
             self.assertEqual(implant1_id, c2_implants2.id)
 
-            filter_list = await crud.get_c2_implant_filters(
-                db, filters.ImplantFilter()
-            )
+            filter_list = await crud.get_c2_implant_filters(db, filters.ImplantFilter())
             self.assertGreater(len(filter_list), 0)  # Check it's not empty
-
-
 
     async def test_certificate_authoritys(self):
         async with self.SessionLocal() as db:
@@ -360,16 +354,11 @@ class TestCrud(unittest.IsolatedAsyncioTestCase):
             )
             self.assertGreater(len(filter_list), 0)  # Check not empty
 
-
     async def test_certificate_templates(self):
         async with self.SessionLocal() as db:
             template_name = f"test_template_{uuid.uuid4()}"
-            to_create = schemas.CertificateTemplateCreate(
-                template_name=template_name
-            )
-            created, template1 = await crud.create_certificate_template(
-                db, to_create
-            )
+            to_create = schemas.CertificateTemplateCreate(template_name=template_name)
+            created, template1 = await crud.create_certificate_template(db, to_create)
             self.assertTrue(created)
             self.assertIsNotNone(template1)
             template1_id = template1.id
@@ -377,7 +366,6 @@ class TestCrud(unittest.IsolatedAsyncioTestCase):
                 db, filters.CertificateTemplateFilter()
             )
             self.assertGreater(len(filter_list), 0)
-
 
     async def test_hashs(self):
         async with self.SessionLocal() as db:

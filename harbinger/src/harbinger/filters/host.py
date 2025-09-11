@@ -14,4 +14,3 @@ class HostFilter(Filter):
     class Constants(Filter.Constants):
         model = models.Host
         search_model_fields = ["name", "objectid", "fqdn"]
-

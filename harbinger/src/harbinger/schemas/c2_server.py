@@ -17,7 +17,7 @@ from datetime import datetime
 from enum import Enum
 from typing import List, Optional
 
-from pydantic import (UUID4, BaseModel, ConfigDict)
+from pydantic import UUID4, BaseModel, ConfigDict
 
 
 from .implant import Implant
@@ -29,6 +29,7 @@ class C2ServerStatus(BaseModel):
     status: str = ""
     message: str = ""
     name: str = ""
+
 
 class C2ServerStatusUpdate(BaseModel):
     status: C2ServerStatus
@@ -42,15 +43,17 @@ class C2ServerTypeBase(BaseModel):
     docker_image: str | None = None
     command: str | None = None
 
+
 class C2ServerTypeCreate(C2ServerTypeBase):
     id: UUID4 | str | None = None
     icon: str | None = None
+
 
 class C2ServerType(C2ServerTypeBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4 | str
 
-    arguments: list['C2ServerArguments'] | None = None
+    arguments: list["C2ServerArguments"] | None = None
 
 
 class C2ServerBase(BaseModel):
@@ -60,6 +63,7 @@ class C2ServerBase(BaseModel):
     username: str | None = ""
     port: int | None = None
 
+
 class C2ServerCreate(C2ServerBase):
     password: str | None = ""
     ca_certificate: str | None = ""
@@ -67,11 +71,13 @@ class C2ServerCreate(C2ServerBase):
     private_key: str | None = ""
     token: str | None = ""
 
+
 class C2Server(C2ServerBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4
     labels: List["Label"] | None = []
     status: List[C2ServerStatus] | None = []
+
 
 class C2ServerAll(C2ServerBase):
     model_config = ConfigDict(from_attributes=True)
@@ -81,6 +87,7 @@ class C2ServerAll(C2ServerBase):
     private_key: str | None = ""
     token: str | None = ""
 
+
 class C2ServerArgumentsBase(BaseModel):
     time_created: datetime | None = None
     name: str | None = None
@@ -89,17 +96,21 @@ class C2ServerArgumentsBase(BaseModel):
     error: str | None = None
     type: str | None = None
     c2_server_type_id: str | UUID4 | None = None
-    
+
+
 class C2ServerArgumentsCreate(C2ServerArgumentsBase):
     pass
+
 
 class C2ServerArgumentsCreated(C2ServerArgumentsBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4 | str
 
+
 class C2ServerArguments(C2ServerArgumentsBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4 | str
+
 
 class Command(str, Enum):
     start = "start"
@@ -109,17 +120,19 @@ class Command(str, Enum):
     delete = "delete"
     sync = "sync"
 
+
 class C2ServerCommand(BaseModel):
     name: str = ""
     command: Command
     id: str | UUID4 | None = None
     c2_server: Optional["C2Server"] = None
 
+
 class C2ServerTypeYaml(BaseModel):
     id: UUID4
     name: str
     docker_image: str
     command: str
-    icon_base64: str | None = ''
+    icon_base64: str | None = ""
     required_arguments: List[RequiredArgument]
     implants: List[Implant] = []

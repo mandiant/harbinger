@@ -13,11 +13,10 @@
 # limitations under the License.
 
 
-from pydantic import (BaseModel, Field)
-
+from pydantic import BaseModel, Field
 
 
 class ReadmeInput(BaseModel):
     """Schema for receiving README content."""
-    readme: str = Field(..., description="The README content in markdown format.")
 
+    readme: str = Field(..., description="The README content in markdown format.")

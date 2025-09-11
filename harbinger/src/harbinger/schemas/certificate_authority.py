@@ -16,7 +16,7 @@
 from datetime import datetime
 from typing import List
 
-from pydantic import (UUID4, BaseModel, ConfigDict)
+from pydantic import UUID4, BaseModel, ConfigDict
 
 
 from .label import Label
@@ -34,8 +34,10 @@ class CertificateAuthorityBase(BaseModel):
     request_disposition: str | None = None
     enforce_encryption_for_requests: str | None = None
 
+
 class CertificateAuthorityCreate(CertificateAuthorityBase):
     pass
+
 
 class CertificateAuthority(CertificateAuthorityBase):
     model_config = ConfigDict(from_attributes=True)
@@ -44,4 +46,3 @@ class CertificateAuthority(CertificateAuthorityBase):
     time_updated: datetime | None = None
 
     labels: List["Label"] | None = None
-

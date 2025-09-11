@@ -30,9 +30,13 @@ if TYPE_CHECKING:
 
 class C2Server(Base):
     __tablename__ = "c2_servers"
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     type: Mapped[str] = mapped_column(String)
-    time_created: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    time_created: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
     name: Mapped[str] = mapped_column(String)
     hostname: Mapped[str] = mapped_column(String)
     username: Mapped[str] = mapped_column(String)

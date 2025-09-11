@@ -29,9 +29,15 @@ if TYPE_CHECKING:
 
 class LlmLog(Base):
     __tablename__ = "llm_log"
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    plan_id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("plan.id"), nullable=False)
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    plan_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("plan.id"), nullable=False
+    )
     log_type: Mapped[str] = mapped_column(String, nullable=False)
     content: Mapped[dict] = mapped_column(JSON, nullable=False)
-    time_created: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    time_created: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
     plan = relationship("Plan")

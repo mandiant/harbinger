@@ -129,8 +129,8 @@ class CertificateTemplate(BaseModel):
     schema_version: Optional[int] = Field(
         alias="Schema Version", default=None
     )  # Made optional for safety
-    validity_period: str = Field(alias="Validity Period", default='')
-    renewal_period: str = Field(alias="Renewal Period", default='')
+    validity_period: str = Field(alias="Validity Period", default="")
+    renewal_period: str = Field(alias="Renewal Period", default="")
     minimum_rsa_key_length: int = Field(alias="Minimum RSA Key Length", default=0)
     permissions: Optional[Permissions] = Field(alias="Permissions", default=None)
     vulnerabilities: Optional[Vulnerabilities] = Field(
@@ -160,9 +160,7 @@ class CertipyJson(BaseModel):
     certificate_authorities: CertificateAuthorities = Field(
         alias="Certificate Authorities"
     )
-    certificate_templates: CertificateTemplates = Field(
-        alias="Certificate Templates"
-    )
+    certificate_templates: CertificateTemplates = Field(alias="Certificate Templates")
 
     class Config:
         populate_by_name = True

@@ -16,7 +16,7 @@
 from datetime import datetime
 from typing import List
 
-from pydantic import (UUID4, BaseModel, ConfigDict, field_validator)
+from pydantic import UUID4, BaseModel, ConfigDict, field_validator
 
 
 from .credential import Credential
@@ -41,17 +41,20 @@ class ProxyJobBase(BaseModel):
     ai_summary: str | None = ""
     processing_status: str | None = ""
 
-    @field_validator('processing_status')
+    @field_validator("processing_status")
     def set_processing_status(cls, processing_status):
-        return processing_status or ''
+        return processing_status or ""
+
 
 class ProxyJobCreate(ProxyJobBase):
     input_files: List[str] | None = None
+
 
 class ProxyJobPreview(ProxyJobBase):
     input_files: List[str] | None = None
     model_config = ConfigDict(from_attributes=True)
     socks_server: SocksServer | None = None
+
 
 class ProxyJob(ProxyJobBase):
     model_config = ConfigDict(from_attributes=True)
@@ -69,4 +72,3 @@ class ProxyJob(ProxyJobBase):
     credential: Credential | None = None
     socks_server_id: UUID4 | None = None
     socks_server: SocksServer | None = None
-

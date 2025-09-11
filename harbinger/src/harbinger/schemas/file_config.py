@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-from pydantic import (UUID4, BaseModel)
+from pydantic import UUID4, BaseModel
 
 
 from .file import FileType
@@ -24,4 +24,3 @@ class FileConfig(BaseModel):
     path: str
     name: str
     type: FileType
-

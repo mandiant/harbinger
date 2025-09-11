@@ -29,19 +29,27 @@ if TYPE_CHECKING:
 
 class Proxy(Base):
     __tablename__ = "proxies"
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     host: Mapped[str] = mapped_column(String)
     port: Mapped[int] = mapped_column(Integer)
     type: Mapped[str] = mapped_column(String)
     status: Mapped[str] = mapped_column(String)
     note: Mapped[str] = mapped_column(String)
     remote_hostname: Mapped[str] = mapped_column(String)
-    time_created: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    time_created: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
     username: Mapped[str] = mapped_column(String)
     password: Mapped[str] = mapped_column(String)
-    c2_server_id: Mapped[UUID] = mapped_column(ForeignKey("c2_servers.id"), nullable=True)
+    c2_server_id: Mapped[UUID] = mapped_column(
+        ForeignKey("c2_servers.id"), nullable=True
+    )
     internal_id: Mapped[str] = mapped_column(String)
-    c2_implant_id: Mapped[UUID] = mapped_column(ForeignKey("c2_implants.id"), nullable=True)
+    c2_implant_id: Mapped[UUID] = mapped_column(
+        ForeignKey("c2_implants.id"), nullable=True
+    )
     c2_task_id: Mapped[UUID] = mapped_column(ForeignKey("c2_tasks.id"), nullable=True)
 
     labels = relationship(

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-from pydantic import (BaseModel, Field)
+from pydantic import BaseModel, Field
 
 
 from .truffle_hog import THSourceMetadata
@@ -32,4 +32,3 @@ class TruffleHogOutput(BaseModel):
     raw_v2: str | None = Field(validation_alias="RawV2", default=None)
     extra_data: dict | None = Field(validation_alias="ExtraData", default=None)
     structured_data: str | None = Field(validation_alias="StructuredData", default=None)
-

@@ -5,20 +5,48 @@ Revises: eac63cedd02c
 Create Date: 2025-06-26 06:33:51.157226
 
 """
+
 from alembic import op
 from harbinger.models import (
-    Domain, Password, Kerberos, Credential, Proxy, InputFile,
-    Component, ProxyJob, File, Playbook, PlaybookStep, PlaybookStepModifier,
-    C2Job, Host, Process, Label, LabeledItem,
-    C2Server, C2ServerStatus, C2Implant, SituationalAwareness, Share,
-    ShareFile, Highlight, Hash, ParseResult, SocksServer, Action, CertificateAuthority,
-    CertificateTemplate, C2ServerType, C2ServerArguments, Suggestion
+    Domain,
+    Password,
+    Kerberos,
+    Credential,
+    Proxy,
+    InputFile,
+    Component,
+    ProxyJob,
+    File,
+    Playbook,
+    PlaybookStep,
+    PlaybookStepModifier,
+    C2Job,
+    Host,
+    Process,
+    Label,
+    LabeledItem,
+    C2Server,
+    C2ServerStatus,
+    C2Implant,
+    SituationalAwareness,
+    Share,
+    ShareFile,
+    Highlight,
+    Hash,
+    ParseResult,
+    SocksServer,
+    Action,
+    CertificateAuthority,
+    CertificateTemplate,
+    C2ServerType,
+    C2ServerArguments,
+    Suggestion,
 )
 
 
 # revision identifiers, used by Alembic.
-revision = '891e7a1f123d'
-down_revision = 'eac63cedd02c'
+revision = "891e7a1f123d"
+down_revision = "eac63cedd02c"
 branch_labels = None
 depends_on = None
 
@@ -50,6 +78,7 @@ $$ LANGUAGE plpgsql;
 # SQL to drop the function
 DROP_NOTIFY_FUNCTION_SQL = "DROP FUNCTION IF EXISTS notify_changes() CASCADE;"
 
+
 def get_trigger_statements_for_table(table_name):
     """Generates INSERT, UPDATE, DELETE trigger statements for a given table."""
     triggers = []
@@ -70,6 +99,7 @@ def get_trigger_statements_for_table(table_name):
     )
     return triggers
 
+
 def get_drop_trigger_statements_for_table(table_name):
     """Generates DROP TRIGGER statements for a given table."""
     drops = []
@@ -78,43 +108,95 @@ def get_drop_trigger_statements_for_table(table_name):
     drops.append(f"DROP TRIGGER IF EXISTS on_{table_name}_delete ON {table_name};")
     return drops
 
+
 def upgrade():
     op.execute(NOTIFY_FUNCTION_SQL)
 
     models_to_trigger = [
-        Domain, Password, Kerberos, Credential, Proxy, ProxyJob, InputFile,
-        Component, File, Playbook, PlaybookStep, PlaybookStepModifier,
-        C2Job, Host, Process, Label, LabeledItem,
-        C2Server, C2ServerStatus, C2Implant, SituationalAwareness, Share,
-        ShareFile, Highlight, Hash, ParseResult, SocksServer, Action,
-        CertificateAuthority, CertificateTemplate, C2ServerType,
-        C2ServerArguments, Suggestion
+        Domain,
+        Password,
+        Kerberos,
+        Credential,
+        Proxy,
+        ProxyJob,
+        InputFile,
+        Component,
+        File,
+        Playbook,
+        PlaybookStep,
+        PlaybookStepModifier,
+        C2Job,
+        Host,
+        Process,
+        Label,
+        LabeledItem,
+        C2Server,
+        C2ServerStatus,
+        C2Implant,
+        SituationalAwareness,
+        Share,
+        ShareFile,
+        Highlight,
+        Hash,
+        ParseResult,
+        SocksServer,
+        Action,
+        CertificateAuthority,
+        CertificateTemplate,
+        C2ServerType,
+        C2ServerArguments,
+        Suggestion,
     ]
     table_names = [table.__tablename__ for table in models_to_trigger]
 
     for table_name in table_names:
-        if table_name == 'alembic_version': # Skip alembic's internal table
+        if table_name == "alembic_version":  # Skip alembic's internal table
             continue
         trigger_sqls = get_trigger_statements_for_table(table_name)
         for sql in trigger_sqls:
             op.execute(sql)
 
 
-
 def downgrade():
     models_to_trigger = [
-        Domain, Password, Kerberos, Credential, Proxy, ProxyJob, InputFile,
-        Component, File, Playbook, PlaybookStep, PlaybookStepModifier,
-        C2Job, Host, Process, Label, LabeledItem,
-        C2Server, C2ServerStatus, C2Implant, SituationalAwareness, Share,
-        ShareFile, Highlight, Hash, ParseResult, SocksServer, Action,
-        CertificateAuthority, CertificateTemplate, C2ServerType,
-        C2ServerArguments, Suggestion
+        Domain,
+        Password,
+        Kerberos,
+        Credential,
+        Proxy,
+        ProxyJob,
+        InputFile,
+        Component,
+        File,
+        Playbook,
+        PlaybookStep,
+        PlaybookStepModifier,
+        C2Job,
+        Host,
+        Process,
+        Label,
+        LabeledItem,
+        C2Server,
+        C2ServerStatus,
+        C2Implant,
+        SituationalAwareness,
+        Share,
+        ShareFile,
+        Highlight,
+        Hash,
+        ParseResult,
+        SocksServer,
+        Action,
+        CertificateAuthority,
+        CertificateTemplate,
+        C2ServerType,
+        C2ServerArguments,
+        Suggestion,
     ]
     table_names = [table.__tablename__ for table in models_to_trigger]
 
     for table_name in reversed(table_names):
-        if table_name == 'alembic_version':
+        if table_name == "alembic_version":
             continue
         drop_trigger_sqls = get_drop_trigger_statements_for_table(table_name)
         for sql in drop_trigger_sqls:

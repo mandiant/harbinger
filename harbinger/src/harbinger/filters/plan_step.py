@@ -5,7 +5,7 @@ from pydantic import UUID4
 from .label import LabelFilter
 
 
-class PlanStepFilter(Filter): 
+class PlanStepFilter(Filter):
     order_by: list[str] | None = ["order"]
     search: str | None = None
     id__in: list[UUID4] | None = None
@@ -19,6 +19,7 @@ class PlanStepFilter(Filter):
 
     class Constants(Filter.Constants):
         model = models.PlanStep
-        search_model_fields = ['description', 'status', 'notes']
+        search_model_fields = ["description", "status", "notes"]
+
 
 # Filters.py

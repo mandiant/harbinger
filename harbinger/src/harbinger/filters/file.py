@@ -17,5 +17,10 @@ class FileFilter(Filter):
 
     class Constants(Filter.Constants):
         model = models.File
-        search_model_fields = ["filename", "path", "filetype", "magic_mimetype", "magika_mimetype"]
-
+        search_model_fields = [
+            "filename",
+            "path",
+            "filetype",
+            "magic_mimetype",
+            "magika_mimetype",
+        ]

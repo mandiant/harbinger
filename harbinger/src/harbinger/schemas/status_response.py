@@ -13,10 +13,8 @@
 # limitations under the License.
 
 
-from pydantic import (BaseModel)
-
+from pydantic import BaseModel
 
 
 class StatusResponse(BaseModel):
     message: str = ""
-

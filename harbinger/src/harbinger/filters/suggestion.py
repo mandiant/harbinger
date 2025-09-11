@@ -13,10 +13,11 @@ class SuggestionFilter(Filter):
     reason: str | None = None
     playbook_template_id: str | UUID4 | None = None
     c2_implant_id: str | UUID4 | None = None
-    plan_step: PlanStepFilter | None = FilterDepends(with_prefix("plan_step", PlanStepFilter))
+    plan_step: PlanStepFilter | None = FilterDepends(
+        with_prefix("plan_step", PlanStepFilter)
+    )
     labels: LabelFilter | None = FilterDepends(with_prefix("label", LabelFilter))
 
     class Constants(Filter.Constants):
         model = models.Suggestion
-        search_model_fields = ['name', 'reason']
-
+        search_model_fields = ["name", "reason"]

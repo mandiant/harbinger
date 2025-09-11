@@ -16,7 +16,7 @@
 from enum import Enum
 from typing import List
 
-from pydantic import (UUID4, BaseModel, ConfigDict)
+from pydantic import UUID4, BaseModel, ConfigDict
 
 
 from .label import Label
@@ -72,11 +72,6 @@ class FileTypes(BaseModel):
     types: List[FileType]
 
 
-
-
-
-
-
 class FileBase(BaseModel):
     filetype: FileType | str | None = None
     magic_mimetype: str | None = ""
@@ -86,8 +81,10 @@ class FileBase(BaseModel):
     sha1sum: str | None = ""
     sha256sum: str | None = ""
 
+
 class FileUpdate(FileBase):
     pass
+
 
 class FileCreate(FileBase):
     filename: str
@@ -97,6 +94,7 @@ class FileCreate(FileBase):
     c2_server_id: str | None = None
     internal_implant_id: str | None = None
     manual_timeline_task_id: str | UUID4 | None = None
+
 
 class File(FileBase):
     model_config = ConfigDict(from_attributes=True)
@@ -113,4 +111,3 @@ class File(FileBase):
     manual_timeline_task_id: str | UUID4 | None = None
 
     labels: List["Label"] | None = None
-

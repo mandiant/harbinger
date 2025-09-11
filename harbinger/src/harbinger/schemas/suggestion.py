@@ -16,7 +16,7 @@
 from datetime import datetime
 from typing import List
 
-from pydantic import (UUID4, BaseModel, ConfigDict)
+from pydantic import UUID4, BaseModel, ConfigDict
 
 
 from .label import Label
@@ -31,12 +31,15 @@ class SuggestionBase(BaseModel):
     command: str | None = None
     plan_step_id: UUID4 | str | None = None
 
+
 class SuggestionCreate(SuggestionBase):
     pass
+
 
 class SuggestionCreated(SuggestionBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4 | str
+
 
 class Suggestion(SuggestionBase):
     model_config = ConfigDict(from_attributes=True)
@@ -46,6 +49,7 @@ class Suggestion(SuggestionBase):
 
     labels: List["Label"] | None = None
 
+
 class SuggestionBaseRequest(BaseModel):
     credentials: bool = True
     playbooks: bool = True
@@ -53,5 +57,6 @@ class SuggestionBaseRequest(BaseModel):
     c2_task_output: bool = True
     proxies: bool = True
 
+
 class SuggestionsRequest(SuggestionBaseRequest):
-    additional_prompt: str = ''
+    additional_prompt: str = ""

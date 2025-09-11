@@ -24,7 +24,9 @@ from harbinger.database.types import mapped_column
 
 class CertificateAuthorityMap(Base):
     __tablename__ = "certificate_template_authority_map"
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     certificate_authority_id: Mapped[UUID] = mapped_column(
         ForeignKey("certificate_authorities.id"), nullable=False
     )

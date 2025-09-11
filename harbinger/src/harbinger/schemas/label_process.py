@@ -13,11 +13,9 @@
 # limitations under the License.
 
 
-from pydantic import (BaseModel)
-
+from pydantic import BaseModel
 
 
 class LabelProcess(BaseModel):
     host_id: str
     number: int
-

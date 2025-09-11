@@ -23,9 +23,14 @@ from sqlalchemy.sql.expression import func
 from ._common import DEFAULT_CACHE_TTL, create_filter_for_column, env, to_excel
 from .c2_job import clone_c2_job, create_c2_job
 from .file import delete_input_files
-from .label import (create_label, create_label_item, delete_label_item,
-                    get_label_by_name, get_labeled_items_list,
-                    get_labels_for_q)
+from .label import (
+    create_label,
+    create_label_item,
+    delete_label_item,
+    get_label_by_name,
+    get_labeled_items_list,
+    get_labels_for_q,
+)
 from .process import _process_dynamic_argument_ids
 from .proxy_job import clone_proxy_job, create_proxy_job
 

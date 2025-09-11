@@ -30,20 +30,30 @@ if TYPE_CHECKING:
 
 class Suggestion(Base):
     __tablename__ = "suggestions"
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     name: Mapped[str] = mapped_column(String)
     reason: Mapped[str] = mapped_column(String)
     playbook_template_id: Mapped[UUID] = mapped_column(
         ForeignKey("playbook_templates.id"), nullable=True
     )
-    c2_implant_id: Mapped[UUID] = mapped_column(ForeignKey("c2_implants.id"), nullable=True)
+    c2_implant_id: Mapped[UUID] = mapped_column(
+        ForeignKey("c2_implants.id"), nullable=True
+    )
 
     command: Mapped[str] = mapped_column(String)
     arguments: Mapped[dict] = mapped_column(JSON)
 
-    time_created: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    time_updated: Mapped[DateTime] = mapped_column(DateTime(timezone=True), onupdate=func.now())
-    plan_step_id: Mapped[UUID] = mapped_column(ForeignKey("plan_step.id"), nullable=True)
+    time_created: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    time_updated: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), onupdate=func.now()
+    )
+    plan_step_id: Mapped[UUID] = mapped_column(
+        ForeignKey("plan_step.id"), nullable=True
+    )
     plan_step = relationship("PlanStep", back_populates="suggestions")
 
     labels = relationship(

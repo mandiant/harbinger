@@ -20,7 +20,7 @@ class FileDownloads(BaseModel):
     id: str
     files: list[schemas.File]
     volume_name: str
-    bucket: str = ''
+    bucket: str = ""
 
 
 class File(BaseModel):
@@ -38,7 +38,7 @@ class SocksTask(BaseModel):
     tmate: bool | None
     asciinema: bool | None
     proxychains: bool | None
-    env: str | None = ''
+    env: str | None = ""
     credential: schemas.Credential | None = None
     files: list[schemas.File] | None = []
 
@@ -47,7 +47,7 @@ class SocksTaskResult(BaseModel):
     id: str
     output: list[str] | None = []
     status: schemas.Status
-    error: str = ''
+    error: str = ""
     exit_code: int = 0
     files: list[File] | None = []
 

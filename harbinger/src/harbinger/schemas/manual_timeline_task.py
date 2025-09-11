@@ -16,7 +16,7 @@
 from datetime import datetime
 from typing import List
 
-from pydantic import (UUID4, BaseModel, ConfigDict, field_validator)
+from pydantic import UUID4, BaseModel, ConfigDict, field_validator
 
 
 from .label import Label
@@ -35,20 +35,22 @@ class ManualTimelineTaskBase(BaseModel):
     ai_summary: str | None = ""
     processing_status: str | None = ""
 
-    @field_validator('processing_status')
+    @field_validator("processing_status")
     def set_processing_status(cls, processing_status):
-        return processing_status or ''
+        return processing_status or ""
+
 
 class ManualTimelineTaskCreate(ManualTimelineTaskBase):
     pass
 
+
 class ManualTimelineTaskCreated(ManualTimelineTaskBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4 | str
+
 
 class ManualTimelineTask(ManualTimelineTaskBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4 | str
 
     labels: List["Label"] | None = None
-

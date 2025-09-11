@@ -96,14 +96,15 @@ async def handle_ssh_websocket(
     channel = None
 
     try:
-        await websocket.accept()  # Accept connection after successful authentication and details retrieval
+        await (
+            websocket.accept()
+        )  # Accept connection after successful authentication and details retrieval
 
         ssh_client = SSHClient()
         ssh_client.load_system_host_keys()
         ssh_client.set_missing_host_key_policy(AutoAddPolicy())
 
         try:
-
             dummy_key_str = io.StringIO()
             dummy_key.write_private_key(dummy_key_str)
             dummy_key_str.seek(0)

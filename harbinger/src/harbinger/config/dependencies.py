@@ -15,7 +15,9 @@
 from fastapi import Request, Depends
 from harbinger.database.users import fastapi_users
 
+
 def get_db(request: Request):
     return request.state.db
+
 
 current_active_user = fastapi_users.current_user(active=True)

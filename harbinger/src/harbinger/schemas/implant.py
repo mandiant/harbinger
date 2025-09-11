@@ -14,12 +14,10 @@
 
 from typing import List
 
-from pydantic import (BaseModel)
-
+from pydantic import BaseModel
 
 
 class Implant(BaseModel):
     name: str
-    icon_base64: str | None = ''
+    icon_base64: str | None = ""
     commands: List[str]
-

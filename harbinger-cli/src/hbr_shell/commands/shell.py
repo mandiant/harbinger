@@ -12,32 +12,35 @@ from pathlib import Path
 # --- Debug Logging ---
 DEBUG = os.environ.get("HBR_SHELL_DEBUG") == "1"
 
+
 def log_debug(message):
     if DEBUG:
         print(f"[DEBUG] {message}", file=sys.stderr)
+
 
 def get_auth_config():
     """Get API URL and cookie from config file."""
     config_dir = Path.home() / ".harbinger"
     config_file = config_dir / "config"
-    
+
     if not config_file.exists():
         return None, None
 
     config = configparser.ConfigParser()
     config.read(config_file)
-    
-    api_url = config.get('auth', 'api_url', fallback=None)
-    cookie = config.get('auth', 'cookie', fallback=None)
-    
+
+    api_url = config.get("auth", "api_url", fallback=None)
+    cookie = config.get("auth", "cookie", fallback=None)
+
     return api_url, cookie
+
 
 def parse_cast_file(path):
     """
     Parses an asciinema .cast file and extracts command chunks by detecting
     the shell prompt's reappearance.
     """
-    with open(path, 'r') as f:
+    with open(path, "r") as f:
         lines = f.readlines()
 
     if DEBUG:
@@ -57,10 +60,10 @@ def parse_cast_file(path):
     initial_output = ""
     first_input_index = -1
     for i, event in enumerate(events):
-        if event[1] == 'i':
+        if event[1] == "i":
             first_input_index = i
             break
-        elif event[1] == 'o':
+        elif event[1] == "o":
             initial_output += event[2]
 
     if first_input_index == -1:
@@ -74,7 +77,9 @@ def parse_cast_file(path):
     log_debug(f"Detected prompt signature: '{prompt_signature}'")
 
     if not prompt_signature:
-        log_debug("Could not determine a prompt signature. Falling back to simple parsing.")
+        log_debug(
+            "Could not determine a prompt signature. Falling back to simple parsing."
+        )
         # This fallback can be implemented if needed, for now we'll proceed.
 
     # --- 2. Group commands based on prompt appearances ---
@@ -88,32 +93,38 @@ def parse_cast_file(path):
 
         if not in_command:
             # A new command must start with an input event.
-            if event_type == 'i':
+            if event_type == "i":
                 in_command = True
                 current_command_events.append(event)
         else:
             current_command_events.append(event)
             # A command is considered finished when the prompt signature appears in an output event.
             # We check if the last line of the current output matches the prompt.
-            if event_type == 'o':
+            if event_type == "o":
                 output_lines = content.splitlines()
                 if output_lines and output_lines[-1].endswith(prompt_signature):
                     log_debug("Detected end of command via prompt.")
-                    
+
                     # Finalize the current command chunk
-                    command_input = "".join([e[2] for e in current_command_events if e[1] == 'i'])
-                    command_outputs = [e[2] for e in current_command_events if e[1] == 'o']
+                    command_input = "".join(
+                        [e[2] for e in current_command_events if e[1] == "i"]
+                    )
+                    command_outputs = [
+                        e[2] for e in current_command_events if e[1] == "o"
+                    ]
                     start_time = current_command_events[0][0]
-                    end_time = timestamp # Capture the timestamp of the last event
+                    end_time = timestamp  # Capture the timestamp of the last event
 
                     if command_input.strip():
-                        commands.append({
-                            "input": command_input,
-                            "outputs": command_outputs,
-                            "start_time": start_time,
-                            "end_time": end_time,
-                            "events": current_command_events,
-                        })
+                        commands.append(
+                            {
+                                "input": command_input,
+                                "outputs": command_outputs,
+                                "start_time": start_time,
+                                "end_time": end_time,
+                                "events": current_command_events,
+                            }
+                        )
 
                     # Reset for the next command
                     in_command = False
@@ -122,46 +133,53 @@ def parse_cast_file(path):
     # Add any remaining events as the last command if the recording was cut off
     if current_command_events:
         log_debug("Saving final command chunk from remaining events.")
-        command_input = "".join([e[2] for e in current_command_events if e[1] == 'i'])
-        command_outputs = [e[2] for e in current_command_events if e[1] == 'o']
+        command_input = "".join([e[2] for e in current_command_events if e[1] == "i"])
+        command_outputs = [e[2] for e in current_command_events if e[1] == "o"]
         start_time = current_command_events[0][0]
-        end_time = current_command_events[-1][0] # Timestamp of the last event
+        end_time = current_command_events[-1][0]  # Timestamp of the last event
         if command_input.strip():
-            commands.append({
-                "input": command_input,
-                "outputs": command_outputs,
-                "start_time": start_time,
-                "end_time": end_time,
-                "events": current_command_events,
-            })
+            commands.append(
+                {
+                    "input": command_input,
+                    "outputs": command_outputs,
+                    "start_time": start_time,
+                    "end_time": end_time,
+                    "events": current_command_events,
+                }
+            )
 
     log_debug(f"Parsing complete. Found {len(commands)} command(s).")
     return header, commands
 
+
 def synthesize_cast_file(header, command_chunk):
     """Creates a new .cast file for a single command, preserving original timing."""
-    with tempfile.NamedTemporaryFile(suffix=".cast", delete=False, mode='w') as tmpfile:
+    with tempfile.NamedTemporaryFile(suffix=".cast", delete=False, mode="w") as tmpfile:
         # The header needs to be modified to reflect the new duration.
-        chunk_start_time = command_chunk['start_time']
-        chunk_end_time = command_chunk['end_time']
+        chunk_start_time = command_chunk["start_time"]
+        chunk_end_time = command_chunk["end_time"]
         new_header = header.copy()
-        new_header['duration'] = chunk_end_time - chunk_start_time
-        
-        tmpfile.write(json.dumps(new_header) + '\n')
-        
+        new_header["duration"] = chunk_end_time - chunk_start_time
+
+        tmpfile.write(json.dumps(new_header) + "\n")
+
         # Write events with timestamps relative to the start of the chunk
         for event in command_chunk["events"]:
             original_timestamp, event_type, content = event
             relative_timestamp = original_timestamp - chunk_start_time
-            tmpfile.write(json.dumps([relative_timestamp, event_type, content]) + '\n')
-            
-        log_debug(f"Synthesized cast file for command '{command_chunk['input'].splitlines()[0].strip()}' at: {tmpfile.name}")
+            tmpfile.write(json.dumps([relative_timestamp, event_type, content]) + "\n")
+
+        log_debug(
+            f"Synthesized cast file for command '{command_chunk['input'].splitlines()[0].strip()}' at: {tmpfile.name}"
+        )
         return tmpfile.name
+
 
 def setup(subparsers):
     """Setup the shell command."""
     parser = subparsers.add_parser("shell", help="Record a shell session")
     parser.set_defaults(func=run)
+
 
 def run(args):
     """
@@ -174,9 +192,14 @@ def run(args):
         sys.exit(1)
 
     try:
-        subprocess.run(["asciinema", "--version"], capture_output=True, check=True, text=True)
+        subprocess.run(
+            ["asciinema", "--version"], capture_output=True, check=True, text=True
+        )
     except (subprocess.CalledProcessError, FileNotFoundError):
-        print("Error: asciinema is not installed or not in the system's PATH.", file=sys.stderr)
+        print(
+            "Error: asciinema is not installed or not in the system's PATH.",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     with tempfile.NamedTemporaryFile(suffix=".cast", delete=False) as tmpfile:
@@ -184,12 +207,23 @@ def run(args):
     log_debug(f"Temporary recording file created at: {recording_path}")
 
     try:
-        print("Starting Harbinger shell recording. Type 'exit' or press Ctrl+D to stop.")
+        print(
+            "Starting Harbinger shell recording. Type 'exit' or press Ctrl+D to stop."
+        )
         title = f"Harbinger Shell Session - {datetime.datetime.now(datetime.timezone.utc).isoformat()}"
         shell = os.environ.get("SHELL", "bash")
-        command = ["asciinema", "rec", "--title", title, "--stdin", "--quiet", f"--command={shell}", recording_path]
+        command = [
+            "asciinema",
+            "rec",
+            "--title",
+            title,
+            "--stdin",
+            "--quiet",
+            f"--command={shell}",
+            recording_path,
+        ]
         log_debug(f"Executing command: {' '.join(command)}")
-        
+
         time_started = datetime.datetime.now(datetime.timezone.utc)
         process = subprocess.run(command)
         time_completed = datetime.datetime.now(datetime.timezone.utc)
@@ -207,8 +241,9 @@ def run(args):
 
         # The display choice for each command is its first line of input.
         choices = [
-            (cmd['input'].splitlines()[0].strip(), i) 
-            for i, cmd in enumerate(commands) if cmd['input'].strip()
+            (cmd["input"].splitlines()[0].strip(), i)
+            for i, cmd in enumerate(commands)
+            if cmd["input"].strip()
         ]
         extended_choices = [
             "---",
@@ -219,11 +254,13 @@ def run(args):
 
         questions = [
             inquirer.Checkbox(
-                'selected_commands',
+                "selected_commands",
                 message="Select commands to upload. 'Select All' or 'Select None' will override individual selections.",
                 choices=extended_choices,
             ),
-            inquirer.Text('description', message="Enter a description for this set of actions"),
+            inquirer.Text(
+                "description", message="Enter a description for this set of actions"
+            ),
         ]
         answers = inquirer.prompt(questions)
 
@@ -231,50 +268,52 @@ def run(args):
             print("Aborting.")
             return
 
-        selected_options = answers.get('selected_commands', [])
+        selected_options = answers.get("selected_commands", [])
 
-        if 'all' in selected_options:
+        if "all" in selected_options:
             selected_indices = list(range(len(commands)))
             print("Processing 'Select All', all commands will be uploaded.")
-        elif 'none' in selected_options:
+        elif "none" in selected_options:
             selected_indices = []
         else:
             selected_indices = [opt for opt in selected_options if isinstance(opt, int)]
 
         if not selected_indices:
-            if 'none' in selected_options:
+            if "none" in selected_options:
                 print("'Select None' chosen. Aborting.")
             else:
                 print("No commands selected. Aborting.")
             return
-        
-        description = answers['description']
+
+        description = answers["description"]
 
         for index in selected_indices:
             command_chunk = commands[index]
-            
+
             # The initial command is the first line of the input chunk.
-            initial_command = command_chunk['input'].splitlines()[0].strip()
-            
+            initial_command = command_chunk["input"].splitlines()[0].strip()
+
             print(f"\nProcessing command: {initial_command}")
 
             single_cast_path = synthesize_cast_file(header, command_chunk)
 
             try:
                 timeline_url = f"{api_url.rstrip('/')}/manual_timeline_tasks/"
-                headers = { "Content-Type": "application/json" }
-                cookies = { "fastapiusersauth": cookie }
+                headers = {"Content-Type": "application/json"}
+                cookies = {"fastapiusersauth": cookie}
 
                 # Calculate the absolute start and end times for the command.
-                relative_start = command_chunk['start_time']
-                relative_end = command_chunk['end_time']
-                absolute_start = time_started + datetime.timedelta(seconds=relative_start)
+                relative_start = command_chunk["start_time"]
+                relative_end = command_chunk["end_time"]
+                absolute_start = time_started + datetime.timedelta(
+                    seconds=relative_start
+                )
                 absolute_end = time_started + datetime.timedelta(seconds=relative_end)
 
                 # Split the initial command into the command name and its arguments.
-                command_parts = initial_command.split(' ')
+                command_parts = initial_command.split(" ")
                 command_name = command_parts[0]
-                arguments = ' '.join(command_parts[1:])
+                arguments = " ".join(command_parts[1:])
 
                 timeline_payload = {
                     "name": f"Command: {initial_command}",
@@ -286,38 +325,49 @@ def run(args):
                     "arguments": arguments,
                 }
 
-<<<<<<< HEAD
-                timeline_response = requests.post(timeline_url, headers=headers, cookies=cookies, data=json.dumps(timeline_payload))
-=======
-                timeline_response = requests.post(timeline_url, headers=headers, cookies=cookies, data=json.dumps(timeline_payload), verify=False)
->>>>>>> main
+                timeline_response = requests.post(
+                    timeline_url,
+                    headers=headers,
+                    cookies=cookies,
+                    data=json.dumps(timeline_payload),
+                    verify=False,
+                )
 
                 if timeline_response.status_code != 200:
-                    print(f"  Error creating timeline event: {timeline_response.status_code} - {timeline_response.text}", file=sys.stderr)
+                    print(
+                        f"  Error creating timeline event: {timeline_response.status_code} - {timeline_response.text}",
+                        file=sys.stderr,
+                    )
                     continue
 
                 timeline_task_id = timeline_response.json().get("id")
                 print(f"  Timeline event created with ID: {timeline_task_id}")
 
                 upload_url = f"{api_url.rstrip('/')}/upload_file/"
-                
+
                 with open(single_cast_path, "rb") as f:
                     files = {"file": ("output.cast", f, "application/octet-stream")}
                     data = {
                         "file_type": "cast",
                         "manual_timeline_task_id": timeline_task_id,
                     }
-<<<<<<< HEAD
-                    upload_response = requests.post(upload_url, cookies=cookies, data=data, params=data, files=files)
-=======
-                    upload_response = requests.post(upload_url, cookies=cookies, data=data, params=data, files=files, verify=False)
->>>>>>> main
+                    upload_response = requests.post(
+                        upload_url,
+                        cookies=cookies,
+                        data=data,
+                        params=data,
+                        files=files,
+                        verify=False,
+                    )
 
                 if upload_response.status_code == 200:
                     file_data = upload_response.json()
                     print(f"  Upload successful! File ID: {file_data.get('id')}")
                 else:
-                    print(f"  Error uploading file: {upload_response.status_code} - {upload_response.text}", file=sys.stderr)
+                    print(
+                        f"  Error uploading file: {upload_response.status_code} - {upload_response.text}",
+                        file=sys.stderr,
+                    )
 
             finally:
                 if os.path.exists(single_cast_path):

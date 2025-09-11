@@ -16,7 +16,7 @@
 from datetime import datetime
 from typing import List
 
-from pydantic import (UUID4, BaseModel, ConfigDict)
+from pydantic import UUID4, BaseModel, ConfigDict
 
 
 from .label import Label
@@ -31,12 +31,13 @@ class ParseResultBase(BaseModel):
     parser: str | None = None
     log: str | None = None
 
+
 class ParseResultCreate(ParseResultBase):
     pass
+
 
 class ParseResult(ParseResultBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4
     time_created: datetime
     labels: List["Label"] | None = []
-

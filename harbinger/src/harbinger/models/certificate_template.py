@@ -30,7 +30,9 @@ if TYPE_CHECKING:
 
 class CertificateTemplate(Base):
     __tablename__ = "certificate_templates"
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     template_name: Mapped[str] = mapped_column(String)
     display_name: Mapped[str] = mapped_column(String)
     enabled: Mapped[bool] = mapped_column(Boolean)
@@ -46,8 +48,12 @@ class CertificateTemplate(Base):
     minimum_rsa_key_length: Mapped[int] = mapped_column(Integer)
     raw_json: Mapped[dict] = mapped_column(JSON)
 
-    time_created: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    time_updated: Mapped[DateTime] = mapped_column(DateTime(timezone=True), onupdate=func.now())
+    time_created: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    time_updated: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), onupdate=func.now()
+    )
 
     labels = relationship(
         "Label", secondary="labeled_item", lazy="joined", viewonly=True

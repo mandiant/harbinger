@@ -16,7 +16,7 @@
 from datetime import datetime
 from typing import List
 
-from pydantic import (UUID4, BaseModel, ConfigDict)
+from pydantic import UUID4, BaseModel, ConfigDict
 
 
 from .label import Label
@@ -34,11 +34,12 @@ class KerberosBase(BaseModel):
     ccache: str = ""
     kirbi: str = ""
 
+
 class KerberosCreate(KerberosBase):
     pass
+
 
 class Kerberos(KerberosBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4
     labels: List["Label"] | None = None
-

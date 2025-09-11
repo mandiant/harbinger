@@ -13,11 +13,9 @@
 # limitations under the License.
 
 
-from pydantic import (BaseModel)
-
+from pydantic import BaseModel
 
 
 class C2Connector(BaseModel):
     c2_server_id: str
     name: str
-

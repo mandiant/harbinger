@@ -16,7 +16,7 @@
 from datetime import datetime
 from typing import List
 
-from pydantic import (UUID4, BaseModel, ConfigDict, field_validator)
+from pydantic import UUID4, BaseModel, ConfigDict, field_validator
 
 
 from .label import Label
@@ -45,8 +45,10 @@ class ShareBase(BaseModel):
         except AttributeError:
             return v
 
+
 class ShareCreate(ShareBase):
     pass
+
 
 class Share(ShareBase):
     model_config = ConfigDict(from_attributes=True)
@@ -54,4 +56,3 @@ class Share(ShareBase):
     time_created: datetime
 
     labels: List["Label"] | None = None
-

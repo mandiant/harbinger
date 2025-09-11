@@ -12,8 +12,10 @@ from sqlalchemy.orm import aliased
 from sqlalchemy.sql.expression import func
 
 from ._common import create_filter_for_column
-from .certificate_authority import (create_certificate_authority_map,
-                                    get_certificate_authorities)
+from .certificate_authority import (
+    create_certificate_authority_map,
+    get_certificate_authorities,
+)
 from .label import get_labels_for_q
 
 

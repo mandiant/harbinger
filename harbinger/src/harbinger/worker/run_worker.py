@@ -198,7 +198,7 @@ async def main():
             log.info("Worker started, waiting for signal.")
             async for signum in signals:
                 log.info(f"Received {signum} stopping worker")
-                await worker.shutdown() 
+                await worker.shutdown()
                 await worker2.shutdown()
                 log.info("Shutdown done!")
                 break

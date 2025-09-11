@@ -14,7 +14,7 @@
 
 from typing import List
 
-from pydantic import (BaseModel)
+from pydantic import BaseModel
 
 
 from .action import ActionCreate
@@ -33,4 +33,3 @@ class HarbingerYaml(BaseModel):
     setting_categories: List["SettingCategoryCreate"] | None = None
     playbooks: List["PlaybookTemplateCreate"] | None = None
     c2_servers: List["C2ServerCreate"] | None = None
-

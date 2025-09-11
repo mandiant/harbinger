@@ -16,4 +16,3 @@ class SocksServerFilter(Filter):
     class Constants(Filter.Constants):
         model = models.SocksServer
         search_model_fields = ["type", "hostname", "operating_system"]
-

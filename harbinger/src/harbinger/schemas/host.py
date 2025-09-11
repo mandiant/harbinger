@@ -15,7 +15,7 @@
 
 from typing import List
 
-from pydantic import (UUID4, BaseModel, ConfigDict)
+from pydantic import UUID4, BaseModel, ConfigDict
 
 
 from .domain import Domain
@@ -29,12 +29,13 @@ class HostBase(BaseModel):
     domain: str | None = None
     fqdn: str | None = None
 
+
 class HostCreate(HostBase):
     pass
+
 
 class Host(HostBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4
     labels: List["Label"] | None = None
     domain_obj: Domain | None = None
-

@@ -5,7 +5,7 @@ from pydantic import UUID4
 from .label import LabelFilter
 
 
-class C2ServerFilter(Filter): 
+class C2ServerFilter(Filter):
     order_by: list[str] | None = ["-time_created"]
     search: str | None = None
     type: str | None = None
@@ -13,5 +13,4 @@ class C2ServerFilter(Filter):
 
     class Constants(Filter.Constants):
         model = models.C2Server
-        search_model_fields = ['name', 'hostname', 'username']
-
+        search_model_fields = ["name", "hostname", "username"]

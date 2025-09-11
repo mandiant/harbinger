@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-from pydantic import (BaseModel)
+from pydantic import BaseModel
 
 
 from .time_line import TimeLineThemes
@@ -23,4 +23,3 @@ class CreateTimeline(BaseModel):
     create_screenshots: bool = True
     theme: TimeLineThemes = TimeLineThemes.asciinema
     hour_offset: int = 0
-

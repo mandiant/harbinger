@@ -3,6 +3,7 @@
 # source: v1/messages.proto
 # Protobuf Python Version: 4.25.1
 """Generated protocol buffer code."""
+
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import symbol_database as _symbol_database
@@ -12,80 +13,82 @@ from google.protobuf.internal import builder as _builder
 _sym_db = _symbol_database.Default()
 
 
-
-
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x11v1/messages.proto\x12\x15harbinger.go.proto.v1\"\x1e\n\x0bPingRequest\x12\x0f\n\x07message\x18\x01 \x01(\t\"\xcf\x02\n\x0eImplantRequest\x12\x14\n\x0c\x63\x32_server_id\x18\x01 \x01(\t\x12\x13\n\x0binternal_id\x18\x02 \x01(\t\x12\x0f\n\x07\x63\x32_type\x18\x03 \x01(\t\x12\x14\n\x0cpayload_type\x18\x04 \x01(\t\x12\x0c\n\x04name\x18\x05 \x01(\t\x12\x10\n\x08hostname\x18\x06 \x01(\t\x12\x13\n\x0b\x64\x65scription\x18\x07 \x01(\t\x12\r\n\x05sleep\x18\x08 \x01(\x05\x12\x0e\n\x06jitter\x18\t \x01(\x05\x12\n\n\x02os\x18\n \x01(\t\x12\x0b\n\x03pid\x18\x0b \x01(\x05\x12\x14\n\x0c\x61rchitecture\x18\x0c \x01(\t\x12\x0f\n\x07process\x18\r \x01(\t\x12\x10\n\x08username\x18\x0e \x01(\t\x12\n\n\x02ip\x18\x0f \x01(\t\x12\x13\n\x0b\x65xternal_ip\x18\x10 \x01(\t\x12\x0e\n\x06\x64omain\x18\x11 \x01(\t\x12\x14\n\x0clast_checkin\x18\x12 \x01(\t\"\x11\n\x0fImplantResponse\"\xbe\x01\n\x0cProxyRequest\x12\x0c\n\x04host\x18\x01 \x01(\t\x12\x0c\n\x04port\x18\x02 \x01(\x05\x12\x0c\n\x04type\x18\x03 \x01(\t\x12\x0e\n\x06status\x18\x04 \x01(\t\x12\x0c\n\x04note\x18\x05 \x01(\t\x12\x17\n\x0fremote_hostname\x18\x06 \x01(\t\x12\x10\n\x08username\x18\x07 \x01(\t\x12\x10\n\x08password\x18\x08 \x01(\t\x12\x14\n\x0c\x63\x32_server_id\x18\t \x01(\t\x12\x13\n\x0binternal_id\x18\n \x01(\t\"\x0f\n\rProxyResponse\"\xa2\x01\n\x0b\x46ileRequest\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x0e\n\x06\x62ucket\x18\x02 \x01(\t\x12\x0c\n\x04path\x18\x03 \x01(\t\x12\x18\n\x10internal_task_id\x18\x04 \x01(\t\x12\x14\n\x0c\x63\x32_server_id\x18\x05 \x01(\t\x12\x1b\n\x13internal_implant_id\x18\x06 \x01(\t\x12\x16\n\x0eupload_file_id\x18\x07 \x01(\t\"\x1a\n\x0c\x46ileResponse\x12\n\n\x02id\x18\x01 \x01(\t\"`\n\x13\x43\x32TaskStatusRequest\x12\x14\n\x0c\x63\x32_server_id\x18\x01 \x01(\t\x12\x12\n\nc2_task_id\x18\x02 \x01(\t\x12\x0e\n\x06status\x18\x03 \x01(\t\x12\x0f\n\x07message\x18\x04 \x01(\t\"\x16\n\x14\x43\x32TaskStatusResponse\"\'\n\x0fSettingsRequest\x12\x14\n\x0c\x63\x32_server_id\x18\x01 \x01(\t\"\xc3\x01\n\x10SettingsResponse\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x10\n\x08hostname\x18\x03 \x01(\t\x12\x10\n\x08username\x18\x04 \x01(\t\x12\x0c\n\x04port\x18\x05 \x01(\x05\x12\x10\n\x08password\x18\x06 \x01(\t\x12\x16\n\x0e\x63\x61_certificate\x18\x07 \x01(\t\x12\x13\n\x0bprivate_key\x18\x08 \x01(\t\x12\r\n\x05token\x18\t \x01(\t\x12\x13\n\x0b\x63\x65rtificate\x18\n \x01(\t\"\xec\x01\n\x0bTaskRequest\x12\x13\n\x0binternal_id\x18\x01 \x01(\t\x12\x14\n\x0c\x63\x32_server_id\x18\x02 \x01(\t\x12\x0e\n\x06status\x18\x03 \x01(\t\x12\x17\n\x0foriginal_params\x18\x04 \x01(\t\x12\x16\n\x0e\x64isplay_params\x18\x05 \x01(\t\x12\x14\n\x0ctime_started\x18\x06 \x01(\t\x12\x16\n\x0etime_completed\x18\x07 \x01(\t\x12\x14\n\x0c\x63ommand_name\x18\x08 \x01(\t\x12\x10\n\x08operator\x18\t \x01(\t\x12\x1b\n\x13internal_implant_id\x18\n \x01(\t\"\x0e\n\x0cTaskResponse\"\xb7\x01\n\x07Process\x12\x12\n\nprocess_id\x18\x01 \x01(\x05\x12\x14\n\x0c\x61rchitecture\x18\x02 \x01(\t\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x0c\n\x04user\x18\x04 \x01(\t\x12\x10\n\x08\x62in_path\x18\x05 \x01(\t\x12\x19\n\x11parent_process_id\x18\x06 \x01(\x05\x12\x14\n\x0c\x63ommand_line\x18\x07 \x01(\t\x12\x13\n\x0b\x64\x65scription\x18\x08 \x01(\t\x12\x0e\n\x06handle\x18\t \x01(\t\"\x86\x01\n\tShareFile\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x0c\n\x04size\x18\x02 \x01(\x03\x12\x15\n\rlast_accessed\x18\x03 \x01(\t\x12\x15\n\rlast_modified\x18\x04 \x01(\t\x12\x0f\n\x07\x63reated\x18\x05 \x01(\t\x12\x10\n\x08unc_path\x18\x06 \x01(\t\x12\x0c\n\x04name\x18\x07 \x01(\t\"\xcb\x01\n\x08\x46ileList\x12\x0c\n\x04host\x18\x01 \x01(\t\x12\x13\n\x0bparent_path\x18\x02 \x01(\t\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x10\n\x08unc_path\x18\x04 \x01(\t\x12\x0c\n\x04size\x18\x05 \x01(\x03\x12\x15\n\rlast_accessed\x18\x06 \x01(\t\x12\x15\n\rlast_modified\x18\x07 \x01(\t\x12\x0f\n\x07\x63reated\x18\x08 \x01(\t\x12/\n\x05\x66iles\x18\n \x03(\x0b\x32 .harbinger.go.proto.v1.ShareFile\"\x9c\x02\n\x11TaskOutputRequest\x12\x13\n\x0binternal_id\x18\x01 \x01(\t\x12\x14\n\x0c\x63\x32_server_id\x18\x02 \x01(\t\x12\x15\n\rresponse_text\x18\x03 \x01(\t\x12\x13\n\x0boutput_type\x18\x04 \x01(\t\x12\x11\n\ttimestamp\x18\x05 \x01(\t\x12\x18\n\x10internal_task_id\x18\x06 \x01(\t\x12\x0e\n\x06\x62ucket\x18\x07 \x01(\t\x12\x0c\n\x04path\x18\x08 \x01(\t\x12\x31\n\tprocesses\x18\t \x03(\x0b\x32\x1e.harbinger.go.proto.v1.Process\x12\x32\n\tfile_list\x18\x0b \x01(\x0b\x32\x1f.harbinger.go.proto.v1.FileList\"\x14\n\x12TaskOutputResponse\"\x1f\n\x0cPingResponse\x12\x0f\n\x07message\x18\x01 \x01(\t\"y\n\x05\x45vent\x12\r\n\x05\x65vent\x18\x01 \x01(\t\x12\n\n\x02id\x18\x02 \x01(\t\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x14\n\x0c\x63hain_status\x18\x04 \x01(\t\x12\x31\n\x08progress\x18\x05 \x01(\x0b\x32\x1f.harbinger.go.proto.v1.Progress\"k\n\x08Progress\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0f\n\x07\x63urrent\x18\x02 \x01(\x05\x12\x0b\n\x03max\x18\x03 \x01(\x05\x12\x12\n\npercentage\x18\x04 \x01(\x02\x12\x0c\n\x04type\x18\x05 \x01(\t\x12\x13\n\x0b\x64\x65scription\x18\x06 \x01(\t\"\x1e\n\tArguments\x12\x11\n\targuments\x18\x01 \x03(\t\"y\n\x06Output\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0e\n\x06job_id\x18\x02 \x01(\t\x12/\n\x04type\x18\x04 \x01(\x0e\x32!.harbinger.go.proto.v1.OutputType\x12\x0e\n\x06output\x18\x05 \x01(\t\x12\x12\n\ncreated_at\x18\x06 \x01(\x03\">\n\x11\x46ileExistsRequest\x12\x0b\n\x03md5\x18\x01 \x01(\t\x12\x0c\n\x04sha1\x18\x02 \x01(\t\x12\x0e\n\x06sha256\x18\x03 \x01(\t\"$\n\x12\x46ileExistsResponse\x12\x0e\n\x06\x65xists\x18\x01 \x01(\x08\"!\n\x11UploadFileRequest\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\",\n\x12UploadFileResponse\x12\x16\n\x0eupload_file_id\x18\x01 \x01(\t\"&\n\x13\x44ownloadFileRequest\x12\x0f\n\x07\x66ile_id\x18\x01 \x01(\t\"$\n\x14\x44ownloadFileResponse\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\"K\n\x15\x43\x32ServerStatusRequest\x12\x14\n\x0c\x63\x32_server_id\x18\x01 \x01(\t\x12\x0e\n\x06status\x18\x02 \x01(\t\x12\x0c\n\x04name\x18\x03 \x01(\t\"\x18\n\x16\x43\x32ServerStatusResponse*Y\n\nOutputType\x12\x1b\n\x17OUTPUT_TYPE_UNSPECIFIED\x10\x00\x12\x16\n\x12OUTPUT_TYPE_STDOUT\x10\x01\x12\x16\n\x12OUTPUT_TYPE_STDERR\x10\x02\x32\xae\t\n\tHarbinger\x12Q\n\x04Ping\x12\".harbinger.go.proto.v1.PingRequest\x1a#.harbinger.go.proto.v1.PingResponse\"\x00\x12^\n\x0bSaveImplant\x12%.harbinger.go.proto.v1.ImplantRequest\x1a&.harbinger.go.proto.v1.ImplantResponse\"\x00\x12X\n\tSaveProxy\x12#.harbinger.go.proto.v1.ProxyRequest\x1a$.harbinger.go.proto.v1.ProxyResponse\"\x00\x12U\n\x08SaveFile\x12\".harbinger.go.proto.v1.FileRequest\x1a#.harbinger.go.proto.v1.FileResponse\"\x00\x12i\n\x0c\x43\x32TaskStatus\x12*.harbinger.go.proto.v1.C2TaskStatusRequest\x1a+.harbinger.go.proto.v1.C2TaskStatusResponse\"\x00\x12`\n\x0bGetSettings\x12&.harbinger.go.proto.v1.SettingsRequest\x1a\'.harbinger.go.proto.v1.SettingsResponse\"\x00\x12U\n\x08SaveTask\x12\".harbinger.go.proto.v1.TaskRequest\x1a#.harbinger.go.proto.v1.TaskResponse\"\x00\x12g\n\x0eSaveTaskOutput\x12(.harbinger.go.proto.v1.TaskOutputRequest\x1a).harbinger.go.proto.v1.TaskOutputResponse\"\x00\x12h\n\x0f\x43heckFileExists\x12(.harbinger.go.proto.v1.FileExistsRequest\x1a).harbinger.go.proto.v1.FileExistsResponse\"\x00\x12\x65\n\nUploadFile\x12(.harbinger.go.proto.v1.UploadFileRequest\x1a).harbinger.go.proto.v1.UploadFileResponse\"\x00(\x01\x12k\n\x0c\x44ownloadFile\x12*.harbinger.go.proto.v1.DownloadFileRequest\x1a+.harbinger.go.proto.v1.DownloadFileResponse\"\x00\x30\x01\x12r\n\x11SetC2ServerStatus\x12,.harbinger.go.proto.v1.C2ServerStatusRequest\x1a-.harbinger.go.proto.v1.C2ServerStatusResponse\"\x00\x42\x36Z4github.com/mandiant/harbinger/go/proto/v1;messagesv1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
+    b'\n\x11v1/messages.proto\x12\x15harbinger.go.proto.v1"\x1e\n\x0bPingRequest\x12\x0f\n\x07message\x18\x01 \x01(\t"\xcf\x02\n\x0eImplantRequest\x12\x14\n\x0c\x63\x32_server_id\x18\x01 \x01(\t\x12\x13\n\x0binternal_id\x18\x02 \x01(\t\x12\x0f\n\x07\x63\x32_type\x18\x03 \x01(\t\x12\x14\n\x0cpayload_type\x18\x04 \x01(\t\x12\x0c\n\x04name\x18\x05 \x01(\t\x12\x10\n\x08hostname\x18\x06 \x01(\t\x12\x13\n\x0b\x64\x65scription\x18\x07 \x01(\t\x12\r\n\x05sleep\x18\x08 \x01(\x05\x12\x0e\n\x06jitter\x18\t \x01(\x05\x12\n\n\x02os\x18\n \x01(\t\x12\x0b\n\x03pid\x18\x0b \x01(\x05\x12\x14\n\x0c\x61rchitecture\x18\x0c \x01(\t\x12\x0f\n\x07process\x18\r \x01(\t\x12\x10\n\x08username\x18\x0e \x01(\t\x12\n\n\x02ip\x18\x0f \x01(\t\x12\x13\n\x0b\x65xternal_ip\x18\x10 \x01(\t\x12\x0e\n\x06\x64omain\x18\x11 \x01(\t\x12\x14\n\x0clast_checkin\x18\x12 \x01(\t"\x11\n\x0fImplantResponse"\xbe\x01\n\x0cProxyRequest\x12\x0c\n\x04host\x18\x01 \x01(\t\x12\x0c\n\x04port\x18\x02 \x01(\x05\x12\x0c\n\x04type\x18\x03 \x01(\t\x12\x0e\n\x06status\x18\x04 \x01(\t\x12\x0c\n\x04note\x18\x05 \x01(\t\x12\x17\n\x0fremote_hostname\x18\x06 \x01(\t\x12\x10\n\x08username\x18\x07 \x01(\t\x12\x10\n\x08password\x18\x08 \x01(\t\x12\x14\n\x0c\x63\x32_server_id\x18\t \x01(\t\x12\x13\n\x0binternal_id\x18\n \x01(\t"\x0f\n\rProxyResponse"\xa2\x01\n\x0b\x46ileRequest\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x0e\n\x06\x62ucket\x18\x02 \x01(\t\x12\x0c\n\x04path\x18\x03 \x01(\t\x12\x18\n\x10internal_task_id\x18\x04 \x01(\t\x12\x14\n\x0c\x63\x32_server_id\x18\x05 \x01(\t\x12\x1b\n\x13internal_implant_id\x18\x06 \x01(\t\x12\x16\n\x0eupload_file_id\x18\x07 \x01(\t"\x1a\n\x0c\x46ileResponse\x12\n\n\x02id\x18\x01 \x01(\t"`\n\x13\x43\x32TaskStatusRequest\x12\x14\n\x0c\x63\x32_server_id\x18\x01 \x01(\t\x12\x12\n\nc2_task_id\x18\x02 \x01(\t\x12\x0e\n\x06status\x18\x03 \x01(\t\x12\x0f\n\x07message\x18\x04 \x01(\t"\x16\n\x14\x43\x32TaskStatusResponse"\'\n\x0fSettingsRequest\x12\x14\n\x0c\x63\x32_server_id\x18\x01 \x01(\t"\xc3\x01\n\x10SettingsResponse\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x10\n\x08hostname\x18\x03 \x01(\t\x12\x10\n\x08username\x18\x04 \x01(\t\x12\x0c\n\x04port\x18\x05 \x01(\x05\x12\x10\n\x08password\x18\x06 \x01(\t\x12\x16\n\x0e\x63\x61_certificate\x18\x07 \x01(\t\x12\x13\n\x0bprivate_key\x18\x08 \x01(\t\x12\r\n\x05token\x18\t \x01(\t\x12\x13\n\x0b\x63\x65rtificate\x18\n \x01(\t"\xec\x01\n\x0bTaskRequest\x12\x13\n\x0binternal_id\x18\x01 \x01(\t\x12\x14\n\x0c\x63\x32_server_id\x18\x02 \x01(\t\x12\x0e\n\x06status\x18\x03 \x01(\t\x12\x17\n\x0foriginal_params\x18\x04 \x01(\t\x12\x16\n\x0e\x64isplay_params\x18\x05 \x01(\t\x12\x14\n\x0ctime_started\x18\x06 \x01(\t\x12\x16\n\x0etime_completed\x18\x07 \x01(\t\x12\x14\n\x0c\x63ommand_name\x18\x08 \x01(\t\x12\x10\n\x08operator\x18\t \x01(\t\x12\x1b\n\x13internal_implant_id\x18\n \x01(\t"\x0e\n\x0cTaskResponse"\xb7\x01\n\x07Process\x12\x12\n\nprocess_id\x18\x01 \x01(\x05\x12\x14\n\x0c\x61rchitecture\x18\x02 \x01(\t\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x0c\n\x04user\x18\x04 \x01(\t\x12\x10\n\x08\x62in_path\x18\x05 \x01(\t\x12\x19\n\x11parent_process_id\x18\x06 \x01(\x05\x12\x14\n\x0c\x63ommand_line\x18\x07 \x01(\t\x12\x13\n\x0b\x64\x65scription\x18\x08 \x01(\t\x12\x0e\n\x06handle\x18\t \x01(\t"\x86\x01\n\tShareFile\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\x0c\n\x04size\x18\x02 \x01(\x03\x12\x15\n\rlast_accessed\x18\x03 \x01(\t\x12\x15\n\rlast_modified\x18\x04 \x01(\t\x12\x0f\n\x07\x63reated\x18\x05 \x01(\t\x12\x10\n\x08unc_path\x18\x06 \x01(\t\x12\x0c\n\x04name\x18\x07 \x01(\t"\xcb\x01\n\x08\x46ileList\x12\x0c\n\x04host\x18\x01 \x01(\t\x12\x13\n\x0bparent_path\x18\x02 \x01(\t\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x10\n\x08unc_path\x18\x04 \x01(\t\x12\x0c\n\x04size\x18\x05 \x01(\x03\x12\x15\n\rlast_accessed\x18\x06 \x01(\t\x12\x15\n\rlast_modified\x18\x07 \x01(\t\x12\x0f\n\x07\x63reated\x18\x08 \x01(\t\x12/\n\x05\x66iles\x18\n \x03(\x0b\x32 .harbinger.go.proto.v1.ShareFile"\x9c\x02\n\x11TaskOutputRequest\x12\x13\n\x0binternal_id\x18\x01 \x01(\t\x12\x14\n\x0c\x63\x32_server_id\x18\x02 \x01(\t\x12\x15\n\rresponse_text\x18\x03 \x01(\t\x12\x13\n\x0boutput_type\x18\x04 \x01(\t\x12\x11\n\ttimestamp\x18\x05 \x01(\t\x12\x18\n\x10internal_task_id\x18\x06 \x01(\t\x12\x0e\n\x06\x62ucket\x18\x07 \x01(\t\x12\x0c\n\x04path\x18\x08 \x01(\t\x12\x31\n\tprocesses\x18\t \x03(\x0b\x32\x1e.harbinger.go.proto.v1.Process\x12\x32\n\tfile_list\x18\x0b \x01(\x0b\x32\x1f.harbinger.go.proto.v1.FileList"\x14\n\x12TaskOutputResponse"\x1f\n\x0cPingResponse\x12\x0f\n\x07message\x18\x01 \x01(\t"y\n\x05\x45vent\x12\r\n\x05\x65vent\x18\x01 \x01(\t\x12\n\n\x02id\x18\x02 \x01(\t\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x14\n\x0c\x63hain_status\x18\x04 \x01(\t\x12\x31\n\x08progress\x18\x05 \x01(\x0b\x32\x1f.harbinger.go.proto.v1.Progress"k\n\x08Progress\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0f\n\x07\x63urrent\x18\x02 \x01(\x05\x12\x0b\n\x03max\x18\x03 \x01(\x05\x12\x12\n\npercentage\x18\x04 \x01(\x02\x12\x0c\n\x04type\x18\x05 \x01(\t\x12\x13\n\x0b\x64\x65scription\x18\x06 \x01(\t"\x1e\n\tArguments\x12\x11\n\targuments\x18\x01 \x03(\t"y\n\x06Output\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0e\n\x06job_id\x18\x02 \x01(\t\x12/\n\x04type\x18\x04 \x01(\x0e\x32!.harbinger.go.proto.v1.OutputType\x12\x0e\n\x06output\x18\x05 \x01(\t\x12\x12\n\ncreated_at\x18\x06 \x01(\x03">\n\x11\x46ileExistsRequest\x12\x0b\n\x03md5\x18\x01 \x01(\t\x12\x0c\n\x04sha1\x18\x02 \x01(\t\x12\x0e\n\x06sha256\x18\x03 \x01(\t"$\n\x12\x46ileExistsResponse\x12\x0e\n\x06\x65xists\x18\x01 \x01(\x08"!\n\x11UploadFileRequest\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c",\n\x12UploadFileResponse\x12\x16\n\x0eupload_file_id\x18\x01 \x01(\t"&\n\x13\x44ownloadFileRequest\x12\x0f\n\x07\x66ile_id\x18\x01 \x01(\t"$\n\x14\x44ownloadFileResponse\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c"K\n\x15\x43\x32ServerStatusRequest\x12\x14\n\x0c\x63\x32_server_id\x18\x01 \x01(\t\x12\x0e\n\x06status\x18\x02 \x01(\t\x12\x0c\n\x04name\x18\x03 \x01(\t"\x18\n\x16\x43\x32ServerStatusResponse*Y\n\nOutputType\x12\x1b\n\x17OUTPUT_TYPE_UNSPECIFIED\x10\x00\x12\x16\n\x12OUTPUT_TYPE_STDOUT\x10\x01\x12\x16\n\x12OUTPUT_TYPE_STDERR\x10\x02\x32\xae\t\n\tHarbinger\x12Q\n\x04Ping\x12".harbinger.go.proto.v1.PingRequest\x1a#.harbinger.go.proto.v1.PingResponse"\x00\x12^\n\x0bSaveImplant\x12%.harbinger.go.proto.v1.ImplantRequest\x1a&.harbinger.go.proto.v1.ImplantResponse"\x00\x12X\n\tSaveProxy\x12#.harbinger.go.proto.v1.ProxyRequest\x1a$.harbinger.go.proto.v1.ProxyResponse"\x00\x12U\n\x08SaveFile\x12".harbinger.go.proto.v1.FileRequest\x1a#.harbinger.go.proto.v1.FileResponse"\x00\x12i\n\x0c\x43\x32TaskStatus\x12*.harbinger.go.proto.v1.C2TaskStatusRequest\x1a+.harbinger.go.proto.v1.C2TaskStatusResponse"\x00\x12`\n\x0bGetSettings\x12&.harbinger.go.proto.v1.SettingsRequest\x1a\'.harbinger.go.proto.v1.SettingsResponse"\x00\x12U\n\x08SaveTask\x12".harbinger.go.proto.v1.TaskRequest\x1a#.harbinger.go.proto.v1.TaskResponse"\x00\x12g\n\x0eSaveTaskOutput\x12(.harbinger.go.proto.v1.TaskOutputRequest\x1a).harbinger.go.proto.v1.TaskOutputResponse"\x00\x12h\n\x0f\x43heckFileExists\x12(.harbinger.go.proto.v1.FileExistsRequest\x1a).harbinger.go.proto.v1.FileExistsResponse"\x00\x12\x65\n\nUploadFile\x12(.harbinger.go.proto.v1.UploadFileRequest\x1a).harbinger.go.proto.v1.UploadFileResponse"\x00(\x01\x12k\n\x0c\x44ownloadFile\x12*.harbinger.go.proto.v1.DownloadFileRequest\x1a+.harbinger.go.proto.v1.DownloadFileResponse"\x00\x30\x01\x12r\n\x11SetC2ServerStatus\x12,.harbinger.go.proto.v1.C2ServerStatusRequest\x1a-.harbinger.go.proto.v1.C2ServerStatusResponse"\x00\x42\x36Z4github.com/mandiant/harbinger/go/proto/v1;messagesv1b\x06proto3'
+)
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
-_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'v1.messages_pb2', _globals)
+_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, "v1.messages_pb2", _globals)
 if _descriptor._USE_C_DESCRIPTORS == False:
-  _globals['DESCRIPTOR']._options = None
-  _globals['DESCRIPTOR']._serialized_options = b'Z4github.com/mandiant/harbinger/go/proto/v1;messagesv1'
-  _globals['_OUTPUTTYPE']._serialized_start=3074
-  _globals['_OUTPUTTYPE']._serialized_end=3163
-  _globals['_PINGREQUEST']._serialized_start=44
-  _globals['_PINGREQUEST']._serialized_end=74
-  _globals['_IMPLANTREQUEST']._serialized_start=77
-  _globals['_IMPLANTREQUEST']._serialized_end=412
-  _globals['_IMPLANTRESPONSE']._serialized_start=414
-  _globals['_IMPLANTRESPONSE']._serialized_end=431
-  _globals['_PROXYREQUEST']._serialized_start=434
-  _globals['_PROXYREQUEST']._serialized_end=624
-  _globals['_PROXYRESPONSE']._serialized_start=626
-  _globals['_PROXYRESPONSE']._serialized_end=641
-  _globals['_FILEREQUEST']._serialized_start=644
-  _globals['_FILEREQUEST']._serialized_end=806
-  _globals['_FILERESPONSE']._serialized_start=808
-  _globals['_FILERESPONSE']._serialized_end=834
-  _globals['_C2TASKSTATUSREQUEST']._serialized_start=836
-  _globals['_C2TASKSTATUSREQUEST']._serialized_end=932
-  _globals['_C2TASKSTATUSRESPONSE']._serialized_start=934
-  _globals['_C2TASKSTATUSRESPONSE']._serialized_end=956
-  _globals['_SETTINGSREQUEST']._serialized_start=958
-  _globals['_SETTINGSREQUEST']._serialized_end=997
-  _globals['_SETTINGSRESPONSE']._serialized_start=1000
-  _globals['_SETTINGSRESPONSE']._serialized_end=1195
-  _globals['_TASKREQUEST']._serialized_start=1198
-  _globals['_TASKREQUEST']._serialized_end=1434
-  _globals['_TASKRESPONSE']._serialized_start=1436
-  _globals['_TASKRESPONSE']._serialized_end=1450
-  _globals['_PROCESS']._serialized_start=1453
-  _globals['_PROCESS']._serialized_end=1636
-  _globals['_SHAREFILE']._serialized_start=1639
-  _globals['_SHAREFILE']._serialized_end=1773
-  _globals['_FILELIST']._serialized_start=1776
-  _globals['_FILELIST']._serialized_end=1979
-  _globals['_TASKOUTPUTREQUEST']._serialized_start=1982
-  _globals['_TASKOUTPUTREQUEST']._serialized_end=2266
-  _globals['_TASKOUTPUTRESPONSE']._serialized_start=2268
-  _globals['_TASKOUTPUTRESPONSE']._serialized_end=2288
-  _globals['_PINGRESPONSE']._serialized_start=2290
-  _globals['_PINGRESPONSE']._serialized_end=2321
-  _globals['_EVENT']._serialized_start=2323
-  _globals['_EVENT']._serialized_end=2444
-  _globals['_PROGRESS']._serialized_start=2446
-  _globals['_PROGRESS']._serialized_end=2553
-  _globals['_ARGUMENTS']._serialized_start=2555
-  _globals['_ARGUMENTS']._serialized_end=2585
-  _globals['_OUTPUT']._serialized_start=2587
-  _globals['_OUTPUT']._serialized_end=2708
-  _globals['_FILEEXISTSREQUEST']._serialized_start=2710
-  _globals['_FILEEXISTSREQUEST']._serialized_end=2772
-  _globals['_FILEEXISTSRESPONSE']._serialized_start=2774
-  _globals['_FILEEXISTSRESPONSE']._serialized_end=2810
-  _globals['_UPLOADFILEREQUEST']._serialized_start=2812
-  _globals['_UPLOADFILEREQUEST']._serialized_end=2845
-  _globals['_UPLOADFILERESPONSE']._serialized_start=2847
-  _globals['_UPLOADFILERESPONSE']._serialized_end=2891
-  _globals['_DOWNLOADFILEREQUEST']._serialized_start=2893
-  _globals['_DOWNLOADFILEREQUEST']._serialized_end=2931
-  _globals['_DOWNLOADFILERESPONSE']._serialized_start=2933
-  _globals['_DOWNLOADFILERESPONSE']._serialized_end=2969
-  _globals['_C2SERVERSTATUSREQUEST']._serialized_start=2971
-  _globals['_C2SERVERSTATUSREQUEST']._serialized_end=3046
-  _globals['_C2SERVERSTATUSRESPONSE']._serialized_start=3048
-  _globals['_C2SERVERSTATUSRESPONSE']._serialized_end=3072
-  _globals['_HARBINGER']._serialized_start=3166
-  _globals['_HARBINGER']._serialized_end=4364
+    _globals["DESCRIPTOR"]._options = None
+    _globals[
+        "DESCRIPTOR"
+    ]._serialized_options = b"Z4github.com/mandiant/harbinger/go/proto/v1;messagesv1"
+    _globals["_OUTPUTTYPE"]._serialized_start = 3074
+    _globals["_OUTPUTTYPE"]._serialized_end = 3163
+    _globals["_PINGREQUEST"]._serialized_start = 44
+    _globals["_PINGREQUEST"]._serialized_end = 74
+    _globals["_IMPLANTREQUEST"]._serialized_start = 77
+    _globals["_IMPLANTREQUEST"]._serialized_end = 412
+    _globals["_IMPLANTRESPONSE"]._serialized_start = 414
+    _globals["_IMPLANTRESPONSE"]._serialized_end = 431
+    _globals["_PROXYREQUEST"]._serialized_start = 434
+    _globals["_PROXYREQUEST"]._serialized_end = 624
+    _globals["_PROXYRESPONSE"]._serialized_start = 626
+    _globals["_PROXYRESPONSE"]._serialized_end = 641
+    _globals["_FILEREQUEST"]._serialized_start = 644
+    _globals["_FILEREQUEST"]._serialized_end = 806
+    _globals["_FILERESPONSE"]._serialized_start = 808
+    _globals["_FILERESPONSE"]._serialized_end = 834
+    _globals["_C2TASKSTATUSREQUEST"]._serialized_start = 836
+    _globals["_C2TASKSTATUSREQUEST"]._serialized_end = 932
+    _globals["_C2TASKSTATUSRESPONSE"]._serialized_start = 934
+    _globals["_C2TASKSTATUSRESPONSE"]._serialized_end = 956
+    _globals["_SETTINGSREQUEST"]._serialized_start = 958
+    _globals["_SETTINGSREQUEST"]._serialized_end = 997
+    _globals["_SETTINGSRESPONSE"]._serialized_start = 1000
+    _globals["_SETTINGSRESPONSE"]._serialized_end = 1195
+    _globals["_TASKREQUEST"]._serialized_start = 1198
+    _globals["_TASKREQUEST"]._serialized_end = 1434
+    _globals["_TASKRESPONSE"]._serialized_start = 1436
+    _globals["_TASKRESPONSE"]._serialized_end = 1450
+    _globals["_PROCESS"]._serialized_start = 1453
+    _globals["_PROCESS"]._serialized_end = 1636
+    _globals["_SHAREFILE"]._serialized_start = 1639
+    _globals["_SHAREFILE"]._serialized_end = 1773
+    _globals["_FILELIST"]._serialized_start = 1776
+    _globals["_FILELIST"]._serialized_end = 1979
+    _globals["_TASKOUTPUTREQUEST"]._serialized_start = 1982
+    _globals["_TASKOUTPUTREQUEST"]._serialized_end = 2266
+    _globals["_TASKOUTPUTRESPONSE"]._serialized_start = 2268
+    _globals["_TASKOUTPUTRESPONSE"]._serialized_end = 2288
+    _globals["_PINGRESPONSE"]._serialized_start = 2290
+    _globals["_PINGRESPONSE"]._serialized_end = 2321
+    _globals["_EVENT"]._serialized_start = 2323
+    _globals["_EVENT"]._serialized_end = 2444
+    _globals["_PROGRESS"]._serialized_start = 2446
+    _globals["_PROGRESS"]._serialized_end = 2553
+    _globals["_ARGUMENTS"]._serialized_start = 2555
+    _globals["_ARGUMENTS"]._serialized_end = 2585
+    _globals["_OUTPUT"]._serialized_start = 2587
+    _globals["_OUTPUT"]._serialized_end = 2708
+    _globals["_FILEEXISTSREQUEST"]._serialized_start = 2710
+    _globals["_FILEEXISTSREQUEST"]._serialized_end = 2772
+    _globals["_FILEEXISTSRESPONSE"]._serialized_start = 2774
+    _globals["_FILEEXISTSRESPONSE"]._serialized_end = 2810
+    _globals["_UPLOADFILEREQUEST"]._serialized_start = 2812
+    _globals["_UPLOADFILEREQUEST"]._serialized_end = 2845
+    _globals["_UPLOADFILERESPONSE"]._serialized_start = 2847
+    _globals["_UPLOADFILERESPONSE"]._serialized_end = 2891
+    _globals["_DOWNLOADFILEREQUEST"]._serialized_start = 2893
+    _globals["_DOWNLOADFILEREQUEST"]._serialized_end = 2931
+    _globals["_DOWNLOADFILERESPONSE"]._serialized_start = 2933
+    _globals["_DOWNLOADFILERESPONSE"]._serialized_end = 2969
+    _globals["_C2SERVERSTATUSREQUEST"]._serialized_start = 2971
+    _globals["_C2SERVERSTATUSREQUEST"]._serialized_end = 3046
+    _globals["_C2SERVERSTATUSRESPONSE"]._serialized_start = 3048
+    _globals["_C2SERVERSTATUSRESPONSE"]._serialized_end = 3072
+    _globals["_HARBINGER"]._serialized_start = 3166
+    _globals["_HARBINGER"]._serialized_end = 4364
 # @@protoc_insertion_point(module_scope)

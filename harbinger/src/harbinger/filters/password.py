@@ -5,7 +5,7 @@ from pydantic import UUID4
 from .label import LabelFilter
 
 
-class PasswordFilter(Filter): 
+class PasswordFilter(Filter):
     order_by: list[str] | None = ["-time_created"]
     search: str | None = None
     password: str | None = None
@@ -16,5 +16,4 @@ class PasswordFilter(Filter):
 
     class Constants(Filter.Constants):
         model = models.Password
-        search_model_fields = ['password', 'nt', 'aes256_key', 'aes128_key']
-
+        search_model_fields = ["password", "nt", "aes256_key", "aes128_key"]

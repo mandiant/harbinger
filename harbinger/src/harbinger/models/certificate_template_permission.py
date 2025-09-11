@@ -25,7 +25,9 @@ from harbinger.database.types import mapped_column
 
 class CertificateTemplatePermission(Base):
     __tablename__ = "certificate_template_permissions"
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     certificate_template_id: Mapped[UUID] = mapped_column(
         ForeignKey("certificate_templates.id"), nullable=False
     )
@@ -34,8 +36,12 @@ class CertificateTemplatePermission(Base):
     principal_type: Mapped[str] = mapped_column(String)
     object_id: Mapped[str] = mapped_column(String)
 
-    time_created: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    time_updated: Mapped[DateTime] = mapped_column(DateTime(timezone=True), onupdate=func.now())
+    time_created: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    time_updated: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), onupdate=func.now()
+    )
     __table_args__ = (
         UniqueConstraint(
             "certificate_template_id",

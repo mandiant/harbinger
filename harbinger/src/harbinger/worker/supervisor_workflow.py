@@ -121,6 +121,7 @@ SUPERVISOR_TOOLS: List[rg.Tool] = [
 
 # --- LLM Watcher ---
 
+
 class RiggingWatcher:
     """
     Captures LLM activity from a ChatPipeline and logs it directly to the
@@ -287,7 +288,6 @@ async def generate_initial_steps_activity(plan_id: str) -> None:
             log.warning("LLM did not generate any initial steps", plan_id=plan_id)
 
 
-
 @activity.defn
 async def handle_events_activity(plan_id: str, events: list[str]) -> None:
     """Handles a batch of events by invoking the LLM and watching its actions."""
@@ -328,7 +328,6 @@ async def handle_events_activity(plan_id: str, events: list[str]) -> None:
         run = prompts.update_testing_plan.watch(watcher.on_chat_update).bind(pipeline)
 
         await run(current_plan_summary=plan_summary, new_event=event_text)
-
 
 
 # --- Workflow ---
@@ -375,9 +374,7 @@ class PlanSupervisorWorkflow:
                 start_to_close_timeout=timedelta(minutes=1),
             )
             if is_plan_completed:
-                log.info(
-                    "Plan has been completed, stopping workflow.", plan_id=plan_id
-                )
+                log.info("Plan has been completed, stopping workflow.", plan_id=plan_id)
                 self._should_stop = True
 
         else:
@@ -524,4 +521,3 @@ class PlanSupervisorWorkflow:
     @workflow.signal
     async def force_update(self) -> None:
         self._force_update_requested = True
-        

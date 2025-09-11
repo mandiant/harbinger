@@ -12,4 +12,3 @@ class LabelFilter(Filter):
 
     class Constants(Filter.Constants):
         model = models.Label
-

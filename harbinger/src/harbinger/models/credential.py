@@ -32,13 +32,17 @@ if TYPE_CHECKING:
 
 class Credential(Base):
     __tablename__ = "credentials"
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     domain_id: Mapped[UUID] = mapped_column(ForeignKey("domains.id"))
     username: Mapped[str] = mapped_column(String)
     password_id: Mapped[UUID] = mapped_column(ForeignKey("passwords.id"))
     kerberos_id: Mapped[UUID] = mapped_column(ForeignKey("kerberos.id"))
     note: Mapped[str] = mapped_column(String)
-    time_created: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    time_created: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
 
     domain = relationship("Domain", lazy="joined")
     password = relationship("Password", lazy="joined")

@@ -31,7 +31,6 @@ settings = get_settings()
 
 
 class Uploader:
-
     def __init__(
         self,
         proxy: UniProxyTarget,
@@ -45,8 +44,12 @@ class Uploader:
 
     async def upload_file(self, unc_path: str, data: bytes) -> None:
         hostname = [entry for entry in unc_path.split("\\") if entry][0]
-        self.logger.info(f"[{hostname}] Uploading {humanize.naturalsize(len(data))} bytes to {unc_path}")
-        target = SMBTarget(hostname=hostname, proxies=[self.proxy] if self.proxy else [])
+        self.logger.info(
+            f"[{hostname}] Uploading {humanize.naturalsize(len(data))} bytes to {unc_path}"
+        )
+        target = SMBTarget(
+            hostname=hostname, proxies=[self.proxy] if self.proxy else []
+        )
         if self.smbv3:
             target.update_dialect(SMBConnectionDialect.SMB3)
         url = SMBConnectionFactory(self.credential, target)
@@ -61,14 +64,14 @@ class Uploader:
             return
         try:
             smbfile = SMBFile.from_uncpath(unc_path)
-            _, err = await smbfile.open(connection, 'w')
+            _, err = await smbfile.open(connection, "w")
             if err != None:
                 self.logger.error(err)
                 return
             with alive_bar(len(data)) as bar:
                 step = 100000
                 for i in range(0, len(data), step):
-                    total_writen, err = await smbfile.write(data[i:i+step])
+                    total_writen, err = await smbfile.write(data[i : i + step])
                     bar(total_writen)
                 await smbfile.close()
         except Exception as e:

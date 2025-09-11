@@ -23,7 +23,6 @@ import functools
 from harbinger.graph.database import get_async_neo4j_session_context
 
 
-
 def exception_handler(default):
     def inner(func):
         @functools.wraps(func)
@@ -224,8 +223,11 @@ async def unmark_high_value(session: AsyncSession, name: str) -> bool:
 @exception_handler(default=False)
 async def add_session(session: AsyncSession, computer: str, name: str) -> bool:
     query = "MATCH (u:User) WHERE u.name=$name OPTIONAL MATCH (c:Computer) WHERE c.name=$computer MERGE (c)-[:HasSession]->(u) return u"
-    await session.run(query, parameters=dict(name=name.upper(), computer=computer.upper()))
+    await session.run(
+        query, parameters=dict(name=name.upper(), computer=computer.upper())
+    )
     return True
+
 
 class GraphObjects(str, Enum):
     user = "User"
@@ -252,7 +254,7 @@ async def get_object_stats(session: AsyncSession) -> dict:
         query = stats_query.format(object_type=entry.value)
         if entry == GraphObjects.user:
             query = user_query
-        result = await session.run(query) # type: ignore
+        result = await session.run(query)  # type: ignore
         async for graph_entry in result:
             results.append(dict(key=entry.name, value=graph_entry.get("count")))
     return dict(items=results)
@@ -261,6 +263,7 @@ async def get_object_stats(session: AsyncSession) -> dict:
 domains_query = "MATCH (d:Domain) RETURN d.name as name"
 total_query = "MATCH (n:Computer) WHERE n.domain = $domain and n.operatingsystem CONTAINS 'Server' and n.enabled = true return count(n) as count"
 admin_servers_query = "MATCH (u:Base {owned: true}) WHERE u.domain = $domain CALL apoc.path.subgraphNodes(u, {relationshipFilter:'>AdminTo|>AllowedToDelegate|>MemberOf|>ReadLAPSPassword', minLevel: 1, labelFilter:'-OU|-GPO|/User|/Computer'}) YIELD node as node UNWIND node as n WITH n WHERE n.enabled = true and 'Computer' in LABELS(n) and n.operatingsystem contains 'Server' and n.domain = $domain return count(n) as count"
+
 
 @exception_handler(default=schemas.StatisticsItems(items=[]))
 @redis_cache_neo4j_cm_fixed_key(
@@ -273,18 +276,22 @@ async def get_owned_stats(session: AsyncSession) -> dict:
     domains = []
     resp = await session.run(domains_query)  # type: ignore
     async for graph_entry in resp:
-        domains.append(graph_entry['name'])
+        domains.append(graph_entry["name"])
 
     for domain in domains:
         resp = await session.run(total_query, parameters=dict(domain=domain))  # type: ignore
         result = await resp.single()
-        if result and result['count']:
-            results.append(dict(key=f"{domain} total servers", value=result['count']))
+        if result and result["count"]:
+            results.append(dict(key=f"{domain} total servers", value=result["count"]))
 
-            resp = await session.run(admin_servers_query, parameters=dict(domain=domain))  # type: ignore
+            resp = await session.run(
+                admin_servers_query, parameters=dict(domain=domain)
+            )  # type: ignore
             owned_count = await resp.single()
             if owned_count:
-                results.append(dict(key=f"{domain} admin servers", value=owned_count['count']))
+                results.append(
+                    dict(key=f"{domain} admin servers", value=owned_count["count"])
+                )
     return dict(items=results)
 
 
@@ -580,6 +587,7 @@ CALL apoc.cypher.run("MATCH (u:User {objectid: '"+n.objectid+"'}) CALL apoc.path
 RETURN n,groups,count(value) as n2 ORDER by n2 DESC
 """
 
+
 @exception_handler(default=list())
 async def get_kerberoastable_groups(session: AsyncSession) -> list:
     result = []
@@ -587,9 +595,9 @@ async def get_kerberoastable_groups(session: AsyncSession) -> list:
     resp = await session.run(kerberoastable_query)  # type: ignore
     async for graph_entry in resp:
         entry = {
-            'node': graph_entry['n'],
-            'groups': graph_entry['groups'],
-            'privileges': graph_entry['n2'],
+            "node": graph_entry["n"],
+            "groups": graph_entry["groups"],
+            "privileges": graph_entry["n2"],
         }
         result.append(entry)
     return result

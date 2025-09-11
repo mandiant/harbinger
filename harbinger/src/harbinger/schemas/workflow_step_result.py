@@ -13,8 +13,7 @@
 # limitations under the License.
 
 
-from pydantic import (UUID4, BaseModel)
-
+from pydantic import UUID4, BaseModel
 
 
 class WorkflowStepResult(BaseModel):
@@ -26,4 +25,3 @@ class WorkflowStepResult(BaseModel):
 
 
 # Trufflehog output schemas.
-

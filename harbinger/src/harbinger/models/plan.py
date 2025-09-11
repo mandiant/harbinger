@@ -30,14 +30,22 @@ if TYPE_CHECKING:
 
 class Plan(Base):
     __tablename__ = "plan"
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     objective: Mapped[str] = mapped_column(String, nullable=True)
     status: Mapped[str] = mapped_column(String, default="draft")
     llm_status: Mapped[str] = mapped_column(String, default="draft")
-    time_created: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    time_updated: Mapped[DateTime] = mapped_column(DateTime(timezone=True), onupdate=func.now())
-    steps = relationship("PlanStep", back_populates="plan", cascade="all, delete-orphan")
+    time_created: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    time_updated: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), onupdate=func.now()
+    )
+    steps = relationship(
+        "PlanStep", back_populates="plan", cascade="all, delete-orphan"
+    )
     labels = relationship(
         "Label", secondary="labeled_item", lazy="joined", viewonly=True
     )

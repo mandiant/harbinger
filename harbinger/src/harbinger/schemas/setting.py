@@ -15,8 +15,7 @@
 
 from typing import Any
 
-from pydantic import (UUID4, BaseModel, ConfigDict)
-
+from pydantic import UUID4, BaseModel, ConfigDict
 
 
 class SettingBase(BaseModel):
@@ -26,12 +25,15 @@ class SettingBase(BaseModel):
     category_id: UUID4
     value: Any
 
+
 class SettingCreate(SettingBase):
     category_id: UUID4 | None | str = ""
+
 
 class Setting(SettingBase):
     id: UUID4
     model_config = ConfigDict(from_attributes=True)
+
 
 class SettingCategoryBase(BaseModel):
     name: str
@@ -39,15 +41,19 @@ class SettingCategoryBase(BaseModel):
     icon: str
     order: int
 
+
 class SettingCategoryCreate(SettingCategoryBase):
     settings: list[SettingCreate]
+
 
 class SettingCategory(SettingCategoryBase):
     id: UUID4
     model_config = ConfigDict(from_attributes=True)
 
+
 class SettingModify(BaseModel):
     value: Any
+
 
 class Settings(SettingCategoryBase):
     settings: list[Setting]

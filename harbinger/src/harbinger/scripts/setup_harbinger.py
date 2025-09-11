@@ -24,7 +24,6 @@ def generate_password(n=20):
     return "".join(secrets.choice(alphabet) for _ in range(n))
 
 
-
 SERVER_TEMPLATE = """REDIS_DSN=redis://:{redis_password}@redis:6379/0
 PG_DSN=postgresql+asyncpg://postgres:{postgres_password}@postgres:5432/postgres
 MINIO_HOST=http://minio:9000

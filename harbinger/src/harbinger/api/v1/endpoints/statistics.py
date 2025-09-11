@@ -6,22 +6,30 @@ from harbinger.config.dependencies import current_active_user
 router = APIRouter()
 
 
-@router.get("/implant/", response_model=schemas.StatisticsItems, tags=["crud", "statistics"])
+@router.get(
+    "/implant/", response_model=schemas.StatisticsItems, tags=["crud", "statistics"]
+)
 async def get_implant_statistics(user: models.User = Depends(current_active_user)):
     return await crud.get_implant_statistics()
 
 
-@router.get("/job/", response_model=schemas.StatisticsItems, tags=["crud", "statistics"])
+@router.get(
+    "/job/", response_model=schemas.StatisticsItems, tags=["crud", "statistics"]
+)
 async def get_job_statistics(user: models.User = Depends(current_active_user)):
     return await crud.get_job_statistics()
 
 
-@router.get("/server/", response_model=schemas.StatisticsItems, tags=["crud", "statistics"])
+@router.get(
+    "/server/", response_model=schemas.StatisticsItems, tags=["crud", "statistics"]
+)
 async def get_server_statistics(user: models.User = Depends(current_active_user)):
     return await crud.get_c2_server_statistics()
 
 
-@router.get("/share/", response_model=schemas.StatisticsItems, tags=["crud", "statistics"])
+@router.get(
+    "/share/", response_model=schemas.StatisticsItems, tags=["crud", "statistics"]
+)
 async def get_share_statistics(user: models.User = Depends(current_active_user)):
     return await crud.get_share_statistics()
 

@@ -34,36 +34,37 @@ class FixedPostgresContainer(PostgresContainer):
 
 
 def enable_logger():
-    logger = logging.getLogger('alembic')
+    logger = logging.getLogger("alembic")
     logger.setLevel(logging.INFO)
     root = logging.getLogger()
     root.setLevel(logging.INFO)
     handler = logging.StreamHandler(sys.stdout)
     handler.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
     handler.setFormatter(formatter)
     root.addHandler(handler)
 
 
 class TestMigrations(unittest.TestCase):
-
     def test_migrations(self):
-        with FixedPostgresContainer("postgres:14", driver='asyncpg') as postgres:
-            psql_url = postgres.get_connection_url()    
+        with FixedPostgresContainer("postgres:14", driver="asyncpg") as postgres:
+            psql_url = postgres.get_connection_url()
             os.environ["pg_dsn"] = psql_url
             os.environ["redis_dsn"] = "test"
-            os.environ['minio_access_key'] = "test"
-            os.environ['minio_secret_key'] = "test"
-            os.environ['minio_host'] = 'localhost'
-            os.environ['minio_default_bucket'] = 'test'
-            os.environ['temporal_host'] = 'localhost'
+            os.environ["minio_access_key"] = "test"
+            os.environ["minio_secret_key"] = "test"
+            os.environ["minio_host"] = "localhost"
+            os.environ["minio_default_bucket"] = "test"
+            os.environ["temporal_host"] = "localhost"
             enable_logger()
             logger = logging.getLogger()
             get_settings.cache_clear()
             alembic_cfg = Config()
-            alembic_cfg.set_main_option('script_location', str(here / '..' / 'alembic'))
-            alembic_cfg.set_main_option('sqlalchemy.url', psql_url)
-            command.upgrade(alembic_cfg, 'head')
+            alembic_cfg.set_main_option("script_location", str(here / ".." / "alembic"))
+            alembic_cfg.set_main_option("sqlalchemy.url", psql_url)
+            command.upgrade(alembic_cfg, "head")
             logger.info("Successfully migrated the database.")
-            command.downgrade(alembic_cfg, 'base')
+            command.downgrade(alembic_cfg, "base")
             logger.info("Successfully downgraded the database.")

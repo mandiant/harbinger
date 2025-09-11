@@ -38,8 +38,12 @@ if TYPE_CHECKING:
 class ShareFile(Base):
     __tablename__ = "share_files"
     __table_args__ = (UniqueConstraint("unc_path", name="share_files_unc_path"),)
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    time_created: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    time_created: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
     type: Mapped[str] = mapped_column(String)
     file_id: Mapped[UUID] = mapped_column(ForeignKey("files.id"), nullable=True)
     parent_id: Mapped[UUID] = mapped_column(ForeignKey("share_files.id"), nullable=True)

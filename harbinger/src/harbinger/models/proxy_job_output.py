@@ -28,7 +28,9 @@ if TYPE_CHECKING:
 
 class ProxyJobOutput(Base):
     __tablename__ = "proxy_job_output"
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     job_id: Mapped[UUID] = mapped_column(ForeignKey("proxy_jobs.id"), nullable=True)
     output: Mapped[str] = mapped_column(String)
     created_at: Mapped[DateTime] = mapped_column(DateTime)

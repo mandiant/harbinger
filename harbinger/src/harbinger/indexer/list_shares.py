@@ -29,7 +29,13 @@ from aiosmb.commons.connection.target import SMBTarget, SMBConnectionDialect
 
 
 class ListShares:
-    def __init__(self, proxy: UniProxyTarget | None, credential: UniCredential, tg: TaskGroup, smbv3: bool = False) -> None:
+    def __init__(
+        self,
+        proxy: UniProxyTarget | None,
+        credential: UniCredential,
+        tg: TaskGroup,
+        smbv3: bool = False,
+    ) -> None:
         self.logger = structlog.get_logger()
         self.proxy = proxy
         self.credential = credential
@@ -44,14 +50,16 @@ class ListShares:
             self.logger.info(f"{name} listing shares on {hostname}")
             try:
                 count = await self.list_shares_on_host(hostname)
-                self.logger.info(f"{name} found {count} shares on {hostname}")  
-            except Exception as e: 
+                self.logger.info(f"{name} found {count} shares on {hostname}")
+            except Exception as e:
                 self.logger.error(f"Exception {e}")
             finally:
                 self.queue.task_done()
                 self.bar()
 
-    async def run(self, hosts: list, workers: int, max_hosts: int = 100000000, wait: int = 0) -> None:
+    async def run(
+        self, hosts: list, workers: int, max_hosts: int = 100000000, wait: int = 0
+    ) -> None:
         for i in range(workers):
             self.tg.start_soon(self.worker, f"worker-{i}")
 
@@ -70,10 +78,10 @@ class ListShares:
         self.logger.info("Completed enumeration!")
         self.tg.cancel_scope.cancel()
 
-
-
     async def list_shares_on_host(self, hostname: str) -> int:
-        target = SMBTarget(hostname=hostname, proxies=[self.proxy] if self.proxy else [])
+        target = SMBTarget(
+            hostname=hostname, proxies=[self.proxy] if self.proxy else []
+        )
         if self.smbv3:
             target.update_dialect(SMBConnectionDialect.SMB3)
 
@@ -99,12 +107,25 @@ class ListShares:
                     if err is not None:
                         self.logger.debug(f"Error during listing shares: {err}")
                         continue
-                    created, _ = await crud.get_or_create_share(session, schemas.ShareCreate(name=share.name, host_id=host_id, unc_path=share.unc_path, type=share.type, remark=share.remark))  # type: ignore
+                    created, _ = await crud.get_or_create_share(
+                        session,
+                        schemas.ShareCreate(
+                            name=share.name,
+                            host_id=host_id,
+                            unc_path=share.unc_path,
+                            type=share.type,
+                            remark=share.remark,
+                        ),
+                    )  # type: ignore
                     if created:
                         count += 1
-                        self.logger.info(f"Created share with name: {share.name} and unc_path: {share.unc_path}")
+                        self.logger.info(
+                            f"Created share with name: {share.name} and unc_path: {share.unc_path}"
+                        )
                     else:
-                        self.logger.debug(f"Share with name: {share.name} and unc_path: {share.unc_path} already exists")
+                        self.logger.debug(
+                            f"Share with name: {share.name} and unc_path: {share.unc_path} already exists"
+                        )
                 await session.commit()
         except Exception as e:
             self.logger.error(f"Exception: {e}")

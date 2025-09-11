@@ -4,7 +4,7 @@ from harbinger import models
 from pydantic import UUID4
 
 
-class LlmLogFilter(Filter): 
+class LlmLogFilter(Filter):
     order_by: list[str] | None = ["-time_created"]
     search: str | None = None
     plan_id: str | UUID4 | None = None
@@ -12,4 +12,4 @@ class LlmLogFilter(Filter):
 
     class Constants(Filter.Constants):
         model = models.LlmLog
-        search_model_fields = ['log_type']
+        search_model_fields = ["log_type"]

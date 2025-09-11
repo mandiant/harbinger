@@ -14,4 +14,3 @@ class ShareFilter(Filter):
     class Constants(Filter.Constants):
         model = models.Share
         search_model_fields = ["name", "unc_path", "remark"]
-

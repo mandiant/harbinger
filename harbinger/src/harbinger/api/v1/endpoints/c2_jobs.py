@@ -18,9 +18,7 @@ from harbinger.worker.workflows import RunC2Job
 router = APIRouter()
 
 
-@router.get(
-    "/", response_model=Page[schemas.C2Job], tags=["c2", "implants", "crud"]
-)
+@router.get("/", response_model=Page[schemas.C2Job], tags=["c2", "implants", "crud"])
 async def read_c2_jobs(
     db: AsyncSession = Depends(get_db),
     filters: filters.C2JobFilter = FilterDepends(filters.C2JobFilter),
@@ -38,9 +36,7 @@ async def create_c2_job(
     return await crud.create_c2_job(db=db, job=job)
 
 
-@router.get(
-    "/filters", response_model=list[schemas.Filter], tags=["c2_jobs", "crud"]
-)
+@router.get("/filters", response_model=list[schemas.Filter], tags=["c2_jobs", "crud"])
 async def c2_jobs_filters(
     filters: filters.C2JobFilter = FilterDepends(filters.C2JobFilter),
     db: AsyncSession = Depends(get_db),

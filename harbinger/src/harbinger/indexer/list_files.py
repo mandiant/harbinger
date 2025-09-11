@@ -31,7 +31,11 @@ from anyio.abc import TaskGroup
 
 class ShareEnum:
     def __init__(
-        self, proxy: UniProxyTarget, credential: UniCredential, tg: TaskGroup, smbv3: bool = False
+        self,
+        proxy: UniProxyTarget,
+        credential: UniCredential,
+        tg: TaskGroup,
+        smbv3: bool = False,
     ) -> None:
         self.logger = structlog.get_logger()
         self.proxy = proxy
@@ -93,7 +97,9 @@ class ShareEnum:
 
         self.tg.cancel_scope.cancel()
 
-    async def run(self, depth: int, workers: int = 5, max_number: int = 0, search: str = ""):
+    async def run(
+        self, depth: int, workers: int = 5, max_number: int = 0, search: str = ""
+    ):
         for i in range(workers):
             self.tg.start_soon(self.worker, f"worker-{i}", depth)
 
@@ -143,7 +149,9 @@ class ShareEnum:
             self.logger.info(
                 f"[{name}] Listing {len(files)} folders on {share.unc_path}"
             )
-            target = SMBTarget(hostname=hostname, proxies=[self.proxy] if self.proxy else [])
+            target = SMBTarget(
+                hostname=hostname, proxies=[self.proxy] if self.proxy else []
+            )
             if self.smbv3:
                 target.update_dialect(SMBConnectionDialect.SMB3)
             url = SMBConnectionFactory(self.credential, target)
@@ -217,7 +225,9 @@ class ShareEnum:
 
             self.logger.info(f"[{name}] Listing {share.unc_path} on {hostname}")
 
-            target = SMBTarget(hostname=hostname, proxies=[self.proxy] if self.proxy else [])
+            target = SMBTarget(
+                hostname=hostname, proxies=[self.proxy] if self.proxy else []
+            )
             if self.smbv3:
                 target.update_dialect(SMBConnectionDialect.SMB3)
             url = SMBConnectionFactory(self.credential, target)

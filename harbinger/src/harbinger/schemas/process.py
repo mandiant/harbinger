@@ -14,8 +14,7 @@
 
 from typing import List
 
-from pydantic import (UUID4, AliasChoices, BaseModel, ConfigDict, Field,
-                      field_validator)
+from pydantic import UUID4, AliasChoices, BaseModel, ConfigDict, Field, field_validator
 
 
 from .label import Label
@@ -51,13 +50,16 @@ class ProcessBase(BaseModel):
             return "x64"
         return "x32"
 
+
 class ProcessCreate(ProcessBase):
     pass
+
 
 class Process(ProcessBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4
     labels: List["Label"] | None = []
+
 
 class ProcessMapping(BaseModel):
     name: str
@@ -65,6 +67,7 @@ class ProcessMapping(BaseModel):
     type: str
     tag_id: str
     processes: List[str]
+
 
 class ProcessNumbers(BaseModel):
     items: list[int]

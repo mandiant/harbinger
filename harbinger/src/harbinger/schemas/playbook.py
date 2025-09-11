@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-from pydantic import (BaseModel)
+from pydantic import BaseModel
 
 
 from .suggestion import SuggestionBaseRequest
@@ -25,6 +25,7 @@ class PlaybookPreview(BaseModel):
     errors: str = ""
     steps_errors: str | None = ""
 
+
 class PlaybookDetectionRiskSuggestion(SuggestionBaseRequest):
-    additional_prompt: str = ''
+    additional_prompt: str = ""
     playbook_id: str

@@ -5,7 +5,7 @@ from pydantic import UUID4
 from .label import LabelFilter
 
 
-class PlaybookFilter(Filter): 
+class PlaybookFilter(Filter):
     order_by: list[str] | None = ["-time_created"]
     search: str | None = None
     playbook_name: str | None = None
@@ -18,5 +18,4 @@ class PlaybookFilter(Filter):
 
     class Constants(Filter.Constants):
         model = models.Playbook
-        search_model_fields = ['playbook_name', 'description', 'status']
-
+        search_model_fields = ["playbook_name", "description", "status"]

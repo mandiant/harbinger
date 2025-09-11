@@ -7,8 +7,7 @@ from typing import Tuple
 from fastapi import Depends
 from fastapi_users.db import SQLAlchemyUserDatabase
 from harbinger import models, schemas
-from harbinger.database.cache import (invalidate_cache_entry,
-                                      redis_cache_fixed_key)
+from harbinger.database.cache import invalidate_cache_entry, redis_cache_fixed_key
 from harbinger.database.database import SessionLocal, get_async_session
 from jinja2 import PackageLoader
 from jinja2.ext import do
@@ -80,6 +79,7 @@ def to_excel(num: int) -> str:
         num, d = divmod_excel(num)
         chars.append(string.ascii_uppercase[d - 1])
     return "".join(reversed(chars))
+
 
 async def get_database_statistics(db: AsyncSession) -> dict[str, int]:
     """

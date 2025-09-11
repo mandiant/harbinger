@@ -31,11 +31,19 @@ if TYPE_CHECKING:
 
 class C2Task(TimeLine):
     __tablename__ = "c2_tasks"
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    time_created: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    time_created: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
     internal_id: Mapped[str] = mapped_column(String)
-    c2_implant_id: Mapped[UUID] = mapped_column(ForeignKey("c2_implants.id"), nullable=True)
-    c2_server_id: Mapped[UUID] = mapped_column(ForeignKey("c2_servers.id"), nullable=True)
+    c2_implant_id: Mapped[UUID] = mapped_column(
+        ForeignKey("c2_implants.id"), nullable=True
+    )
+    c2_server_id: Mapped[UUID] = mapped_column(
+        ForeignKey("c2_servers.id"), nullable=True
+    )
     status: Mapped[str] = mapped_column(String)
     original_params: Mapped[str] = mapped_column(String)
     display_params: Mapped[str] = mapped_column(String)

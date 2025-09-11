@@ -56,3 +56,40 @@ tasks:
       - python -m grpc_tools.protoc -Iproto --python_out=harbinger/src/harbinger/proto --pyi_out=harbinger/src/harbinger/proto --grpc_python_out=harbinger/src/harbinger/proto/ proto/v1/messages.proto
       - sed -i 's/^from v1 import/from . import/' harbinger/src/harbinger/proto/v1/*_grpc.py
       - protoc --proto_path=proto --go_out=go/proto --go_opt=paths=source_relative --go-grpc_out=go/proto --go-grpc_opt=paths=source_relative proto/v1/messages.proto
+
+  format:
+    cmds:
+      - harbinger/venv/bin/python -m ruff format .
+
+  lint:
+    cmds:
+      - harbinger/venv/bin/python -m ruff check --fix .
+  
+  imports:
+    cmds:
+      - harbinger/venv/bin/python -m ruff check --select I,F401 --fix .
+
+  typecheck:
+    cmds:
+      - harbinger/venv/bin/python -m mypy .
+
+  test:
+    cmds:
+      - harbinger/venv/bin/python -m pytest
+
+  db-migrate:
+    cmds:
+      - harbinger_migrate
+
+  db-revision:
+    cmds:
+      - harbinger_revision --autogenerate -m "{{.MSG}}"
+
+  db-downgrade:
+    cmds:
+      - harbinger_downgrade -1
+
+  deps:
+    cmds:
+      - pip install -r harbinger/requirements.txt --no-deps
+      - pip install -r harbinger/requirements_dev.txt --no-deps

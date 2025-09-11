@@ -155,9 +155,7 @@ class KeePassParser(BaseFileParser):
                 iv_parameters = self._stringify_hex(data[index : index + uSize])
 
             if btFieldID == 9:
-                expected_start_bytes = self._stringify_hex(
-                    data[index : index + uSize]
-                )
+                expected_start_bytes = self._stringify_hex(data[index : index + uSize])
 
             index += uSize
 

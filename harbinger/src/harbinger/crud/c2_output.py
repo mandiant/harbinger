@@ -1,4 +1,3 @@
-
 from typing import Optional
 
 from fastapi_pagination import Page
@@ -58,4 +57,3 @@ async def get_c2_output(
     db: AsyncSession, c2_output_id: str | UUID4
 ) -> Optional[models.C2Output]:
     return await db.get(models.C2Output, c2_output_id)
-

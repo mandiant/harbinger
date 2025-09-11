@@ -15,7 +15,7 @@
 
 from datetime import datetime
 
-from pydantic import (UUID4, BaseModel, ConfigDict)
+from pydantic import UUID4, BaseModel, ConfigDict
 
 
 from .label import Label
@@ -55,15 +55,17 @@ class LabeledItemBase(BaseModel):
     plan_id: str | UUID4 | None = None
     plan_step_id: str | UUID4 | None = None
 
+
 class LabeledItemCreate(LabeledItemBase):
     pass
 
+
 class LabeledItemDelete(LabeledItemBase):
     label_id: UUID4 | str | None = None  # type: ignore
+
 
 class LabeledItem(LabeledItemBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4
     time_created: datetime | None = None
     label: Label | None = None
-
