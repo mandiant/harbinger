@@ -13,7 +13,7 @@ from temporalio.service import RPCError, RPCStatusCode
 from harbinger import crud, models, schemas
 from harbinger.config import constants
 from harbinger.config.dependencies import current_active_user, get_db
-from harbinger.database import filters
+from harbinger import filters
 from harbinger.config.dependencies import current_active_user
 from harbinger.enums import LlmStatus
 from harbinger.worker.client import get_client

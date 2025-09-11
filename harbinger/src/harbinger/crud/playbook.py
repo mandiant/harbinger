@@ -9,7 +9,7 @@ import yaml
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from harbinger import models, schemas
-from harbinger.database import filters
+from harbinger import filters
 from harbinger.database.cache import redis_cache, redis_cache_invalidate
 from harbinger.database.database import SessionLocal
 from harbinger.database.redis_pool import redis

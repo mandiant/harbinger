@@ -3,7 +3,7 @@ from typing import Optional
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from harbinger import models, schemas
-from harbinger.database import filters
+from harbinger import filters
 from pydantic import UUID4
 from sqlalchemy import Select, select, update
 from sqlalchemy.dialects.postgresql import insert

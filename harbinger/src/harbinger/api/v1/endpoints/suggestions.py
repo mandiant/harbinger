@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from harbinger import crud, models, schemas
 from harbinger.config import constants
 from harbinger.config.dependencies import current_active_user, get_db
-from harbinger.database import filters
+from harbinger import filters
 from harbinger.worker.client import get_client
 from harbinger.worker.workflows import (
     CreateC2ImplantSuggestion,

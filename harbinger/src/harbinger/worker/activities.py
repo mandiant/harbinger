@@ -22,7 +22,8 @@ from harbinger.graph.database import get_async_neo4j_session_context
 import pytz
 from temporalio import activity
 from harbinger import crud
-from harbinger.database import progress_bar, filters
+from harbinger.database import progress_bar
+from harbinger import filters
 from harbinger import schemas
 from harbinger import models
 from harbinger.database.database import SessionLocal
