@@ -84,7 +84,7 @@ function format(obj: SocksServer) {
 
 function loadCredentials() {
   api
-    .get('/socks/servers/')
+    .get('/socks_servers')
     .then((response) => {
       socks_servers.value = response.data.items;
     })
@@ -101,7 +101,7 @@ loadCredentials();
 
 async function loadDefault() {
   if (modelValue.value) {
-    api.get(`/socks/servers/${modelValue.value}`).then((response) => {
+    api.get(`/socks_servers/${modelValue.value}`).then((response) => {
       socks_server.value = response.data;
     });
   }

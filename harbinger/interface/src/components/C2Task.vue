@@ -42,7 +42,7 @@ const props = defineProps({
 const { task_id } = toRefs(props);
 
 const { loading, object, loadObject } = useLoadObject<C2Task>(
-  'c2/tasks',
+  'c2_tasks',
   task_id.value
 );
 

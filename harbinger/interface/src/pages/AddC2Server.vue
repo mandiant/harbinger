@@ -79,7 +79,7 @@ function onSubmit() {
   if (form.value.name != null) {
     loading.value = true;
     api
-      .post('/c2/servers/', form.value)
+      .post('/c2_servers/', form.value)
       .then((response) => {
         $q.notify({
           color: 'green-4',

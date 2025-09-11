@@ -1,0 +1,44 @@
+from fastapi import APIRouter, Depends
+from fastapi_filter import FilterDepends
+from fastapi_pagination import Page
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from harbinger import crud, models, schemas
+from harbinger.config.dependencies import current_active_user, get_db
+from harbinger.database import filters
+from harbinger.config.dependencies import current_active_user
+
+router = APIRouter()
+
+
+@router.get("/", response_model=Page[schemas.Proxy], tags=["proxies", "crud"])
+async def read_proxies(
+    filters: filters.ProxyFilter = FilterDepends(filters.ProxyFilter),
+    db: AsyncSession = Depends(get_db),
+    user: models.User = Depends(current_active_user),
+):
+    return await crud.get_proxies_paged(db, filters)
+
+
+@router.get("/filters", response_model=list[schemas.Filter], tags=["proxies", "crud"])
+async def proxys_filters(
+    filters: filters.ProxyFilter = FilterDepends(filters.ProxyFilter),
+    db: AsyncSession = Depends(get_db),
+    user: models.User = Depends(current_active_user),
+):
+    return await crud.get_proxy_filters(db, filters)
+
+
+@router.get("/{proxy_id}", response_model=schemas.Proxy, tags=["proxies", "crud"])
+async def read_proxy(proxy_id: str, user: models.User = Depends(current_active_user)):
+    return await crud.get_proxy(proxy_id)
+
+
+@router.post("/", response_model=schemas.Proxy, tags=["proxies", "crud"])
+async def create_proxy(
+    proxy: schemas.ProxyCreate,
+    db: AsyncSession = Depends(get_db),
+    user: models.User = Depends(current_active_user),
+):
+    proxy = await crud.create_proxy(db=db, proxy=proxy)
+    return proxy

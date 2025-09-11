@@ -1,0 +1,41 @@
+from typing import Optional
+
+from fastapi import APIRouter, Depends
+from fastapi_filter import FilterDepends
+from fastapi_pagination import Page
+from pydantic import UUID4
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from harbinger import crud, models, schemas
+from harbinger.config.dependencies import current_active_user, get_db
+from harbinger.database import filters
+from harbinger.config.dependencies import current_active_user
+
+router = APIRouter()
+
+
+@router.get("/", response_model=Page[schemas.LlmLog], tags=["crud", "llm_logs"])
+async def list_llm_logs(
+    filters: filters.LlmLogFilter = FilterDepends(filters.LlmLogFilter),
+    db: AsyncSession = Depends(get_db),
+    user: models.User = Depends(current_active_user),
+):
+    return await crud.get_llm_logs_paged(db, filters)
+
+
+@router.get("/filters", response_model=list[schemas.Filter], tags=["llm_logs", "crud"])
+async def llm_logs_filters(
+    filters: filters.LlmLogFilter = FilterDepends(filters.LlmLogFilter),
+    db: AsyncSession = Depends(get_db),
+    user: models.User = Depends(current_active_user),
+):
+    return await crud.get_llm_logs_filters(db, filters)
+
+
+@router.get("/{id}", response_model=Optional[schemas.LlmLog], tags=["crud", "llm_logs"])
+async def get_llm_log(
+    id: UUID4,
+    db: AsyncSession = Depends(get_db),
+    user: models.User = Depends(current_active_user),
+):
+    return await crud.get_llm_log(db, id)

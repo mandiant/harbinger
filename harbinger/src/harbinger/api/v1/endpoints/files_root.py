@@ -14,29 +14,25 @@
 
 import os.path
 import uuid
+from typing import List
 
+from fastapi import APIRouter, Depends, Request, UploadFile
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from harbinger import crud, models, schemas
+from harbinger.config import constants, get_settings
+from harbinger.config.dependencies import current_active_user, get_db
+from harbinger.config.dependencies import current_active_user
+from harbinger.files.client import upload_file
 from harbinger.worker.client import get_client
 from harbinger.worker.workflows import ParseFile
-from harbinger.database.redis_pool import redis
-from harbinger.config import get_settings
-from harbinger import crud
-from harbinger import schemas
-from harbinger import models
-from harbinger.database.users import current_active_user
-from fastapi import APIRouter, Depends, Request, UploadFile
-from harbinger.files.client import upload_file
-from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
-from harbinger.config import constants
-
 
 settings = get_settings()
 
 router = APIRouter()
 
 
-def get_db(request: Request):
-    return request.state.db
+
 
 
 @router.post("/upload_file/", response_model=schemas.File, tags=["files"])
@@ -46,7 +42,7 @@ async def create_upload_file(
     db: AsyncSession = Depends(get_db),
     user: models.User = Depends(current_active_user),
 ):
-    filename = os.path.basename(file.filename or 'file')
+    filename = os.path.basename(file.filename or "file")
     file_db = await crud.add_file(
         db,
         filename=filename,
@@ -79,7 +75,7 @@ async def upload_files(
     user: models.User = Depends(current_active_user),
 ):
     for file in files:
-        filename = os.path.basename(file.filename or 'file')
+        filename = os.path.basename(file.filename or "file")
         file_db = await crud.add_file(
             db,
             filename=filename,

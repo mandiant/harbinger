@@ -64,7 +64,7 @@ storeMap.set('highlights', defineTypedStore<Highlight>('highlights')());
 storeMap.set('hashes', defineTypedStore<Hash>('hashes')());
 storeMap.set('parse_results', defineTypedStore<ParseResult>('parse_results')());
 storeMap.set('settings', defineTypedStore<Setting>('settings')());
-storeMap.set('socks_servers', defineTypedStore<SocksServer>('socks/servers')());
+storeMap.set('socks_servers', defineTypedStore<SocksServer>('socks_servers')());
 storeMap.set('actions', defineTypedStore<Action>('actions')());
 storeMap.set('issues', defineTypedStore<Issue>('issues')());
 storeMap.set('suggestions', defineTypedStore<Suggestion>('suggestions')());
@@ -72,11 +72,11 @@ storeMap.set('checklist', defineTypedStore<Checklist>('checklist')());
 storeMap.set('objectives', defineTypedStore<Objective>('objectives')());
 
 // C2 related:
-storeMap.set('c2_jobs', defineTypedStore<C2Job>('c2/jobs')());
-storeMap.set('c2_servers', defineTypedStore<C2Server>('c2/servers')());
+storeMap.set('c2_jobs', defineTypedStore<C2Job>('c2_jobs')());
+storeMap.set('c2_servers', defineTypedStore<C2Server>('c2_servers')());
 storeMap.set('c2_server_status', defineTypedStore<C2ServerStatus>('c2_server_status')());
-storeMap.set('c2_implants', defineTypedStore<C2Implant>('c2/implants')());
-storeMap.set('c2_tasks', defineTypedStore<C2Task>('c2/tasks')());
+storeMap.set('c2_implants', defineTypedStore<C2Implant>('c2_implants')());
+storeMap.set('c2_tasks', defineTypedStore<C2Task>('c2_tasks')());
 storeMap.set('c2_task_output', defineTypedStore<C2Output>('c2_task_output')());
 storeMap.set('c2_server_types', defineTypedStore<C2ServerType>('c2_server_types')());
 storeMap.set('c2_server_arguments', defineTypedStore<C2ServerArguments>('c2_server_arguments')());
