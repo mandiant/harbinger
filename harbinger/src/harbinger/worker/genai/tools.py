@@ -14,7 +14,7 @@
 
 import json
 from harbinger import crud
-from harbinger.database import filters
+from harbinger import filters
 from harbinger import schemas
 from harbinger.database.database import SessionLocal
 import structlog

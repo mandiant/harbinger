@@ -13,7 +13,7 @@ from harbinger import crud, models, schemas
 from harbinger.config.dependencies import current_active_user, get_db
 from harbinger.connectors.socks.workflows import RunSocks, RunWindowsSocks
 from harbinger.crud import get_user_db
-from harbinger.database import filters
+from harbinger import filters
 from harbinger.database.database import SessionLocal
 from harbinger.database.redis_pool import redis_no_decode as redis
 from harbinger.database.users import (

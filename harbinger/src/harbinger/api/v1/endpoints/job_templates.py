@@ -27,7 +27,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from harbinger import crud, models, schemas
 from harbinger.config import get_settings
 from harbinger.config.dependencies import current_active_user, get_db
-from harbinger.database import filters
+from harbinger import filters
 from harbinger.config.dependencies import current_active_user
 from harbinger.job_templates.proxy import PROXY_JOB_BASE_MAP
 from harbinger.job_templates.proxy.base import JobTemplateModel

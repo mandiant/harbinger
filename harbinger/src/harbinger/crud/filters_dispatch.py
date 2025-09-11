@@ -1,5 +1,5 @@
 from harbinger import schemas
-from harbinger.database import filters
+from harbinger import filters
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .action import get_action_filters

@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from harbinger import crud, models, schemas
 from harbinger.config.dependencies import current_active_user, get_db
-from harbinger.database import filters
+from harbinger import filters
 from harbinger.config.dependencies import current_active_user
 from harbinger.graph import crud as graph_crud
 from harbinger.graph.database import get_async_neo4j_session_context
