@@ -5,7 +5,7 @@ from pydantic import UUID4
 from .label import LabelFilter
 
 
-class ProxyFilter(Filter): 
+class ProxyFilter(Filter):
     order_by: list[str] | None = ["-time_created"]
     search: str | None = None
     host: str | None = None
@@ -23,5 +23,4 @@ class ProxyFilter(Filter):
 
     class Constants(Filter.Constants):
         model = models.Proxy
-        search_model_fields = ['host', 'type', 'status', 'note', 'remote_hostname']
-
+        search_model_fields = ["host", "type", "status", "note", "remote_hostname"]

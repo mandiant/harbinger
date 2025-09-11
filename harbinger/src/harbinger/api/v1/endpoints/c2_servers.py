@@ -15,9 +15,7 @@ from harbinger.worker.workflows import SyncAll
 router = APIRouter()
 
 
-@router.get(
-    "/", response_model=Page[schemas.C2Server], tags=["c2", "implants", "crud"]
-)
+@router.get("/", response_model=Page[schemas.C2Server], tags=["c2", "implants", "crud"])
 async def read_c2_servers(
     db: AsyncSession = Depends(get_db), user: models.User = Depends(current_active_user)
 ):

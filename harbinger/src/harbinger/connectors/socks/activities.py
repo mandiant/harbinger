@@ -165,9 +165,7 @@ async def run_proxy_job(
             command.append("proxychains")
         if socks_task.asciinema:
             command.extend(["asciinema", "rec", "output.cast", "-c"])
-            command.append(
-                f"{socks_task.command} {socks_task.arguments}".strip()
-            )
+            command.append(f"{socks_task.command} {socks_task.arguments}".strip())
         else:
             command.append(socks_task.command)
             command.extend(shlex.split(socks_task.arguments))
@@ -199,7 +197,9 @@ async def run_proxy_job(
                 tmate_config = TMATE_CONFIG.format(**environment_dict).encode("utf-8")
                 await upload_bytes(container, tmate_config, ".tmate.conf", "/home/user")
             except KeyError:
-                log.warning("Unable to generate TMATE_CONFIG, unset keys in environment.")
+                log.warning(
+                    "Unable to generate TMATE_CONFIG, unset keys in environment."
+                )
 
         ignore_files = []
         for file in socks_task.files or []:

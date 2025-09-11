@@ -1,11 +1,29 @@
 import argparse
 import sys
-from .commands import login, shell, files, c2, playbooks, proxies, domains, credentials, hosts, labels
+from .commands import (
+    login,
+    shell,
+    files,
+    c2,
+    playbooks,
+    proxies,
+    domains,
+    credentials,
+    hosts,
+    labels,
+)
+
 
 def main():
     """Main entry point for the hbr CLI."""
     parser = argparse.ArgumentParser(description="Harbinger CLI")
-    parser.add_argument("-o", "--output", choices=["table", "json", "jsonl"], default="table", help="Output format")
+    parser.add_argument(
+        "-o",
+        "--output",
+        choices=["table", "json", "jsonl"],
+        default="table",
+        help="Output format",
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # Login command
@@ -39,11 +57,12 @@ def main():
     labels.setup(subparsers)
 
     args = parser.parse_args()
-    
-    if hasattr(args, 'func'):
+
+    if hasattr(args, "func"):
         args.func(args)
     else:
         parser.print_help()
+
 
 if __name__ == "__main__":
     main()

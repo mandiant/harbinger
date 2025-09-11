@@ -34,10 +34,16 @@ if TYPE_CHECKING:
 
 class ProxyJob(TimeLine):
     __tablename__ = "proxy_jobs"
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    credential_id: Mapped[UUID] = mapped_column(ForeignKey("credentials.id"), nullable=True)
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    credential_id: Mapped[UUID] = mapped_column(
+        ForeignKey("credentials.id"), nullable=True
+    )
     proxy_id: Mapped[UUID] = mapped_column(ForeignKey("proxies.id"), nullable=True)
-    socks_server_id: Mapped[UUID] = mapped_column(ForeignKey("socks_servers.id"), nullable=True)
+    socks_server_id: Mapped[UUID] = mapped_column(
+        ForeignKey("socks_servers.id"), nullable=True
+    )
     executor_type: Mapped[str] = mapped_column(String)
     status: Mapped[str] = mapped_column(String)
     exit_code: Mapped[int] = mapped_column(Integer)
@@ -45,8 +51,12 @@ class ProxyJob(TimeLine):
     arguments: Mapped[str] = mapped_column(String)
     # input_files = mapped_column(ARRAY(String), nullable=True)
     playbook_id: Mapped[UUID] = mapped_column(ForeignKey("playbooks.id"), nullable=True)
-    time_created: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    time_updated: Mapped[DateTime] = mapped_column(DateTime(timezone=True), onupdate=func.now())
+    time_created: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    time_updated: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), onupdate=func.now()
+    )
     time_started: Mapped[DateTime] = mapped_column(DateTime(timezone=True))
     time_completed: Mapped[DateTime] = mapped_column(DateTime(timezone=True))
 

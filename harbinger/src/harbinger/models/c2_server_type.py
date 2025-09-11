@@ -29,13 +29,19 @@ if TYPE_CHECKING:
 
 class C2ServerType(Base):
     __tablename__ = "c2_server_types"
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     name: Mapped[str] = mapped_column(String)
     docker_image: Mapped[str] = mapped_column(String)
     command: Mapped[str] = mapped_column(String)
     icon: Mapped[str] = mapped_column(String)
 
-    time_created: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    time_updated: Mapped[DateTime] = mapped_column(DateTime(timezone=True), onupdate=func.now())
+    time_created: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    time_updated: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), onupdate=func.now()
+    )
 
     arguments = relationship("C2ServerArguments", lazy="joined", viewonly=True)

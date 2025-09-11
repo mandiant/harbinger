@@ -26,7 +26,6 @@ log = structlog.get_logger()
 
 @workflow.defn(sandboxed=False)
 class RunSocks:
-
     @workflow.run
     async def run(self, socks_task: schemas.ProxyJob) -> socks_schemas.SocksTaskResult:
         log.info(f"Running socks task: {socks_task.id}")
@@ -34,7 +33,6 @@ class RunSocks:
             id=str(socks_task.id),
             status=schemas.Status.starting,
         )
-
 
         status.status = schemas.Status.running
         await workflow.execute_activity(
@@ -100,7 +98,6 @@ class RunSocks:
 
 @workflow.defn(sandboxed=False)
 class RunWindowsSocks:
-
     @workflow.run
     async def run(self, socks_task: schemas.ProxyJob) -> socks_schemas.SocksTaskResult:
         log.info(f"Running socks task: {socks_task.id}")

@@ -57,17 +57,19 @@ async def get_all_c2_implant_info() -> List[str]:
         # Filter out implants with the "Dead" label.
         # The label ID for "Dead" is d734d03b-50d4-43e3-bb0e-e6bf56ec76b1
         implants = await crud.get_c2_implants(db, not_labels=["Dead"], limit=1000)
-        
+
         if not implants:
             return ["No active C2 implants found."]
-        
+
         implants_list = []
         for implant in implants:
             labels = await crud.recurse_labels_c2_implant(db, implant.id)
             c2_implant_dict = schemas.C2Implant.model_validate(implant).model_dump()
-            c2_implant_dict["labels"] = [schemas.Label.model_validate(l).model_dump() for l in labels]
+            c2_implant_dict["labels"] = [
+                schemas.Label.model_validate(l).model_dump() for l in labels
+            ]
             implants_list.append(json.dumps(c2_implant_dict, default=str))
-            
+
         return implants_list
 
 
@@ -158,9 +160,7 @@ async def get_playbooks(
         playbooks = await crud.get_playbooks(db, playbook_filter, 0, 10000)
         if not playbooks:
             return ["No playbooks found matching the criteria."]
-        return sequence_to_string_list(
-            playbooks, schemas.ProxyChain
-        )
+        return sequence_to_string_list(playbooks, schemas.ProxyChain)
 
 
 @rg.tool
@@ -420,9 +420,7 @@ async def get_domains_info(
         - list of string representations for each domain.
     """
     async with SessionLocal() as db:
-        domain_filter = filters.DomainFilter(
-            search=search
-        )
+        domain_filter = filters.DomainFilter(search=search)
         if labels_id__in or labels_name__in or labels_category:
             domain_filter.labels = filters.LabelFilter(
                 id__in=labels_id__in,
@@ -435,9 +433,9 @@ async def get_domains_info(
 
 @rg.tool
 async def get_undownloaded_share_files(
-    search: str = '',
-    file_type: Optional[str] = "file", # Default to "file" as in your original filter
-    limit: int = 1000, # Keep the large limit as in your original code
+    search: str = "",
+    file_type: Optional[str] = "file",  # Default to "file" as in your original filter
+    limit: int = 1000,  # Keep the large limit as in your original code
     labels_id__in: Optional[List[str]] = None,
     labels_name__in: Optional[List[str]] = None,
     labels_category: Optional[str] = None,
@@ -459,7 +457,7 @@ async def get_undownloaded_share_files(
     async with SessionLocal() as db:
         share_file_filter = filters.ShareFileFilter(
             type=file_type,
-            downloaded=False, # Explicitly filtering for undownloaded files
+            downloaded=False,  # Explicitly filtering for undownloaded files
             search=search,
         )
         if labels_id__in or labels_name__in or labels_category:
@@ -468,9 +466,11 @@ async def get_undownloaded_share_files(
                 name__in=labels_name__in,
                 category=labels_category,
             )
-        
-        share_files = await crud.get_share_files(db, filters=share_file_filter, limit=limit)
-        
+
+        share_files = await crud.get_share_files(
+            db, filters=share_file_filter, limit=limit
+        )
+
         share_files_list = sequence_to_string_list(share_files, schemas.ShareFile)
         log.info(f"Retrieved {len(share_files_list)} undownloaded share files.")
         return share_files_list
@@ -478,12 +478,12 @@ async def get_undownloaded_share_files(
 
 @rg.tool
 async def get_unindexed_share_folders(
-    search: str = '',
-    limit: int = 1000, # Providing a default limit for practicality
+    search: str = "",
+    limit: int = 1000,  # Providing a default limit for practicality
     labels_id__in: Optional[List[str]] = None,
     labels_name__in: Optional[List[str]] = None,
     labels_category: Optional[str] = None,
-    indexed: bool = False, # Added a specific 'indexed' filter for flexibility
+    indexed: bool = False,  # Added a specific 'indexed' filter for flexibility
 ) -> List[str]:
     """
     Retrieves a list of share folders that are considered unindexed or have a specific index status.
@@ -502,7 +502,7 @@ async def get_unindexed_share_folders(
     async with SessionLocal() as db:
         # Assuming ShareFileFilter can filter by 'type' and potentially 'indexed' status
         share_folder_filter = filters.ShareFileFilter(
-            type="dir", # Filter for directories to get folders
+            type="dir",  # Filter for directories to get folders
             search=search,
             indexed=indexed,
         )
@@ -513,14 +513,12 @@ async def get_unindexed_share_folders(
                 name__in=labels_name__in,
                 category=labels_category,
             )
-        
+
         # Assuming crud.get_share_files can handle filtering for directories and indexed status
         unindexed_folders = await crud.get_share_files(
-            db,
-            filters=share_folder_filter,
-            limit=limit
+            db, filters=share_folder_filter, limit=limit
         )
-        
+
         result = sequence_to_string_list(unindexed_folders, schemas.ShareFile)
         log.info(f"Retrieved {len(result)} unindexed share folders.")
         return result
@@ -544,21 +542,21 @@ async def get_hosts(
         returns a list containing the string "No hosts found.".
     """
     skip_label_id: str = "e6a57aae-993a-4196-a23a-13a7e5f607a3"
-    async with SessionLocal() as db: # For SQL database access
+    async with SessionLocal() as db:  # For SQL database access
         # 1. Get hosts from Neo4j
         async with get_async_neo4j_session_context() as graphsession:
-            hosts_from_neo4j = await graph_crud.get_computers(graphsession, search, 0, neo4j_limit)
+            hosts_from_neo4j = await graph_crud.get_computers(
+                graphsession, search, 0, neo4j_limit
+            )
         log.info(f"Retrieved {len(hosts_from_neo4j)} hosts from Neo4j.")
 
         # 2. Get hosts to skip from SQL database
         skip_hosts_from_sql = await crud.get_hosts(
             db,
             filters=filters.HostFilter(
-                labels=filters.LabelFilter(
-                    id__in=[skip_label_id]
-                )
+                labels=filters.LabelFilter(id__in=[skip_label_id])
             ),
-            limit=10000, # Max limit for skip hosts
+            limit=10000,  # Max limit for skip hosts
         )
         log.info(f"Retrieved {len(skip_hosts_from_sql)} hosts marked for skipping.")
 
@@ -571,7 +569,11 @@ async def get_hosts(
         # 4. Filter Neo4j hosts
         filtered_hosts_list = []
         for host in hosts_from_neo4j:
-            host_name = host.get("name") if isinstance(host, dict) else getattr(host, "name", None)
+            host_name = (
+                host.get("name")
+                if isinstance(host, dict)
+                else getattr(host, "name", None)
+            )
 
             if not host_name:
                 log.warning(f"Host found in Neo4j without a 'name' attribute: {host}")
@@ -580,21 +582,21 @@ async def get_hosts(
             if "." in host_name:
                 basename = host_name.split(".")[0]
                 if basename.upper() in to_skip:
-                    continue # Skip this host
-            
+                    continue  # Skip this host
+
             filtered_hosts_list.append(dict_to_string(host))
-        
+
         log.info(f"Returning {len(filtered_hosts_list)} filtered hosts.")
         if not filtered_hosts_list:
             return ["No hosts found."]
-        
+
         return filtered_hosts_list
 
 
 @rg.tool
 async def get_network_shares(
-    search: str = '',
-    limit: int = 1000, # Default to a large limit as in your original code
+    search: str = "",
+    limit: int = 1000,  # Default to a large limit as in your original code
 ) -> List[str]:
     """
     Retrieves a list of network share UNC paths, excluding those marked with specific 'skip' labels.
@@ -607,7 +609,10 @@ async def get_network_shares(
     Returns:
         A list of UNC paths (strings) for the filtered network shares.
     """
-    skip_label_ids = ["3f061979-055d-473f-ba15-d7b508f0ba83", "851853d0-e540-4185-b46e-cf2e0cc63aa8"]
+    skip_label_ids = [
+        "3f061979-055d-473f-ba15-d7b508f0ba83",
+        "851853d0-e540-4185-b46e-cf2e0cc63aa8",
+    ]
     async with SessionLocal() as db:
         share_filter = filters.ShareFilter(search=search)
 
@@ -621,26 +626,32 @@ async def get_network_shares(
         to_skip_unc_paths: set[str] = set()
         for share in all_shares:
             # Assuming 'share.labels' is an iterable of label objects, each with an 'id' attribute
-            if hasattr(share, 'labels') and share.labels: # Check if 'labels' attribute exists and is not empty
+            if (
+                hasattr(share, "labels") and share.labels
+            ):  # Check if 'labels' attribute exists and is not empty
                 for label in share.labels:
                     if str(label.id) in skip_label_ids:
                         # Assuming 'share.unc_path' is the attribute holding the UNC path
-                        if hasattr(share, 'unc_path'):
+                        if hasattr(share, "unc_path"):
                             to_skip_unc_paths.add(share.unc_path)
                         else:
-                            log.warning(f"Share object missing 'unc_path' attribute: {share}")
-                        break # No need to check other labels on this share once a skip label is found
-        
+                            log.warning(
+                                f"Share object missing 'unc_path' attribute: {share}"
+                            )
+                        break  # No need to check other labels on this share once a skip label is found
+
         log.info(f"Identified {len(to_skip_unc_paths)} UNC paths to skip.")
 
         # Filter the shares based on the collected skip UNC paths
         filtered_shares_unc_paths = [
             share.unc_path
             for share in all_shares
-            if hasattr(share, 'unc_path') and share.unc_path not in to_skip_unc_paths
+            if hasattr(share, "unc_path") and share.unc_path not in to_skip_unc_paths
         ]
-        
-        log.info(f"Returning {len(filtered_shares_unc_paths)} filtered network share UNC paths.")
+
+        log.info(
+            f"Returning {len(filtered_shares_unc_paths)} filtered network share UNC paths."
+        )
         return filtered_shares_unc_paths
 
 
@@ -664,14 +675,14 @@ async def list_filters(
         A list of string representations for each available filter.
     """
     async with SessionLocal() as db:
-        filters_list = await crud.get_filters_for_model(
-            db, model_name
-        )
+        filters_list = await crud.get_filters_for_model(db, model_name)
         return sequence_to_string_list(filters_list, schemas.Filter)
 
 
 @rg.tool
-async def create_suggestion_for_plan_step(plan_step_id: str, name: str, reason: str, playbook_template_id: str, arguments: str) -> str:
+async def create_suggestion_for_plan_step(
+    plan_step_id: str, name: str, reason: str, playbook_template_id: str, arguments: str
+) -> str:
     """
     Creates a new suggestion linked to a specific plan step.
     IMPORTANT: The `plan_step_id` and `playbook_template_id` MUST be the IDs of existing objects.
@@ -702,7 +713,7 @@ async def create_suggestion_for_plan_step(plan_step_id: str, name: str, reason: 
             name=name,
             reason=reason,
             playbook_template_id=playbook_template_id,
-            arguments=args_dict
+            arguments=args_dict,
         )
         try:
             _, created_suggestion = await crud.create_suggestion(db, suggestion_schema)
@@ -740,7 +751,9 @@ async def create_plan_step(plan_id: str, description: str, notes: str = "") -> s
 @rg.tool
 async def update_plan_step(
     step_id: str,
-    status: t.Literal["pending", "in_progress", "completed", "failed", "blocked", "skipped"],
+    status: t.Literal[
+        "pending", "in_progress", "completed", "failed", "blocked", "skipped"
+    ],
     notes: Optional[str] = None,
 ) -> str | bool:
     """
@@ -757,7 +770,7 @@ async def update_plan_step(
         update_data = schemas.PlanStepUpdate(status=status)
         if notes is not None:
             update_data.notes = notes
-        
+
         updated_step = await crud.update_plan_step(
             db,
             id=step_id,
@@ -782,7 +795,12 @@ async def delete_suggestion(suggestion_id: str) -> str:
 
 
 @rg.tool
-async def update_suggestion(suggestion_id: str, name: Optional[str] = None, reason: Optional[str] = None, arguments: Optional[str] = None) -> str:
+async def update_suggestion(
+    suggestion_id: str,
+    name: Optional[str] = None,
+    reason: Optional[str] = None,
+    arguments: Optional[str] = None,
+) -> str:
     """
     Updates the fields of an existing suggestion. All fields are optional.
     Use this to refine or correct a suggestion.
@@ -825,8 +843,8 @@ async def validate_playbook_arguments(playbook_template_id: str, arguments: str)
 
     # This part is a simplified adaptation. A full implementation would parse the template's arg definitions.
     # For now, we focus on the most common and critical validation: c2_implant_id.
-    if 'c2_implant_id' in args_dict:
-        implant_id = args_dict['c2_implant_id']
+    if "c2_implant_id" in args_dict:
+        implant_id = args_dict["c2_implant_id"]
         implant = await crud.get_c2_implant(implant_id)
         if not implant:
             return f"Error: C2 Implant with ID '{implant_id}' not found."

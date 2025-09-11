@@ -10,9 +10,8 @@ from harbinger.database.users import get_redis_strategy, get_user_manager
 
 router = APIRouter()
 
-REDIS_PUBSUB_CHANNEL = (
-    "app_events_stream"
-)
+REDIS_PUBSUB_CHANNEL = "app_events_stream"
+
 
 @router.websocket("/")
 @router.websocket("")

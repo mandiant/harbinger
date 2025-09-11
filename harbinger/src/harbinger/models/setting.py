@@ -24,11 +24,14 @@ from harbinger.database.types import mapped_column
 
 class Setting(Base):
     __tablename__ = "settings"
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     name: Mapped[str] = mapped_column(String)
-    category_id: Mapped[UUID] = mapped_column(ForeignKey("setting_category.id"), nullable=False)
+    category_id: Mapped[UUID] = mapped_column(
+        ForeignKey("setting_category.id"), nullable=False
+    )
     type: Mapped[str] = mapped_column(String)
     description: Mapped[str] = mapped_column(String)
     value: Mapped[dict] = mapped_column(JSON)
     __table_args__ = (UniqueConstraint("name", "category_id", name="name_category"),)
-

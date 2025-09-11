@@ -30,20 +30,30 @@ if TYPE_CHECKING:
 
 class C2Job(Base):
     __tablename__ = "c2_jobs"
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     status: Mapped[str] = mapped_column(String)
     c2_type: Mapped[str] = mapped_column(String)
     c2_task_id: Mapped[UUID] = mapped_column(ForeignKey("c2_tasks.id"), nullable=True)
-    c2_server_id: Mapped[UUID] = mapped_column(ForeignKey("c2_servers.id"), nullable=True)
-    c2_implant_id: Mapped[UUID] = mapped_column(ForeignKey("c2_implants.id"), nullable=True)
+    c2_server_id: Mapped[UUID] = mapped_column(
+        ForeignKey("c2_servers.id"), nullable=True
+    )
+    c2_implant_id: Mapped[UUID] = mapped_column(
+        ForeignKey("c2_implants.id"), nullable=True
+    )
     command: Mapped[str] = mapped_column(String)
     arguments: Mapped[str] = mapped_column(String)
     playbook_id: Mapped[UUID] = mapped_column(ForeignKey("playbooks.id"), nullable=True)
 
     message: Mapped[str] = mapped_column(String)
 
-    time_created: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    time_updated: Mapped[DateTime] = mapped_column(DateTime(timezone=True), onupdate=func.now())
+    time_created: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    time_updated: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), onupdate=func.now()
+    )
     time_started: Mapped[DateTime] = mapped_column(DateTime(timezone=True))
     time_completed: Mapped[DateTime] = mapped_column(DateTime(timezone=True))
     add_labels: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=True)

@@ -25,8 +25,10 @@ class TestFileListParser(unittest.IsolatedAsyncioTestCase):
             name="Desktop",
             files=[
                 ShareFileCreate(
-                    type="file", name="test.exe", size=123, 
-                    )
+                    type="file",
+                    name="test.exe",
+                    size=123,
+                )
             ],
             size=4096,
         )
@@ -35,9 +37,7 @@ class TestFileListParser(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(file_list.sharename, "C$")
         self.assertEqual(file_list.share_unc_path, "\\\\host1\\C$")
-        self.assertEqual(
-            file_list.unc_path, "\\\\host1\\C$\\Users\\user1\\Desktop"
-        )
+        self.assertEqual(file_list.unc_path, "\\\\host1\\C$\\Users\\user1\\Desktop")
         self.assertEqual(file_list.depth, 3)
 
         # Check parents
@@ -75,8 +75,10 @@ class TestFileListParser(unittest.IsolatedAsyncioTestCase):
             name="Desktop",
             files=[
                 ShareFileCreate(
-                    type="file", name="test.exe", size=123, 
-                    )
+                    type="file",
+                    name="test.exe",
+                    size=123,
+                )
             ],
             size=4096,
         )
@@ -84,9 +86,7 @@ class TestFileListParser(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(file_list.sharename, "C$")
         self.assertEqual(file_list.share_unc_path, "\\\\host1\\C$")
-        self.assertEqual(
-            file_list.unc_path, "\\\\host1\\C$\\Users\\user1\\Desktop"
-        )
+        self.assertEqual(file_list.unc_path, "\\\\host1\\C$\\Users\\user1\\Desktop")
         self.assertEqual(file_list.depth, 3)
         self.assertEqual(file_list.domain, "")
 
@@ -124,9 +124,11 @@ class TestFileListParser(unittest.IsolatedAsyncioTestCase):
             parent_path="",
             name="\\\\host1\\C$\\Users\\user1\\Desktop",
             files=[
-                 ShareFileCreate(
-                    type="file", name="test.exe", size=123, 
-                    )
+                ShareFileCreate(
+                    type="file",
+                    name="test.exe",
+                    size=123,
+                )
             ],
             size=4096,
         )
@@ -134,9 +136,7 @@ class TestFileListParser(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(file_list.sharename, "C$")
         self.assertEqual(file_list.share_unc_path, "\\\\host1\\C$")
-        self.assertEqual(
-            file_list.unc_path, "\\\\host1\\C$\\Users\\user1\\Desktop"
-        )
+        self.assertEqual(file_list.unc_path, "\\\\host1\\C$\\Users\\user1\\Desktop")
         self.assertEqual(file_list.depth, 3)
         self.assertEqual(file_list.host, "host1")
         self.assertEqual(file_list.domain, "")
@@ -218,9 +218,7 @@ class TestFileListParser(unittest.IsolatedAsyncioTestCase):
             file_list.share_unc_path,
             "\\\\HOST1.DOMAIN.LOCAL\\NETLOGON",
         )
-        self.assertEqual(
-            file_list.unc_path, "\\\\HOST1.DOMAIN.LOCAL\\NETLOGON"
-        )
+        self.assertEqual(file_list.unc_path, "\\\\HOST1.DOMAIN.LOCAL\\NETLOGON")
         self.assertEqual(file_list.depth, 0)
         self.assertEqual(file_list.host, "HOST1")
         self.assertEqual(file_list.domain, "DOMAIN.LOCAL")

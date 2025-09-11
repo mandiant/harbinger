@@ -15,8 +15,6 @@
 from enum import Enum
 
 
-
-
 class Streams(str, Enum):
     run_playbook = "run_playbook"
     run_c2_job = "run_c2_job"
@@ -72,4 +70,3 @@ class Event(str, Enum):
     checklist = "checklist"
     objective = "objective"
     playbook_template = "playbook_template"
-

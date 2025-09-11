@@ -70,7 +70,7 @@ async def upload_part(
             PartNumber=chunk_number,
             Key=key,
         )  # type: ignore
-        return resp['ETag']
+        return resp["ETag"]
 
 
 async def complete_multipart_upload(
@@ -86,7 +86,6 @@ async def complete_multipart_upload(
         aws_secret_access_key=settings.minio_secret_key,
         aws_access_key_id=settings.minio_access_key,
     ) as client:
-
         await client.complete_multipart_upload(
             Bucket=bucket,
             UploadId=upload_id,
@@ -107,11 +106,7 @@ async def cancel_multipart_upload(
         aws_secret_access_key=settings.minio_secret_key,
         aws_access_key_id=settings.minio_access_key,
     ) as client:
-        await client.abort_multipart_upload(
-            Bucket=bucket,
-            Key=key,
-            UploadId=upload_id
-        )  # type: ignore
+        await client.abort_multipart_upload(Bucket=bucket, Key=key, UploadId=upload_id)  # type: ignore
 
 
 async def upload_file(
@@ -142,11 +137,13 @@ async def download_file(
         aws_access_key_id=settings.minio_access_key,
     ) as client:
         try:
-            response = await client.get_object(Bucket=bucket, Key=key, Range=bytes_range)  # type: ignore
+            response = await client.get_object(
+                Bucket=bucket, Key=key, Range=bytes_range
+            )  # type: ignore
             async with response["Body"] as stream:
                 return await stream.read()
         except client.exceptions.NoSuchKey:
-            return b''
+            return b""
 
 
 class FileUploader:
@@ -159,11 +156,11 @@ class FileUploader:
     def __init__(self, path: str, bucket: str):
         self.path = path
         self.bucket = bucket
-        self.buffer = b''
+        self.buffer = b""
         self.completed = False
         self.parts: list[PartInfo] = []
         self.counter = 1
-        self.upload_id: str = ''
+        self.upload_id: str = ""
 
     async def upload(self, buffer: bytes) -> None:
         self.buffer += buffer
@@ -171,25 +168,17 @@ class FileUploader:
             await self.upload_chunk()
 
     async def upload_chunk(self):
-            etag = await upload_part(
-                self.upload_id, self.buffer, self.counter, self.path
-            )
-            self.parts.append(
-                PartInfo(
-                    ETag=etag, PartNumber=self.counter
-                )
-            )
-            self.buffer = b''
-            self.counter += 1
+        etag = await upload_part(self.upload_id, self.buffer, self.counter, self.path)
+        self.parts.append(PartInfo(ETag=etag, PartNumber=self.counter))
+        self.buffer = b""
+        self.counter += 1
 
     async def complete(self) -> None:
         if not self.completed:
             if self.buffer:
                 await self.upload_chunk()
             if len(self.parts) > 0:
-                await complete_multipart_upload(
-                    self.upload_id, self.path, self.parts
-                )
+                await complete_multipart_upload(self.upload_id, self.path, self.parts)
             else:
                 await self.cancel()
             self.completed = True
@@ -197,7 +186,7 @@ class FileUploader:
     async def cancel(self) -> None:
         await cancel_multipart_upload(self.upload_id, self.path, self.bucket)
 
-    async def __aenter__(self) -> 'FileUploader':
+    async def __aenter__(self) -> "FileUploader":
         self.upload_id = await create_multipart_upload(self.path)
         return self
 

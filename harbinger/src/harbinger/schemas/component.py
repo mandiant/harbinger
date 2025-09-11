@@ -13,8 +13,7 @@
 # limitations under the License.
 
 
-from pydantic import (UUID4, BaseModel, ConfigDict)
-
+from pydantic import UUID4, BaseModel, ConfigDict
 
 
 class Component(BaseModel):
@@ -23,4 +22,3 @@ class Component(BaseModel):
     name: str
     hostname: str
     status: str
-

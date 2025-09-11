@@ -16,7 +16,7 @@
 from datetime import datetime
 from enum import Enum
 
-from pydantic import (UUID4, BaseModel, ConfigDict, model_validator)
+from pydantic import UUID4, BaseModel, ConfigDict, model_validator
 
 
 from .domain import Domain
@@ -35,10 +35,6 @@ class SACategories(str, Enum):
     host = "Host"
 
 
-
-
-
-
 class SituationalAwarenessBase(BaseModel):
     name: str
     category: str
@@ -48,18 +44,24 @@ class SituationalAwarenessBase(BaseModel):
     value_json: dict | None = None
     domain_id: str | UUID4 | None = None
 
+
 class SituationalAwarenessCreate(SituationalAwarenessBase):
     @model_validator(mode="after")  # type: ignore
     def check_value_set(self) -> "SituationalAwarenessCreate":
         if not any(
-            [self.value_string, self.value_bool, self.value_int is not None, self.value_json]
+            [
+                self.value_string,
+                self.value_bool,
+                self.value_int is not None,
+                self.value_json,
+            ]
         ):
             raise ValueError("At least one value must be set")
         return self
+
 
 class SituationalAwareness(SituationalAwarenessBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4
     time_created: datetime
     domain: Domain | None = None
-

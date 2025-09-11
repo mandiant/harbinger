@@ -15,7 +15,7 @@
 from datetime import datetime
 from typing import List
 
-from pydantic import (UUID4, BaseModel, ConfigDict, Field)
+from pydantic import UUID4, BaseModel, ConfigDict, Field
 
 
 from .label import Label
@@ -27,10 +27,12 @@ class ActionBase(BaseModel):
     description: str | None = ""
     status: str | None = ""
 
+
 class ActionCreate(ActionBase):
     id: UUID4 | str
     labels: List[str] = Field(default=[], exclude=True)
     playbook_template_ids: List[UUID4] = Field(default=[], exclude=True)
+
 
 class Action(ActionBase):
     model_config = ConfigDict(from_attributes=True)

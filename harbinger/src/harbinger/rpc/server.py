@@ -46,7 +46,6 @@ def cli(debug: bool):
 
 
 class Harbinger(messages_pb2_grpc.HarbingerServicer):
-
     def __init__(self, client: Client):
         self.running = True
         self.client = client
@@ -315,6 +314,7 @@ class Harbinger(messages_pb2_grpc.HarbingerServicer):
         except ValidationError:
             log.warning(f"Validation error while parsing: {request}")
         return messages_pb2.C2ServerStatusResponse()
+
 
 async def main(debug: bool = False):
     log.info(f"Starting grpc server, debug: {debug}")

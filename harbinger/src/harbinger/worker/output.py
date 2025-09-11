@@ -442,7 +442,7 @@ class KerberosHashParser(RegexMatchParser):
                     schemas.HashCreate(
                         type=hash_type,
                         hashcat_id=hashcat_id,
-                        hash=hit.replace('\x00', ''),
+                        hash=hit.replace("\x00", ""),
                     ),
                 )
                 if created:
@@ -452,8 +452,8 @@ class KerberosHashParser(RegexMatchParser):
 
 
 class ASREPRoastingHashParser(RegexMatchParser):
-    needle = [r"(\$krb5asrep\$[^$]*@[^:]*:[^$]*\$[a-fA-F0-9]*)"] 
-    labels = ["b360fffa-ef10-46aa-ba0b-056cf7405b8a"] 
+    needle = [r"(\$krb5asrep\$[^$]*@[^:]*:[^$]*\$[a-fA-F0-9]*)"]
+    labels = ["b360fffa-ef10-46aa-ba0b-056cf7405b8a"]
 
     async def parse(
         self,
@@ -468,9 +468,9 @@ class ASREPRoastingHashParser(RegexMatchParser):
                 await crud.create_hash(
                     self.db,
                     schemas.HashCreate(
-                        type="krb5asrep",  
-                        hashcat_id=18200,  
-                        hash=hit.replace('\x00', ''), 
+                        type="krb5asrep",
+                        hashcat_id=18200,
+                        hash=hit.replace("\x00", ""),
                     ),
                 )
 
@@ -675,7 +675,9 @@ class TruffleHogParser(SimpleMatchParser):
                                 file_id=file_id,
                             ),
                         )
-                log.info(f"Found {len(results)} potential lines with credentials with TruffleHog")
+                log.info(
+                    f"Found {len(results)} potential lines with credentials with TruffleHog"
+                )
 
 
 class NoseyParkerParser(SimpleMatchParser):
@@ -706,7 +708,7 @@ class NoseyParkerParser(SimpleMatchParser):
             result_log = "[noseyparker scan stdout]\n"
             if stdout:
                 result_log += stdout.decode()
-            
+
             result_log += "[noseyparker report stdout]\n"
             proc = await create_subprocess_exec(
                 settings.noseyparker,
@@ -784,12 +786,13 @@ class NoseyParkerParser(SimpleMatchParser):
                             ),
                         )
                 if data:
-                    log.info(f"Found {len(data)} potential lines with credentials with NoseyParker")
+                    log.info(
+                        f"Found {len(data)} potential lines with credentials with NoseyParker"
+                    )
 
 
 class CertifpyNTLMParser(SimpleMatchParser):
     needle = ["[*] Got hash for "]
-
 
     async def parse(
         self,
@@ -799,16 +802,14 @@ class CertifpyNTLMParser(SimpleMatchParser):
         file_id: str | UUID4 | None = None,
     ) -> None:
         needle_offset = text.find(self.needle[0])
-        data = text[needle_offset+len(self.needle[0]):]
+        data = text[needle_offset + len(self.needle[0]) :]
         data = data.strip()
-        username, __build_class__, nt = data.split(':', 2)
-        username = username.replace("'", '')
-        username, domain = username.split('@', 1)
+        username, __build_class__, nt = data.split(":", 2)
+        username = username.replace("'", "")
+        username, domain = username.split("@", 1)
         if username and domain and nt:
             domain_obj = await crud.get_or_create_domain(self.db, domain)
-            password = await crud.get_or_create_password(
-                self.db, nt_hash=nt
-            )
+            password = await crud.get_or_create_password(self.db, nt_hash=nt)
             cred = await crud.get_or_create_credential(
                 self.db, username, domain_obj.id, password.id
             )
@@ -834,7 +835,7 @@ class MachineAccountQuotaParser(SimpleMatchParser):
                 if host:
                     domain_id = host.domain_id
         try:
-            machine_account_quota = int(text.split(':')[-1].strip())
+            machine_account_quota = int(text.split(":")[-1].strip())
             await crud.get_or_create_situational_awareness(
                 self.db,
                 sa=schemas.SituationalAwarenessCreate(
@@ -864,7 +865,7 @@ class DomainInfoParser(SimpleMatchParser):
 
 class NetViewParser(SimpleMatchParser):
     needle = ["Importing targets"]
-    labels = ['6849c996-f5ab-462a-96c3-8ae891134c56']
+    labels = ["6849c996-f5ab-462a-96c3-8ae891134c56"]
 
     async def parse(
         self,
@@ -877,7 +878,7 @@ class NetViewParser(SimpleMatchParser):
         async with get_async_neo4j_session_context() as graphsession:
             for line in text.split("\n"):
                 if "logged in LOCALLY" in line:
-                    host, _, user, *_ = line.split(' ')
+                    host, _, user, *_ = line.split(" ")
                     try:
                         _ = ipaddress.ip_address(host)
                         log.info(f"Skipping host {host} as its an ip address")
@@ -895,22 +896,30 @@ class NetViewParser(SimpleMatchParser):
                         log.info(f"Skipping computer account: {user}")
                         continue
 
-                    if '.' in host and host.split('.', 1)[0] == domain:
-                        log.info(f"Skipping user: {user} with domain: {domain} as its a local account")
+                    if "." in host and host.split(".", 1)[0] == domain:
+                        log.info(
+                            f"Skipping user: {user} with domain: {domain} as its a local account"
+                        )
                         continue
 
                     domain_db = await crud.get_or_create_domain(self.db, domain)
                     if not domain_db.long_name:
-                        log.info(f"Skipping user: {user} with domain: {domain} as there is no long name set.")
+                        log.info(
+                            f"Skipping user: {user} with domain: {domain} as there is no long name set."
+                        )
                         continue
 
-                    f'{user}@{domain_db.long_name.upper()} host.upper()'
+                    f"{user}@{domain_db.long_name.upper()} host.upper()"
 
-                    res = await graph_crud.add_session(graphsession, host, f'{user}@{domain_db.long_name.upper()}')
+                    res = await graph_crud.add_session(
+                        graphsession, host, f"{user}@{domain_db.long_name.upper()}"
+                    )
                     if res:
                         count += 1
                     else:
-                        log.info(f"Unable to create session: {host}-[:HasSession]->{user}@{domain_db.long_name.upper()}")
+                        log.info(
+                            f"Unable to create session: {host}-[:HasSession]->{user}@{domain_db.long_name.upper()}"
+                        )
         if count:
             log.info(f"Created {count} sessions in neo4j.")
 
@@ -933,7 +942,9 @@ class RubeusKirbiParser(SimpleMatchParser):
                     ticket_decoded = b64decode(line)
                     await parse_ccache(self.db, ticket_decoded)
                 except Exception as e:
-                    log.warning(f"Caught exception: {e} while trying to parse rubeus kirbi")
+                    log.warning(
+                        f"Caught exception: {e} while trying to parse rubeus kirbi"
+                    )
 
 
 class SecretsDumpParser(RegexMatchParser):
@@ -953,9 +964,7 @@ class SecretsDumpParser(RegexMatchParser):
                 domain, username, nt = hit
                 if username and domain and nt:
                     domain_obj = await crud.get_or_create_domain(self.db, domain)
-                    password = await crud.get_or_create_password(
-                        self.db, nt_hash=nt
-                    )
+                    password = await crud.get_or_create_password(self.db, nt_hash=nt)
                     cred = await crud.get_or_create_credential(
                         self.db, username, domain_obj.id, password.id
                     )
@@ -1004,7 +1013,12 @@ class LLMParser(SimpleMatchParser):
             for result in results.credentials:
                 # Check that Gemini actually gave a password and that the password is actually located in the text
                 # this should reduce the false positives by quite a lot.
-                if result.password and result.password in text and result.username and result.username in text:
+                if (
+                    result.password
+                    and result.password in text
+                    and result.username
+                    and result.username in text
+                ):
                     count += 1
                     await crud.create_highlight(
                         self.db,
@@ -1049,9 +1063,9 @@ class LLMParser(SimpleMatchParser):
                     )
             log.info(f"Found {count} potential credentials with Gemini")
         except TypeError:
-            log.warning('TypeError while processing text')
+            log.warning("TypeError while processing text")
         except Exception as e:
-            log.error(f'Exception {e} while processing text')
+            log.error(f"Exception {e} while processing text")
 
 
 class NetShareParser(SimpleMatchParser):
@@ -1069,8 +1083,8 @@ class NetShareParser(SimpleMatchParser):
         if len(lines) < 2:
             log.warning("Probably not share output")
             return
-    
-        hostname = lines[1].replace('-', '')
+
+        hostname = lines[1].replace("-", "")
         shares = lines[2:]
         unc_path_host = hostname
 
@@ -1084,10 +1098,13 @@ class NetShareParser(SimpleMatchParser):
         _, h = await crud.get_or_create_host(self.db, hostname, domain_id)
         host_id = h.id
 
-        await crud.create_label_item(self.db, schemas.LabeledItemCreate(
-            label_id='e6a57aae-993a-4196-a23a-13a7e5f607a3',
-            host_id=host_id,
-        ))
+        await crud.create_label_item(
+            self.db,
+            schemas.LabeledItemCreate(
+                label_id="e6a57aae-993a-4196-a23a-13a7e5f607a3",
+                host_id=host_id,
+            ),
+        )
 
         for share in shares:
             created, share_db = await crud.get_or_create_share(

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-from pydantic import (BaseModel)
+from pydantic import BaseModel
 
 
 from .statistics import Statistics
@@ -21,4 +21,3 @@ from .statistics import Statistics
 
 class StatisticsItems(BaseModel):
     items: list[Statistics]
-

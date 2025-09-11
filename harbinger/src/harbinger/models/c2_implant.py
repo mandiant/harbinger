@@ -37,9 +37,15 @@ if TYPE_CHECKING:
 
 class C2Implant(Base):
     __tablename__ = "c2_implants"
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    time_created: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    c2_server_id: Mapped[UUID] = mapped_column(ForeignKey("c2_servers.id"), nullable=True)
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    time_created: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    c2_server_id: Mapped[UUID] = mapped_column(
+        ForeignKey("c2_servers.id"), nullable=True
+    )
     internal_id: Mapped[str] = mapped_column(String)
     c2_type: Mapped[str] = mapped_column(String)
     payload_type: Mapped[str] = mapped_column(String)

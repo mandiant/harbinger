@@ -17,7 +17,7 @@ import ntpath
 from datetime import datetime
 from typing import List
 
-from pydantic import (UUID4, BaseModel, ConfigDict, model_validator)
+from pydantic import UUID4, BaseModel, ConfigDict, model_validator
 
 
 from .label import Label
@@ -39,8 +39,8 @@ class ShareFileBase(BaseModel):
     downloaded: bool = False
     indexed: bool = False
 
-class ShareFileCreate(ShareFileBase):
 
+class ShareFileCreate(ShareFileBase):
     @model_validator(mode="after")  # type: ignore
     def set_extension(self) -> "ShareFileCreate":
         if "." in self.name:
@@ -53,9 +53,11 @@ class ShareFileCreate(ShareFileBase):
         if not self.depth:
             self.depth = depth
 
+
 class ShareFileUpdate(ShareFileBase):
     name: str | None = None
     type: str | None = None
+
 
 class ShareFile(ShareFileBase):
     model_config = ConfigDict(from_attributes=True)
@@ -63,4 +65,3 @@ class ShareFile(ShareFileBase):
     time_created: datetime
 
     labels: List["Label"] | None = None
-

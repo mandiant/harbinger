@@ -28,7 +28,9 @@ if TYPE_CHECKING:
 
 class Process(Base):
     __tablename__ = "processes"
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     process_id: Mapped[int] = mapped_column(Integer)
     architecture: Mapped[str] = mapped_column(String)
     name: Mapped[str] = mapped_column(String)
@@ -40,7 +42,9 @@ class Process(Base):
     handle: Mapped[str] = mapped_column(String)
     host_id: Mapped[UUID] = mapped_column(ForeignKey("hosts.id"), nullable=True)
     number: Mapped[int] = mapped_column(Integer)
-    c2_implant_id: Mapped[UUID] = mapped_column(ForeignKey("c2_implants.id"), nullable=True)
+    c2_implant_id: Mapped[UUID] = mapped_column(
+        ForeignKey("c2_implants.id"), nullable=True
+    )
 
     labels = relationship(
         "Label", secondary="labeled_item", lazy="joined", viewonly=True

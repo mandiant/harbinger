@@ -28,4 +28,7 @@ async def get_async_neo4j_session() -> AsyncGenerator[AsyncSession, None]:
         async with driver.session() as session:
             yield session
 
-get_async_neo4j_session_context = contextlib.asynccontextmanager(get_async_neo4j_session)
+
+get_async_neo4j_session_context = contextlib.asynccontextmanager(
+    get_async_neo4j_session
+)

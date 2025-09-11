@@ -17,7 +17,7 @@
 from datetime import datetime
 from typing import List
 
-from pydantic import (UUID4, BaseModel, ConfigDict)
+from pydantic import UUID4, BaseModel, ConfigDict
 
 
 from .label import Label
@@ -30,12 +30,15 @@ class IssueBase(BaseModel):
     exploitability: str | None = None
     label_id: str | UUID4 | None = None
 
+
 class IssueCreate(IssueBase):
     pass
+
 
 class IssueCreated(IssueBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4 | str
+
 
 class Issue(IssueBase):
     model_config = ConfigDict(from_attributes=True)
@@ -44,4 +47,3 @@ class Issue(IssueBase):
     time_updated: datetime | None = None
 
     labels: List["Label"] | None = None
-

@@ -100,9 +100,7 @@ async def process_harbinger_yaml(
                             else "Please fill in this value"
                         ),
                         type=(
-                            argument.type
-                            if argument.type
-                            else argument.default_type()
+                            argument.type if argument.type else argument.default_type()
                         ),
                         c2_server_type_id=obj.id,
                     ),

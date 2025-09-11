@@ -15,7 +15,7 @@
 
 from typing import List
 
-from pydantic import (UUID4, BaseModel, ConfigDict)
+from pydantic import UUID4, BaseModel, ConfigDict
 
 
 from .label import Label
@@ -25,12 +25,13 @@ class GraphBase(BaseModel):
     name: str
     description: str | None = None
 
+
 class GraphCreate(GraphBase):
     pass
+
 
 class Graph(GraphBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4 | str
 
     labels: List["Label"] | None = None
-

@@ -1,5 +1,6 @@
 from ..utils import make_api_request, print_output
 
+
 def setup(subparsers):
     """Setup the c2 command."""
     parser = subparsers.add_parser("c2", help="Manage C2 infrastructure")
@@ -17,6 +18,7 @@ def setup(subparsers):
     tasks_list_parser = c2_subparsers.add_parser("tasks", help="List C2 tasks")
     tasks_list_parser.set_defaults(func=list_tasks)
 
+
 def list_servers(args):
     """List C2 servers."""
     response = make_api_request("GET", "/c2_servers/")
@@ -24,17 +26,22 @@ def list_servers(args):
         servers_data = response.json()
         servers = servers_data.get("items", [])
         headers = ["ID", "Name", "Type", "Hostname", "Status"]
-        
+
         output_data = []
         for s in servers:
-            output_data.append({
-                "id": s.get("id"),
-                "name": s.get("name"),
-                "type": s.get("type"),
-                "hostname": s.get("hostname"),
-                "status": s.get("status")[0].get("status") if s.get("status") else "",
-            })
+            output_data.append(
+                {
+                    "id": s.get("id"),
+                    "name": s.get("name"),
+                    "type": s.get("type"),
+                    "hostname": s.get("hostname"),
+                    "status": s.get("status")[0].get("status")
+                    if s.get("status")
+                    else "",
+                }
+            )
         print_output(output_data, headers, args.output)
+
 
 def list_implants(args):
     """List C2 implants."""
@@ -43,16 +50,19 @@ def list_implants(args):
         implants_data = response.json()
         implants = implants_data.get("items", [])
         headers = ["ID", "Hostname", "OS", "Last Check-in"]
-        
+
         output_data = []
         for i in implants:
-            output_data.append({
-                "id": i.get("id"),
-                "hostname": i.get("hostname"),
-                "os": i.get("os"),
-                "last_check-in": i.get("last_checkin"),
-            })
+            output_data.append(
+                {
+                    "id": i.get("id"),
+                    "hostname": i.get("hostname"),
+                    "os": i.get("os"),
+                    "last_check-in": i.get("last_checkin"),
+                }
+            )
         print_output(output_data, headers, args.output)
+
 
 def list_tasks(args):
     """List C2 tasks."""
@@ -61,13 +71,15 @@ def list_tasks(args):
         tasks_data = response.json()
         tasks = tasks_data.get("items", [])
         headers = ["ID", "Command", "Status", "Time Created"]
-        
+
         output_data = []
         for t in tasks:
-            output_data.append({
-                "id": t.get("id"),
-                "command": t.get("command_name"),
-                "status": t.get("status"),
-                "time_created": t.get("time_created"),
-            })
+            output_data.append(
+                {
+                    "id": t.get("id"),
+                    "command": t.get("command_name"),
+                    "status": t.get("status"),
+                    "time_created": t.get("time_created"),
+                }
+            )
         print_output(output_data, headers, args.output)

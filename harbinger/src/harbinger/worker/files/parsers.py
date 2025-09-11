@@ -217,9 +217,7 @@ class ADSnapshotParser(BaseFileParser):
         )
         code = await proc.wait()
         if code != 0:
-            log.warning(
-                "convertsnapshot failed to parse this file, is it a snapshot?"
-            )
+            log.warning("convertsnapshot failed to parse this file, is it a snapshot?")
             return []
 
         async with aiofiles.open(Path(tmpdirname) / output_name, "rb") as f:
@@ -370,7 +368,7 @@ class Dir2JsonParser(BaseFileParser):
             if implant and implant.host_id:
                 host_db = await crud.get_host(implant.host_id)
                 if host_db:
-                    host = host_db.name or ''
+                    host = host_db.name or ""
                     if host_db.fqdn:
                         host = host_db.fqdn
                     elif host_db.domain_id:
@@ -396,56 +394,70 @@ class CertipyJsonParser(BaseFileParser):
     async def parse(
         self,
         db: AsyncSession,
-        graph_db: AsyncNeo4jSession, # graph_db is unused in the provided snippet, but kept in signature
-        tmpdirname: str, # tmpdirname is unused, kept in signature
+        graph_db: AsyncNeo4jSession,  # graph_db is unused in the provided snippet, but kept in signature
+        tmpdirname: str,  # tmpdirname is unused, kept in signature
         tmpfilename: str,
-        file: schemas.File, # file is unused, kept in signature
-    ) -> list[schemas.File]: # Return type is list[schemas.File], currently returns []
+        file: schemas.File,  # file is unused, kept in signature
+    ) -> list[schemas.File]:  # Return type is list[schemas.File], currently returns []
         log.info("Processing certipy data")
         async with aiofiles.open(tmpfilename, "rb") as f:
             data = await f.read()
-        
+
         try:
             certipy = CertipyJson.model_validate_json(data)
         except ValidationError as e:
             log.error(f"Failed to validate main Certipy JSON: {e.errors()}")
-            return [] # Cannot proceed
+            return []  # Cannot proceed
 
         # --- Certificate Authorities Processing ---
         if certipy.certificate_authorities and certipy.certificate_authorities.root:
             for ca_value in certipy.certificate_authorities.root.values():
                 try:
-                    ca_create_schema = schemas.CertificateAuthorityCreate(**ca_value.model_dump())
+                    ca_create_schema = schemas.CertificateAuthorityCreate(
+                        **ca_value.model_dump()
+                    )
                     created, ca_res = await crud.create_certificate_authority(
                         db, ca_create_schema
                     )
                     if created:
-                        log.info(f"Created authority: {ca_res.id} for CA: {ca_value.ca_name}")
+                        log.info(
+                            f"Created authority: {ca_res.id} for CA: {ca_value.ca_name}"
+                        )
                 except Exception as e_ca:
-                    log.error(f"Error processing CA '{getattr(ca_value, 'ca_name', 'Unknown')}': {e_ca}")
+                    log.error(
+                        f"Error processing CA '{getattr(ca_value, 'ca_name', 'Unknown')}': {e_ca}"
+                    )
 
         # --- Certificate Templates Processing ---
         if certipy.certificate_templates and certipy.certificate_templates.root:
             # Corrected iteration for templates
-            for template_value in certipy.certificate_templates.root.values(): # 'template_value' is CertificateTemplate instance
+            for template_value in (
+                certipy.certificate_templates.root.values()
+            ):  # 'template_value' is CertificateTemplate instance
                 try:
-                    template_create_schema = schemas.CertificateTemplateCreate(**template_value.model_dump())
+                    template_create_schema = schemas.CertificateTemplateCreate(
+                        **template_value.model_dump()
+                    )
                     created, template_db_obj = await crud.create_certificate_template(
                         db, template_create_schema
                     )
 
                     if created:
-                        log.info(f"Created template: {template_db_obj.id} for Template: {template_value.template_name}")
+                        log.info(
+                            f"Created template: {template_db_obj.id} for Template: {template_value.template_name}"
+                        )
                         permissions_counter = 0
 
                         # Safely access and process permissions
                         if template_value.permissions:
                             # --- Enrollment Rights ---
-                            enroll_perms = template_value.permissions.enrollment_permissions
+                            enroll_perms = (
+                                template_value.permissions.enrollment_permissions
+                            )
                             enrollment_rights_list = []
                             if enroll_perms and enroll_perms.enrollment_rights:
                                 enrollment_rights_list = enroll_perms.enrollment_rights
-                            
+
                             for principal in enrollment_rights_list:
                                 await crud.create_certificate_template_permissions(
                                     db,
@@ -453,61 +465,71 @@ class CertipyJsonParser(BaseFileParser):
                                         certificate_template_id=template_db_obj.id,
                                         principal=principal,
                                         permission="Enroll",
-                                        principal_type="display_name" if not principal.startswith("S-") else "object_id",
+                                        principal_type="display_name"
+                                        if not principal.startswith("S-")
+                                        else "object_id",
                                     ),
                                 )
                                 permissions_counter += 1
 
                             # --- Object Control Permissions ---
                             ocp = template_value.permissions.object_control_permissions
-                            if ocp: # Proceed only if ocp (ObjectControlPermissions object) exists
+                            if ocp:  # Proceed only if ocp (ObjectControlPermissions object) exists
                                 # Owner
-                                if ocp.owner: # ocp.owner is Optional[str]
+                                if ocp.owner:  # ocp.owner is Optional[str]
                                     await crud.create_certificate_template_permissions(
                                         db,
                                         schemas.CertificateTemplatePermissionCreate(
                                             certificate_template_id=template_db_obj.id,
                                             principal=ocp.owner,
-                                            principal_type="display_name" if not ocp.owner.startswith("S-") else "object_id",
+                                            principal_type="display_name"
+                                            if not ocp.owner.startswith("S-")
+                                            else "object_id",
                                             permission="Owner",
                                         ),
                                     )
                                     permissions_counter += 1
 
                                 # Full Control Principals (assuming ocp.full_control_principals is Optional[List[str]])
-                                for principal in (ocp.full_control_principals or []):
+                                for principal in ocp.full_control_principals or []:
                                     await crud.create_certificate_template_permissions(
                                         db,
                                         schemas.CertificateTemplatePermissionCreate(
                                             certificate_template_id=template_db_obj.id,
                                             principal=principal,
-                                            principal_type="display_name" if not principal.startswith("S-") else "object_id",
+                                            principal_type="display_name"
+                                            if not principal.startswith("S-")
+                                            else "object_id",
                                             permission="FullControl",
                                         ),
                                     )
                                     permissions_counter += 1
-                                
+
                                 # Write Owner Principals
-                                for principal in (ocp.write_owner_principals or []):
+                                for principal in ocp.write_owner_principals or []:
                                     await crud.create_certificate_template_permissions(
                                         db,
                                         schemas.CertificateTemplatePermissionCreate(
                                             certificate_template_id=template_db_obj.id,
                                             principal=principal,
-                                            principal_type="display_name" if not principal.startswith("S-") else "object_id",
+                                            principal_type="display_name"
+                                            if not principal.startswith("S-")
+                                            else "object_id",
                                             permission="WriteOwner",
                                         ),
                                     )
                                     permissions_counter += 1
 
                                 # Write Dacl Principals
-                                for principal in (ocp.write_dacl_principals or []):
+                                for principal in ocp.write_dacl_principals or []:
                                     await crud.create_certificate_template_permissions(
                                         db,
                                         schemas.CertificateTemplatePermissionCreate(
                                             certificate_template_id=template_db_obj.id,
                                             principal=principal,
-                                            principal_type="display_name" if not principal.startswith("S-") else "object_id",
+                                            principal_type="display_name"
+                                            if not principal.startswith("S-")
+                                            else "object_id",
                                             permission="WriteDacl",
                                         ),
                                     )
@@ -516,14 +538,19 @@ class CertipyJsonParser(BaseFileParser):
                                 # Write Property Principals
                                 # Safely access 'write_property_principals'.
                                 # Ensure this field exists in your ObjectControlPermissions Pydantic model as Optional[List[str]].
-                                write_property_principals_list = getattr(ocp, 'write_property_principals', None) or []                                
+                                write_property_principals_list = (
+                                    getattr(ocp, "write_property_principals", None)
+                                    or []
+                                )
                                 for principal in write_property_principals_list:
                                     await crud.create_certificate_template_permissions(
                                         db,
                                         schemas.CertificateTemplatePermissionCreate(
                                             certificate_template_id=template_db_obj.id,
                                             principal=principal,
-                                            principal_type="display_name" if not principal.startswith("S-") else "object_id",
+                                            principal_type="display_name"
+                                            if not principal.startswith("S-")
+                                            else "object_id",
                                             permission="WriteProperty",
                                         ),
                                     )
@@ -531,14 +558,22 @@ class CertipyJsonParser(BaseFileParser):
                         # --- End of Permissions block (if template_value.permissions:) ---
 
                         # --- Vulnerabilities ---
-                        if template_value.vulnerabilities and template_value.vulnerabilities.root: # Safely access .root
-                            for name, vuln_description in template_value.vulnerabilities.root.items():
-                                label = await crud.get_label_by_name(db, name) # Use 'name' (vulnerability key like ESC1) as label name
+                        if (
+                            template_value.vulnerabilities
+                            and template_value.vulnerabilities.root
+                        ):  # Safely access .root
+                            for (
+                                name,
+                                vuln_description,
+                            ) in template_value.vulnerabilities.root.items():
+                                label = await crud.get_label_by_name(
+                                    db, name
+                                )  # Use 'name' (vulnerability key like ESC1) as label name
                                 if not label:
                                     label = await crud.create_label(
                                         db,
-                                        schemas.LabelCreate( # Using 'name' for label name, 'vuln_description' could be label's description
-                                            name=name, 
+                                        schemas.LabelCreate(  # Using 'name' for label name, 'vuln_description' could be label's description
+                                            name=name,
                                             category="Certificates",
                                             # Consider adding: description=vuln_description, if your LabelCreate supports it
                                         ),
@@ -551,16 +586,23 @@ class CertipyJsonParser(BaseFileParser):
                                     ),
                                 )
                         # --- End of Vulnerabilities ---
-                        
-                        log.info(f"Processed {permissions_counter} permissions for template: {template_db_obj.id}")
+
+                        log.info(
+                            f"Processed {permissions_counter} permissions for template: {template_db_obj.id}"
+                        )
                     # else: (handle if template not created)
                     #    log.warning(f"Template {template_value.template_name} not created. Skipping permissions and vulnerabilities.")
 
                 except Exception as e_template:
-                    template_name_for_log = getattr(template_value, 'template_name', 'Unknown Template')
-                    log.error(f"Error processing template '{template_name_for_log}': {e_template}")
-        
-        return [] # Original return
+                    template_name_for_log = getattr(
+                        template_value, "template_name", "Unknown Template"
+                    )
+                    log.error(
+                        f"Error processing template '{template_name_for_log}': {e_template}"
+                    )
+
+        return []  # Original return
+
 
 class CertifyJsonParser(BaseFileParser):
     async def parse(
@@ -582,19 +624,25 @@ class CertifyJsonParser(BaseFileParser):
         template_authority_map: dict[str, UUID4] = dict()
         authority_template_map: dict[str, list[str]] = dict()
         for entry in stuff:
-            if entry.meta.type == 'certificateauthorities' and entry.certificate_authorities:
+            if (
+                entry.meta.type == "certificateauthorities"
+                and entry.certificate_authorities
+            ):
                 for authority in entry.certificate_authorities:
                     authority_template_map[authority.ca_name] = authority.templates
                     resp = schemas.CertificateAuthorityCreate(**authority.model_dump())
-                    created, auth_db = await crud.create_certificate_authority(
-                        db, resp
-                    )
+                    created, auth_db = await crud.create_certificate_authority(db, resp)
                     template_authority_map[authority.ca_name] = auth_db.id
                     if created:
                         log.info(f"Created authority with id: {auth_db.id}")
-            elif entry.meta.type == 'certificatetemplates' and entry.certificate_templates:
+            elif (
+                entry.meta.type == "certificatetemplates"
+                and entry.certificate_templates
+            ):
                 for template in entry.certificate_templates:
-                    cert_template = schemas.CertificateTemplateCreate(**template.model_dump())
+                    cert_template = schemas.CertificateTemplateCreate(
+                        **template.model_dump()
+                    )
                     created, templ_db = await crud.create_certificate_template(
                         db, cert_template
                     )
@@ -609,7 +657,9 @@ class CertifyJsonParser(BaseFileParser):
                                     certificate_template_id=templ_db.id,
                                     principal=template.acl.owner,
                                     permission="Enroll",
-                                    principal_type="display_name" if not template.acl.owner.startswith("S-") else "object_id",
+                                    principal_type="display_name"
+                                    if not template.acl.owner.startswith("S-")
+                                    else "object_id",
                                 ),
                             )
                             if ace.type == "Allow":
@@ -621,13 +671,17 @@ class CertifyJsonParser(BaseFileParser):
                                             schemas.CertificateTemplatePermissionCreate(
                                                 certificate_template_id=templ_db.id,
                                                 principal=ace.principal,
-                                                principal_type="display_name" if not ace.principal.startswith("S-") else "object_id",
+                                                principal_type="display_name"
+                                                if not ace.principal.startswith("S-")
+                                                else "object_id",
                                                 permission="WriteProperty",
                                             ),
                                         )
 
         for ca, templates in authority_template_map.items():
             for template in templates:
-                await crud.create_certificate_authority_map(db, template_authority_map[ca], template_id_map[template])
+                await crud.create_certificate_authority_map(
+                    db, template_authority_map[ca], template_id_map[template]
+                )
 
         return []

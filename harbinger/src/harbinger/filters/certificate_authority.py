@@ -5,7 +5,7 @@ from pydantic import UUID4
 from .label import LabelFilter
 
 
-class CertificateAuthorityFilter(Filter): 
+class CertificateAuthorityFilter(Filter):
     order_by: list[str] | None = ["ca_name"]
     search: str | None = None
     ca_name: str | None = None
@@ -22,5 +22,15 @@ class CertificateAuthorityFilter(Filter):
 
     class Constants(Filter.Constants):
         model = models.CertificateAuthority
-        search_model_fields = ['ca_name', 'dns_name', 'certificate_subject', 'certificate_serial_number', 'certificate_validity_start', 'certificate_validity_end', 'web_enrollment', 'user_specified_san', 'request_disposition', 'enforce_encryption_for_requests']
-
+        search_model_fields = [
+            "ca_name",
+            "dns_name",
+            "certificate_subject",
+            "certificate_serial_number",
+            "certificate_validity_start",
+            "certificate_validity_end",
+            "web_enrollment",
+            "user_specified_san",
+            "request_disposition",
+            "enforce_encryption_for_requests",
+        ]

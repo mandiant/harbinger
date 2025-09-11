@@ -33,39 +33,53 @@ settings = get_settings()
 
 log = structlog.get_logger()
 
+
 async def create_event_group(redis: Redis, gname: str) -> None:
     try:
-        await redis.xgroup_create(name=schemas.Streams.events, groupname=gname, id=0, mkstream=True)
+        await redis.xgroup_create(
+            name=schemas.Streams.events, groupname=gname, id=0, mkstream=True
+        )
     except ResponseError as e:
         pass
 
 
-async def read_events(redis: Redis, groupname: str, cb: Callable[[messages_pb2.Event], Awaitable[None]], taskgroup: Optional[TaskGroup] = None, cname: str = settings.hostname):
+async def read_events(
+    redis: Redis,
+    groupname: str,
+    cb: Callable[[messages_pb2.Event], Awaitable[None]],
+    taskgroup: Optional[TaskGroup] = None,
+    cname: str = settings.hostname,
+):
     """
-        Read the events stream and call the cb function for every message.
+    Read the events stream and call the cb function for every message.
 
-        groupname: group name, is used by redis to determine which events are already received, group will be created.
-        cb: callback function that will take a single Event protobuf message as argument.
-        taskgroup: optional taskgroup to start the task in a group.
-        cname: consumer name to identify this worker, default is the hostname.
+    groupname: group name, is used by redis to determine which events are already received, group will be created.
+    cb: callback function that will take a single Event protobuf message as argument.
+    taskgroup: optional taskgroup to start the task in a group.
+    cname: consumer name to identify this worker, default is the hostname.
     """
     await create_event_group(redis, groupname)
     log.info(f"Listening on stream: {schemas.Streams.events.value} as: {groupname}")
     while True:
-        responses = await redis.xreadgroup(groupname=groupname, consumername=cname, streams={schemas.Streams.events.value: '>'}, block=100)
+        responses = await redis.xreadgroup(
+            groupname=groupname,
+            consumername=cname,
+            streams={schemas.Streams.events.value: ">"},
+            block=100,
+        )
         for resp in responses or []:
             _, messages = resp
             for _, message in messages:
                 try:
                     msg_pb2 = messages_pb2.Event()
-                    msg_pb2.ParseFromString(message['message'].encode('utf-8'))
+                    msg_pb2.ParseFromString(message["message"].encode("utf-8"))
                     if taskgroup:
                         taskgroup.start_soon(cb, msg_pb2)
                     else:
                         await cb(msg_pb2)
                 except Exception as e:
                     log.warning(f"Obtained exception trying to parse message: {e}")
-        await asyncio.sleep(.5)
+        await asyncio.sleep(0.5)
 
 
 async def merge_db_neo4j_host(

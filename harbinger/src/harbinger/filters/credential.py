@@ -6,7 +6,7 @@ from .label import LabelFilter
 from .domain import DomainFilter
 
 
-class CredentialFilter(Filter): 
+class CredentialFilter(Filter):
     order_by: list[str] | None = ["-time_created"]
     search: str | None = None
     domain_id: str | UUID4 | None = None
@@ -18,5 +18,4 @@ class CredentialFilter(Filter):
 
     class Constants(Filter.Constants):
         model = models.Credential
-        search_model_fields = ['username']
-
+        search_model_fields = ["username"]

@@ -35,10 +35,12 @@ def is_uuid(uuid_str: str):
     except ValueError:
         return False
 
+
 settings = get_settings()
 
+
 async def upload_single_file(path: Path, socks_job_id: str, filetype: str):
-    with open(path, 'rb') as f:
+    with open(path, "rb") as f:
         data = f.read()
 
     filename = os.path.basename(str(path))
@@ -64,7 +66,9 @@ async def upload_single_file(path: Path, socks_job_id: str, filetype: str):
         )
 
 
-async def upload_main(path: str, exclude: list[str] = [], socks_job_id: str = '', filetype: str = '') -> None:
+async def upload_main(
+    path: str, exclude: list[str] = [], socks_job_id: str = "", filetype: str = ""
+) -> None:
     p = Path(path)
     to_upload = []
     if p.is_dir():
@@ -99,9 +103,9 @@ async def download_main(files: list[str], destination: str, bucket: str) -> None
         else:
             file_path = file
             filename = os.path.basename(file)
-        
+
         data = await download_file(file_path, bucket)
-        with open(dest / filename, 'wb') as f:
+        with open(dest / filename, "wb") as f:
             f.write(data)
         click.echo(f"Written {len(data)} bytes to {dest / filename}")
 
@@ -113,9 +117,9 @@ def cli():
 
 @cli.command()
 @click.argument("path", type=click.Path(exists=True))
-@click.option('--exclude', '-e', multiple=True)
-@click.option('--socks-job-id', type=str, default='')
-@click.option('--filetype', type=str, default='')
+@click.option("--exclude", "-e", multiple=True)
+@click.option("--socks-job-id", type=str, default="")
+@click.option("--filetype", type=str, default="")
 def upload(path: str, exclude: tuple[str], socks_job_id: str, filetype: str):
     asyncio.run(upload_main(path, list(exclude), socks_job_id, filetype))
 

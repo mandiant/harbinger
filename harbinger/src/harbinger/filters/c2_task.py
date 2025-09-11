@@ -8,7 +8,7 @@ from .label import LabelFilter
 class C2TaskFilter(Filter):
     order_by: list[str] | None = ["-time_completed"]
     search: str | None = None
-    c2_implant_id: str | UUID4 | None = None 
+    c2_implant_id: str | UUID4 | None = None
     status: str | None = None
     command_name: str | None = None
     operator: str | None = None
@@ -19,4 +19,3 @@ class C2TaskFilter(Filter):
     class Constants(Filter.Constants):
         model = models.C2Task
         search_model_fields = ["original_params", "display_params", "command_name"]
-

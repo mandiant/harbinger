@@ -15,8 +15,7 @@
 from datetime import datetime
 from enum import Enum
 
-from pydantic import (UUID4, BaseModel, ConfigDict)
-
+from pydantic import UUID4, BaseModel, ConfigDict
 
 
 class LogType(str, Enum):
@@ -24,31 +23,26 @@ class LogType(str, Enum):
     TOOL_CALL = "TOOL_CALL"
 
 
-
-
-
-
-
-
-
-
 class LlmLogBase(BaseModel):
     plan_id: str | UUID4 | None = None
     log_type: str | None = None
     time_created: datetime | None = None
     content: dict | None = None
-    
+
+
 class LlmLogCreate(LlmLogBase):
     log_type: LogType = LogType.REASONING
 
+
 class LlmLogUpdate(LlmLogBase):
     pass
+
 
 class LlmLogCreated(LlmLogBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4 | str
 
+
 class LlmLog(LlmLogBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4 | str
-

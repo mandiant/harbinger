@@ -14,8 +14,7 @@
 
 from enum import Enum
 
-from pydantic import (BaseModel)
-
+from pydantic import BaseModel
 
 
 class TypeEnum(str, Enum):
@@ -33,4 +32,3 @@ class Argument(BaseModel):
     filetype: str = ""
     required: bool = False
     options: list[str] | None = None
-

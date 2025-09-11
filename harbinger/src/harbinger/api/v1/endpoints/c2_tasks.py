@@ -10,9 +10,7 @@ from harbinger import filters
 router = APIRouter()
 
 
-@router.get(
-    "/", response_model=Page[schemas.C2Task], tags=["c2", "implants", "crud"]
-)
+@router.get("/", response_model=Page[schemas.C2Task], tags=["c2", "implants", "crud"])
 async def read_c2_tasks(
     db: AsyncSession = Depends(get_db),
     filters: filters.C2TaskFilter = FilterDepends(filters.C2TaskFilter),

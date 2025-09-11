@@ -15,8 +15,7 @@
 
 from datetime import datetime
 
-from pydantic import (UUID4, BaseModel, ConfigDict)
-
+from pydantic import UUID4, BaseModel, ConfigDict
 
 
 class GraphNodeBase(BaseModel):
@@ -25,12 +24,13 @@ class GraphNodeBase(BaseModel):
     source: str | None = None
     graph_id: UUID4 | str
 
+
 class GraphNodeCreate(GraphNodeBase):
     pass
+
 
 class GraphNode(GraphNodeBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4
     time_created: datetime
     time_updated: datetime | None = None
-

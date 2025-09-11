@@ -17,10 +17,15 @@ from datetime import datetime
 from enum import Enum
 from typing import Any
 
-from pydantic import (UUID4, AliasChoices, BaseModel, ConfigDict, Field,
-                      field_validator,
-                      model_validator)
-
+from pydantic import (
+    UUID4,
+    AliasChoices,
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_validator,
+)
 
 
 class TimeLineThemes(str, Enum):
@@ -55,9 +60,9 @@ class TimeLine(BaseModel):
     ai_summary: str | None = ""
     processing_status: str | None = ""
 
-    @field_validator('processing_status')
+    @field_validator("processing_status")
     def set_processing_status(cls, processing_status):
-        return processing_status or ''
+        return processing_status or ""
 
     @model_validator(mode="before")  # type: ignore
     @classmethod
@@ -77,4 +82,3 @@ class TimeLine(BaseModel):
                 except json.decoder.JSONDecodeError:
                     pass
         return data
-

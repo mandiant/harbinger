@@ -28,14 +28,17 @@ settings = get_settings()
 
 here = Path(os.path.dirname(os.path.abspath(__file__)))
 
+
 def enable_logger():
-    logger = logging.getLogger('alembic')
+    logger = logging.getLogger("alembic")
     logger.setLevel(logging.INFO)
     root = logging.getLogger()
     root.setLevel(logging.INFO)
     handler = logging.StreamHandler(sys.stdout)
     handler.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
     handler.setFormatter(formatter)
     root.addHandler(handler)
 
@@ -45,9 +48,9 @@ def run_migrations() -> None:
     enable_logger()
     logger = logging.getLogger()
     alembic_cfg = Config()
-    alembic_cfg.set_main_option('script_location', str(here / '..' / 'alembic'))
-    alembic_cfg.set_main_option('sqlalchemy.url', settings.pg_dsn)
-    command.upgrade(alembic_cfg, 'head')
+    alembic_cfg.set_main_option("script_location", str(here / ".." / "alembic"))
+    alembic_cfg.set_main_option("sqlalchemy.url", settings.pg_dsn)
+    command.upgrade(alembic_cfg, "head")
     logger.info("Successfully migrated the database.")
 
 
@@ -56,8 +59,8 @@ def run_migrations() -> None:
 def auto_revision(message: str) -> None:
     enable_logger()
     alembic_cfg = Config()
-    alembic_cfg.set_main_option('script_location', str(here / '..' / 'alembic'))
-    alembic_cfg.set_main_option('sqlalchemy.url', settings.pg_dsn)
+    alembic_cfg.set_main_option("script_location", str(here / ".." / "alembic"))
+    alembic_cfg.set_main_option("sqlalchemy.url", settings.pg_dsn)
     command.revision(alembic_cfg, message, True)
 
 
@@ -66,6 +69,6 @@ def auto_revision(message: str) -> None:
 def downgrade(revision: str) -> None:
     enable_logger()
     alembic_cfg = Config()
-    alembic_cfg.set_main_option('script_location', str(here / '..' / 'alembic'))
-    alembic_cfg.set_main_option('sqlalchemy.url', settings.pg_dsn)
+    alembic_cfg.set_main_option("script_location", str(here / ".." / "alembic"))
+    alembic_cfg.set_main_option("sqlalchemy.url", settings.pg_dsn)
     command.downgrade(alembic_cfg, revision)

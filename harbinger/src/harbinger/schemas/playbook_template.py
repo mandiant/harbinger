@@ -18,8 +18,7 @@ import random
 from typing import List, Literal
 from uuid import uuid4
 
-from pydantic import (UUID4, BaseModel, ConfigDict, Field,
-                      create_model)
+from pydantic import UUID4, BaseModel, ConfigDict, Field, create_model
 
 
 from .argument import Argument, TypeEnum
@@ -36,14 +35,17 @@ class PlaybookTemplateBase(BaseModel):
     yaml: str = ""
     add_depends_on: bool | None = None
 
+
 class PlaybookTemplateCreate(PlaybookTemplateBase):
     labels: list[str] | None = []
     id: UUID4 = Field(default_factory=uuid4)
+
 
 class PlaybookTemplateView(PlaybookTemplateBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4 = Field(default_factory=uuid4)
     labels: List["Label"] | None = []
+
 
 class PlaybookTemplate(PlaybookTemplateCreate):
     model_config = ConfigDict(from_attributes=True)
@@ -93,8 +95,9 @@ def create_random_color():
     b = random.randint(0, 255)
     return "#{:02x}{:02x}{:02x}".format(int(r), int(g), int(b))
 
+
 class PlaybookTemplateGenerated(BaseModel):
-    icon: str 
+    icon: str
     name: str
     tactic: str
     technique: str

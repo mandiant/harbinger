@@ -56,7 +56,11 @@ class Connector(ABC):
     name = "base"
 
     def __init__(
-        self, c2_server_id: str, client: Client, stub: messages_pb2_grpc.HarbingerStub, channel: grpc.aio.Channel
+        self,
+        c2_server_id: str,
+        client: Client,
+        stub: messages_pb2_grpc.HarbingerStub,
+        channel: grpc.aio.Channel,
     ) -> None:
         self.c2_server_id = c2_server_id
         self.client = client
@@ -80,7 +84,9 @@ class Connector(ABC):
         channel = grpc.aio.insecure_channel(settings.harbinger_grpc_host)
         stub = messages_pb2_grpc.HarbingerStub(channel)
         await stub.Ping(messages_pb2.PingRequest(message="Test"))
-        resp = await stub.GetSettings(messages_pb2.SettingsRequest(c2_server_id=c2_server_id))
+        resp = await stub.GetSettings(
+            messages_pb2.SettingsRequest(c2_server_id=c2_server_id)
+        )
         data = schemas.C2ServerAll(**MessageToDict(resp))
         return await cls.custom_create(c2_server_id, client, data, stub, channel)
 
@@ -208,7 +214,9 @@ class Connector(ABC):
         """Do whatever initialization you need to do and start the tasks."""
         pass
 
-    def pydantic_to_proto(self, pydantic_object: BaseModel, proto_object: Type[Message]) -> Message:
+    def pydantic_to_proto(
+        self, pydantic_object: BaseModel, proto_object: Type[Message]
+    ) -> Message:
         result = proto_object()
         for key, value in pydantic_object.model_dump().items():
             if value:
@@ -254,7 +262,9 @@ class Connector(ABC):
 
             while not self.task_status_queue.empty():
                 task_status = await self.task_status_queue.get()
-                req = self.pydantic_to_proto(task_status, messages_pb2.C2TaskStatusRequest)
+                req = self.pydantic_to_proto(
+                    task_status, messages_pb2.C2TaskStatusRequest
+                )
                 await self.stub.C2TaskStatus(req)
                 self.task_status_queue.task_done()
 

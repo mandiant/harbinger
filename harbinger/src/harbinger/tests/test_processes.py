@@ -16,14 +16,22 @@ import unittest
 from harbinger.config.process import get_process_mapping
 from harbinger import schemas
 
-class TestProcesses(unittest.TestCase):
 
+class TestProcesses(unittest.TestCase):
     def test_processes(self):
         result = get_process_mapping()
         self.assertGreater(len(result), 0)
 
     def test_processbase(self):
-        process_x64 = schemas.ProcessBase(name="test.exe", parentprocessid=1, processid=2, architecture="64")
-        self.assertEqual(process_x64.architecture, "x64", "architecture was not parsed correctly")
-        process_x64 = schemas.ProcessBase(name="test.exe", parentprocessid=1, processid=2, architecture=" ")
-        self.assertEqual(process_x64.architecture, "x32", "architecture was not parsed correctly")
+        process_x64 = schemas.ProcessBase(
+            name="test.exe", parentprocessid=1, processid=2, architecture="64"
+        )
+        self.assertEqual(
+            process_x64.architecture, "x64", "architecture was not parsed correctly"
+        )
+        process_x64 = schemas.ProcessBase(
+            name="test.exe", parentprocessid=1, processid=2, architecture=" "
+        )
+        self.assertEqual(
+            process_x64.architecture, "x32", "architecture was not parsed correctly"
+        )

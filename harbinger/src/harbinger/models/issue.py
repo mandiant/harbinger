@@ -29,15 +29,21 @@ if TYPE_CHECKING:
 
 class Issue(Base):
     __tablename__ = "issues"
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     name: Mapped[str] = mapped_column(String, unique=True)
     description: Mapped[str] = mapped_column(String)
     impact: Mapped[str] = mapped_column(String)
     exploitability: Mapped[str] = mapped_column(String)
     label_id: Mapped[UUID] = mapped_column(ForeignKey("labels.id"))
 
-    time_created: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    time_updated: Mapped[DateTime] = mapped_column(DateTime(timezone=True), onupdate=func.now())
+    time_created: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    time_updated: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), onupdate=func.now()
+    )
 
     labels = relationship(
         "Label", secondary="labeled_item", lazy="joined", viewonly=True

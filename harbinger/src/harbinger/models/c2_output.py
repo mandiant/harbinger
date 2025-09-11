@@ -36,12 +36,22 @@ if TYPE_CHECKING:
 
 class C2Output(Base):
     __tablename__ = "c2_task_output"
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    time_created: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    time_updated: Mapped[DateTime] = mapped_column(DateTime(timezone=True), onupdate=func.now())
-    c2_implant_id: Mapped[UUID] = mapped_column(ForeignKey("c2_implants.id"), nullable=True)
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    time_created: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    time_updated: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), onupdate=func.now()
+    )
+    c2_implant_id: Mapped[UUID] = mapped_column(
+        ForeignKey("c2_implants.id"), nullable=True
+    )
     c2_task_id: Mapped[UUID] = mapped_column(ForeignKey("c2_tasks.id"), nullable=True)
-    c2_server_id: Mapped[UUID] = mapped_column(ForeignKey("c2_servers.id"), nullable=True)
+    c2_server_id: Mapped[UUID] = mapped_column(
+        ForeignKey("c2_servers.id"), nullable=True
+    )
     internal_id: Mapped[str] = mapped_column(String)
     timestamp: Mapped[DateTime] = mapped_column(DateTime(timezone=True))
     response_text: Mapped[str] = mapped_column(String)

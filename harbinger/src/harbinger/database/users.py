@@ -34,7 +34,6 @@ settings = get_settings()
 
 
 class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
-
     async def on_after_register(self, user: User, request: Optional[Request] = None):
         print(f"User {user.id} has registered.")
 
@@ -61,6 +60,7 @@ cookie_transport = CookieTransport(
 )
 
 bearer_transport = BearerTransport(tokenUrl="auth/redis/login")
+
 
 def get_redis_strategy() -> RedisStrategy:
     return RedisStrategy(redis)

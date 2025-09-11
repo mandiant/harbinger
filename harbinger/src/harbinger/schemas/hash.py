@@ -16,7 +16,7 @@
 from datetime import datetime
 from typing import List
 
-from pydantic import (UUID4, BaseModel, field_validator)
+from pydantic import UUID4, BaseModel, field_validator
 
 
 from .label import Label
@@ -32,12 +32,13 @@ class HashBase(BaseModel):
     def remove_nullbytes(cls, v: str) -> str:
         return v.replace("\x00", "")
 
+
 class HashCreate(HashBase):
     pass
+
 
 class Hash(HashBase):
     id: UUID4
     time_created: datetime
     status: str | None = ""
     labels: List["Label"] | None = []
-

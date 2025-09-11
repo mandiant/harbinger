@@ -123,15 +123,33 @@ async def get_file(file_id: str | UUID4) -> bytes | None:
 @click.option("--dc-ip", type=str)
 @click.option("--max-hosts", type=int, default=100000000)
 @click.option("--sleep", type=int, default=0)
-@click.option("--smbv3", is_flag=True, show_default=True, default=False, help="Force smbv3")
+@click.option(
+    "--smbv3", is_flag=True, show_default=True, default=False, help="Force smbv3"
+)
 def list_shares(
-    hosts: typing.IO, workers: int, proxy: str | None, credential: str, dc_ip: str, max_hosts: int, sleep: int, smbv3: bool = False,
+    hosts: typing.IO,
+    workers: int,
+    proxy: str | None,
+    credential: str,
+    dc_ip: str,
+    max_hosts: int,
+    sleep: int,
+    smbv3: bool = False,
 ) -> None:
-    anyio.run(list_sharesa, hosts, workers, proxy, credential, dc_ip, max_hosts, sleep, smbv3)
+    anyio.run(
+        list_sharesa, hosts, workers, proxy, credential, dc_ip, max_hosts, sleep, smbv3
+    )
 
 
 async def list_sharesa(
-    hosts: typing.IO, workers: int, proxy_id: str | None, credential_id: str, dc_ip: str, max_hosts: int, sleep: int, smbv3: bool,
+    hosts: typing.IO,
+    workers: int,
+    proxy_id: str | None,
+    credential_id: str,
+    dc_ip: str,
+    max_hosts: int,
+    sleep: int,
+    smbv3: bool,
 ) -> None:
     data = [h.strip() for h in hosts.readlines()]
     logger.info(f"Listing shares on {len(data)} hosts")
@@ -166,13 +184,27 @@ async def list_sharesa(
 @click.option("--credential", type=str, required=True)
 @click.option("--max", type=int, default=0, help="Max shares to enumerate")
 @click.option("--dc-ip", type=str)
-@click.option("--smbv3", is_flag=True, show_default=True, default=False, help="Force smbv3")
-def list_root_shares(workers: int, proxy: str | None, credential: str, max: int = 0, dc_ip: str = "", smbv3: bool = False) -> None:
+@click.option(
+    "--smbv3", is_flag=True, show_default=True, default=False, help="Force smbv3"
+)
+def list_root_shares(
+    workers: int,
+    proxy: str | None,
+    credential: str,
+    max: int = 0,
+    dc_ip: str = "",
+    smbv3: bool = False,
+) -> None:
     anyio.run(list_root_sharesa, workers, max, proxy, credential, dc_ip, smbv3)
 
 
 async def list_root_sharesa(
-    workers: int, max: int, proxy_id: str | None, credential_id: str, dc_ip, smbv3: bool = False
+    workers: int,
+    max: int,
+    proxy_id: str | None,
+    credential_id: str,
+    dc_ip,
+    smbv3: bool = False,
 ) -> None:
     proxy = None
     if proxy_id:
@@ -193,6 +225,7 @@ async def list_root_sharesa(
     finally:
         await redis.aclose()
 
+
 @cli.command()
 @click.argument("depth", type=int)
 @click.option("--workers", type=int, default=5)
@@ -201,15 +234,33 @@ async def list_root_sharesa(
 @click.option("--max", type=int, default=0, help="Max shares to enumerate")
 @click.option("--dc-ip", type=str, default="")
 @click.option("--search", type=str, default="")
-@click.option("--smbv3", is_flag=True, show_default=True, default=False, help="Force smbv3")
+@click.option(
+    "--smbv3", is_flag=True, show_default=True, default=False, help="Force smbv3"
+)
 def list_shares_depth(
-    depth: int, workers: int, proxy: str | None, credential: str, max: int = 0, dc_ip: str = "", search: str = "", smbv3: bool = False
+    depth: int,
+    workers: int,
+    proxy: str | None,
+    credential: str,
+    max: int = 0,
+    dc_ip: str = "",
+    search: str = "",
+    smbv3: bool = False,
 ) -> None:
-    anyio.run(list_shares_deptha, depth, workers, max, proxy, credential, dc_ip, search, smbv3)
+    anyio.run(
+        list_shares_deptha, depth, workers, max, proxy, credential, dc_ip, search, smbv3
+    )
 
 
 async def list_shares_deptha(
-    depth: int, workers: int, max: int, proxy_id: str | None, credential_id: str, dc_ip: str = "", search: str = "", smbv3: bool = False
+    depth: int,
+    workers: int,
+    max: int,
+    proxy_id: str | None,
+    credential_id: str,
+    dc_ip: str = "",
+    search: str = "",
+    smbv3: bool = False,
 ) -> None:
     proxy = None
     if proxy_id:
@@ -230,6 +281,7 @@ async def list_shares_deptha(
     finally:
         await redis.aclose()
 
+
 @cli.command()
 @click.argument("search", type=str)
 @click.option("--workers", type=int, default=5)
@@ -237,13 +289,29 @@ async def list_shares_deptha(
 @click.option("--credential", type=str, required=True)
 @click.option("--max", type=int, default=0, help="Max shares to enumerate")
 @click.option("--dc-ip", type=str, default="")
-@click.option("--smbv3", is_flag=True, show_default=True, default=False, help="Force smbv3")
-def download(search, workers: int, proxy: str, credential: str, max: int = 0, dc_ip: str = "", smbv3: bool = False) -> None:
+@click.option(
+    "--smbv3", is_flag=True, show_default=True, default=False, help="Force smbv3"
+)
+def download(
+    search,
+    workers: int,
+    proxy: str,
+    credential: str,
+    max: int = 0,
+    dc_ip: str = "",
+    smbv3: bool = False,
+) -> None:
     anyio.run(downloada, search, workers, proxy, credential, max, dc_ip, smbv3)
 
 
 async def downloada(
-    search, workers: int, proxy_id: str | None, credential_id: str, max: int = 0, dc_ip: str = "", smbv3: bool = False
+    search,
+    workers: int,
+    proxy_id: str | None,
+    credential_id: str,
+    max: int = 0,
+    dc_ip: str = "",
+    smbv3: bool = False,
 ) -> None:
     proxy = None
     if proxy_id:
@@ -265,18 +333,34 @@ async def downloada(
     finally:
         await redis.aclose()
 
+
 @cli.command()
 @click.option("--proxy", type=str, required=False)
 @click.option("--credential", type=str, required=True)
 @click.option("--file", type=str, required=True)
 @click.option("--unc", type=str, required=True)
 @click.option("--dc-ip", type=str, default="")
-@click.option("--smbv3", is_flag=True, show_default=True, default=False, help="Force smbv3")
-def upload(proxy: str, credential: str, file: str, unc: str, dc_ip: str = "", smbv3: bool = False) -> None:
+@click.option(
+    "--smbv3", is_flag=True, show_default=True, default=False, help="Force smbv3"
+)
+def upload(
+    proxy: str,
+    credential: str,
+    file: str,
+    unc: str,
+    dc_ip: str = "",
+    smbv3: bool = False,
+) -> None:
     anyio.run(uploada, proxy, credential, file, unc, dc_ip, smbv3)
 
+
 async def uploada(
-    proxy_id: str | None, credential_id: str, file_id: str, unc: str, dc_ip: str = "", smbv3: bool = False
+    proxy_id: str | None,
+    credential_id: str,
+    file_id: str,
+    unc: str,
+    dc_ip: str = "",
+    smbv3: bool = False,
 ) -> None:
     proxy = None
     if proxy_id:
@@ -300,6 +384,7 @@ async def uploada(
         await uploader.upload_file(data=data, unc_path=unc)
     finally:
         await redis.aclose()
+
 
 if __name__ == "__main__":
     cli()

@@ -29,7 +29,9 @@ if TYPE_CHECKING:
 
 class CertificateAuthority(Base):
     __tablename__ = "certificate_authorities"
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     ca_name: Mapped[str] = mapped_column(String)
     dns_name: Mapped[str] = mapped_column(String)
     certificate_subject: Mapped[str] = mapped_column(String)
@@ -41,8 +43,12 @@ class CertificateAuthority(Base):
     request_disposition: Mapped[str] = mapped_column(String)
     enforce_encryption_for_requests: Mapped[str] = mapped_column(String)
 
-    time_created: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    time_updated: Mapped[DateTime] = mapped_column(DateTime(timezone=True), onupdate=func.now())
+    time_created: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    time_updated: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), onupdate=func.now()
+    )
 
     labels = relationship(
         "Label", secondary="labeled_item", lazy="joined", viewonly=True

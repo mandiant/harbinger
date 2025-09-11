@@ -16,8 +16,7 @@
 from datetime import datetime
 from typing import List
 
-from pydantic import (UUID4, AliasChoices, BaseModel, ConfigDict, Field,
-                      field_validator)
+from pydantic import UUID4, AliasChoices, BaseModel, ConfigDict, Field, field_validator
 
 
 from .label import Label
@@ -55,12 +54,14 @@ class C2TaskBase(BaseModel):
     ai_summary: str | None = ""
     processing_status: str | None = ""
 
-    @field_validator('processing_status')
+    @field_validator("processing_status")
     def set_processing_status(cls, processing_status):
-        return processing_status or ''
+        return processing_status or ""
+
 
 class C2TaskCreate(C2TaskBase):
     internal_implant_id: str
+
 
 class C2Task(C2TaskBase):
     model_config = ConfigDict(from_attributes=True)

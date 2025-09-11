@@ -29,7 +29,9 @@ if TYPE_CHECKING:
 
 class Playbook(Base):
     __tablename__ = "playbooks"
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     playbook_name: Mapped[str] = mapped_column(String)
     description: Mapped[str] = mapped_column(String)
     status: Mapped[str] = mapped_column(String)
@@ -40,8 +42,12 @@ class Playbook(Base):
         ForeignKey("playbook_templates.id"), nullable=True
     )
 
-    time_created: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    time_updated: Mapped[DateTime] = mapped_column(DateTime(timezone=True), onupdate=func.now())
+    time_created: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    time_updated: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), onupdate=func.now()
+    )
     time_started: Mapped[DateTime] = mapped_column(DateTime(timezone=True))
     time_completed: Mapped[DateTime] = mapped_column(DateTime(timezone=True))
     graph = ""

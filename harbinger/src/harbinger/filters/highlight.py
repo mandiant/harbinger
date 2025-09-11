@@ -5,7 +5,7 @@ from pydantic import UUID4
 from .label import LabelFilter
 
 
-class HighlightFilter(Filter): 
+class HighlightFilter(Filter):
     order_by: list[str] | None = ["-time_created"]
     search: str | None = None
     file_id: str | UUID4 | None = None
@@ -24,5 +24,4 @@ class HighlightFilter(Filter):
 
     class Constants(Filter.Constants):
         model = models.Highlight
-        search_model_fields = ['rule_type', 'hit']
-
+        search_model_fields = ["rule_type", "hit"]

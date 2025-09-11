@@ -15,8 +15,7 @@
 
 from datetime import datetime
 
-from pydantic import (UUID4, BaseModel, ConfigDict)
-
+from pydantic import UUID4, BaseModel, ConfigDict
 
 
 class CertificateTemplatePermissionBase(BaseModel):
@@ -26,12 +25,13 @@ class CertificateTemplatePermissionBase(BaseModel):
     principal_type: str | None = None
     object_id: str | None = None
 
+
 class CertificateTemplatePermissionCreate(CertificateTemplatePermissionBase):
     pass
+
 
 class CertificateTemplatePermission(CertificateTemplatePermissionBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4 | str
     time_created: datetime | None = None
     time_updated: datetime | None = None
-

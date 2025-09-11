@@ -16,4 +16,3 @@ class SocksJobFilter(Filter):
     class Constants(Filter.Constants):
         model = models.ProxyJob
         search_model_fields = ["command", "arguments"]
-

@@ -25,13 +25,21 @@ from harbinger.database.types import mapped_column
 
 class C2ServerArguments(Base):
     __tablename__ = "c2_server_arguments"
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     name: Mapped[str] = mapped_column(String)
     regex: Mapped[str] = mapped_column(String)
     error: Mapped[str] = mapped_column(String)
     default: Mapped[str] = mapped_column(String)
     type: Mapped[str] = mapped_column(String)
-    c2_server_type_id: Mapped[UUID] = mapped_column(ForeignKey("c2_server_types.id"), nullable=False)
+    c2_server_type_id: Mapped[UUID] = mapped_column(
+        ForeignKey("c2_server_types.id"), nullable=False
+    )
 
-    time_created: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    time_updated: Mapped[DateTime] = mapped_column(DateTime(timezone=True), onupdate=func.now())
+    time_created: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    time_updated: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), onupdate=func.now()
+    )

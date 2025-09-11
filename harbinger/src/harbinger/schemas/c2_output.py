@@ -16,8 +16,7 @@
 from datetime import datetime
 from typing import List
 
-from pydantic import (UUID4, AliasChoices, BaseModel, ConfigDict, Field,
-                      field_validator)
+from pydantic import UUID4, AliasChoices, BaseModel, ConfigDict, Field, field_validator
 
 
 from .c2_task import C2TaskBase
@@ -46,6 +45,7 @@ class C2OutputBase(BaseModel):
             return v.replace("\x00", "")
         return v
 
+
 class C2OutputCreate(C2OutputBase):
     response_bytes: bytes | str | None = None
     internal_task_id: str
@@ -63,10 +63,12 @@ class C2OutputCreate(C2OutputBase):
             return v.encode("utf-8")
         return v
 
+
 class C2Output(C2OutputBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4
     labels: List["Label"] | None = []
+
 
 class C2OutputCreated(BaseModel):
     created: bool = False
@@ -75,6 +77,7 @@ class C2OutputCreated(BaseModel):
     c2_implant_id: UUID4 | str | None
     highest_process_number: int = 0
     host_id: UUID4 | str | None = None
+
 
 class C2OutputPlaybook(BaseModel):
     task: C2TaskBase

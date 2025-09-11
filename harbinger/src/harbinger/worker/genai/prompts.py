@@ -343,7 +343,6 @@ async def suggest_domain_action(
 
 
 class File(rg.Model):
-
     unc_path: str = rg.element()
     reason: str = rg.element(alias="reason")
 
@@ -393,7 +392,7 @@ class Host(rg.Model):
 
 class Hosts(rg.Model):
     host_list: list[Host] = rg.element(default=[])
-    c2_implant_id: str = rg.element(default='')
+    c2_implant_id: str = rg.element(default="")
 
     @classmethod
     def xml_example(cls) -> str:
@@ -645,8 +644,10 @@ async def generate_playbook_yaml(
     If more steps are required you can include multiple steps in the output.
     """
 
+
 class PlanStepOutput(rg.Model):
     """Represents a single step in a newly generated plan."""
+
     description: str = rg.element()
     order: int = rg.element()
     notes: str = rg.element(default="")
@@ -656,27 +657,29 @@ class PlanStepOutput(rg.Model):
         return cls(
             description="Perform initial reconnaissance on the target domain.",
             order=1,
-            notes="Use open-source intelligence (OSINT) tools to gather information."
+            notes="Use open-source intelligence (OSINT) tools to gather information.",
         ).to_pretty_xml()
 
 
 class GeneratedPlan(rg.Model):
     """The complete output for a new plan generation request."""
+
     steps: t.List[PlanStepOutput] = rg.element(default=[])
 
     @classmethod
     def xml_example(cls) -> str:
-        return cls(steps=[
-            PlanStepOutput(
-                description="Enumerate public-facing web servers.",
-                order=1,
-                notes="Focus on identifying technologies and potential vulnerabilities."
-            ),
-            PlanStepOutput(
-                description="Scan for open ports on discovered servers.",
-                order=2
-            )
-        ]).to_pretty_xml()
+        return cls(
+            steps=[
+                PlanStepOutput(
+                    description="Enumerate public-facing web servers.",
+                    order=1,
+                    notes="Focus on identifying technologies and potential vulnerabilities.",
+                ),
+                PlanStepOutput(
+                    description="Scan for open ports on discovered servers.", order=2
+                ),
+            ]
+        ).to_pretty_xml()
 
 
 @generator.prompt
@@ -707,17 +710,23 @@ async def generate_testing_plan(objectives: str, current_state: str) -> Generate
     """
     pass
 
+
 class SupervisorSummary(rg.Model):
     """The final summary provided by the supervisor after a cycle."""
+
     summary_text: str = rg.element()
 
     @classmethod
     def xml_example(cls) -> str:
-        return cls(summary_text="I have analyzed the event and taken the appropriate actions.").to_pretty_xml()
+        return cls(
+            summary_text="I have analyzed the event and taken the appropriate actions."
+        ).to_pretty_xml()
 
 
 @generator.prompt
-async def update_testing_plan(current_plan_summary: str, new_event: str) -> SupervisorSummary:  # type: ignore
+async def update_testing_plan(
+    current_plan_summary: str, new_event: str
+) -> SupervisorSummary:  # type: ignore
     """
     You are an expert penetration testing supervisor. Your role is to analyze the current state of a security assessment plan and adapt it based on new events by calling tools.
 
@@ -736,7 +745,7 @@ async def update_testing_plan(current_plan_summary: str, new_event: str) -> Supe
     1.  **Analyze and Decide:** Review the `current_plan_summary` (including existing suggestions) and `new_event` to decide on the next logical action.
 
     2.  **Discover Playbooks:** If you decide a new suggestion is needed, find the right playbook. You must first discover the available search filters by calling `list_filters(model_name='playbook_template')` to get categories like 'tactic'.
-    
+
     3.  **Find Specific Playbook:** Use the filters you discovered to call `get_playbook_templates`. Be specific in your search (e.g., `get_playbook_templates(tactic='Discovery')`) to find the correct `playbook_template_id`.
 
     4.  **Validate Arguments (for EACH target):** Before creating a suggestion, you MUST call `validate_playbook_arguments` with the `playbook_template_id` and the specific `arguments` you intend to use (e.g., `{"c2_implant_id": "..."}`).

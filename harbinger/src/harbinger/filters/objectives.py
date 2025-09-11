@@ -5,7 +5,7 @@ from pydantic import UUID4
 from .label import LabelFilter
 
 
-class ObjectivesFilter(Filter): 
+class ObjectivesFilter(Filter):
     order_by: list[str] | None = ["-time_created"]
     search: str | None = None
     name: str | None = None
@@ -15,5 +15,4 @@ class ObjectivesFilter(Filter):
 
     class Constants(Filter.Constants):
         model = models.Objectives
-        search_model_fields = ['name', 'description', 'status']
-
+        search_model_fields = ["name", "description", "status"]

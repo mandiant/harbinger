@@ -32,9 +32,6 @@ settings = get_settings()
 router = APIRouter()
 
 
-
-
-
 @router.post("/upload_file/", response_model=schemas.File, tags=["files"])
 async def create_upload_file(
     file: UploadFile,

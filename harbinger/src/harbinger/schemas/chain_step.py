@@ -16,7 +16,7 @@
 from datetime import datetime, timedelta
 from typing import List
 
-from pydantic import (UUID4, BaseModel, ConfigDict)
+from pydantic import UUID4, BaseModel, ConfigDict
 
 
 from .label import Label
@@ -33,8 +33,10 @@ class ChainStepBase(BaseModel):
     delay: timedelta | None = None
     execute_after: datetime | None = None
 
+
 class ChainStepCreate(ChainStepBase):
     pass
+
 
 class ChainStep(ChainStepBase):
     model_config = ConfigDict(from_attributes=True)
@@ -46,4 +48,3 @@ class ChainStep(ChainStepBase):
     time_completed: datetime | None = None
     labels: List["Label"] | None = None
     step_modifiers: List[PlaybookStepModifier] | None = None
-

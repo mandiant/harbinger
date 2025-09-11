@@ -25,7 +25,6 @@ log = structlog.get_logger()
 
 @workflow.defn(sandboxed=False)
 class C2ServerCommand:
-
     @workflow.run
     async def run(self, server_command: schemas.C2ServerCommand) -> None:
         activity = None
@@ -51,9 +50,9 @@ class C2ServerCommand:
                 schedule_to_close_timeout=timedelta(hours=1),
             )
 
+
 @workflow.defn(sandboxed=False)
 class C2ServerLoop:
-
     @workflow.run
     async def run(self) -> None:
         await workflow.execute_activity(

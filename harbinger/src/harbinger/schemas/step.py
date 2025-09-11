@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-from pydantic import (BaseModel)
+from pydantic import BaseModel
 
 
 from .c2_job import C2Type
@@ -32,4 +32,3 @@ class Step(BaseModel):
     asciinema: bool | None = True
     proxychains: bool | None = True
     modifiers: list[PlaybookStepModifierBase] | None = None
-

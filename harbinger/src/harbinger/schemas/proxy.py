@@ -17,7 +17,7 @@ from datetime import datetime
 from enum import Enum
 from typing import List
 
-from pydantic import (UUID4, BaseModel, ConfigDict, Field)
+from pydantic import UUID4, BaseModel, ConfigDict, Field
 
 
 from .label import Label
@@ -49,8 +49,10 @@ class ProxyBase(BaseModel):
     c2_implant_id: str | UUID4 | None = None
     c2_task_id: str | UUID4 | None = None
 
+
 class ProxyCreate(ProxyBase):
     pass
+
 
 class Proxy(ProxyBase):
     model_config = ConfigDict(from_attributes=True)
@@ -60,13 +62,16 @@ class Proxy(ProxyBase):
     def to_str(self) -> str:
         return f"{self.type.name} {self.host} {self.port} {self.username or ''} {self.password or ''}".strip()
 
+
 class ProxyChainBase(BaseModel):
     playbook_name: str | None = None
     description: str | None = None
     playbook_template_id: str | UUID4 | None = None
 
+
 class ProxyChainCreate(ProxyChainBase):
     pass
+
 
 class ProxyChain(ProxyChainBase):
     model_config = ConfigDict(from_attributes=True)
@@ -82,6 +87,7 @@ class ProxyChain(ProxyChainBase):
     suggestion_id: UUID4 | None = None
 
     labels: List["Label"] | None = None
+
 
 class ProxyChainGraph(ProxyChain):
     graph: str = ""

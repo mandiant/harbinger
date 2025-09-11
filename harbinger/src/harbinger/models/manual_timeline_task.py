@@ -30,8 +30,12 @@ if TYPE_CHECKING:
 
 class ManualTimelineTask(TimeLine):
     __tablename__ = "manual_timeline_tasks"
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    time_created: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    time_created: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
     status: Mapped[str] = mapped_column(String)
     arguments: Mapped[str] = mapped_column(String)
     time_started: Mapped[DateTime] = mapped_column(DateTime(timezone=True))

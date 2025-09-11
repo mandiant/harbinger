@@ -48,4 +48,3 @@ async def acreate_user(email: str, password: str, is_superuser: bool = False):
 @click.option("--password", prompt=True, hide_input=True, confirmation_prompt=True)
 def create_user(username: str, password: str):
     asyncio.run(acreate_user(username, password, True))
-

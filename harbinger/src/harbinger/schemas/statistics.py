@@ -13,12 +13,10 @@
 # limitations under the License.
 
 
-from pydantic import (BaseModel)
-
+from pydantic import BaseModel
 
 
 class Statistics(BaseModel):
     icon: str = ""
     key: str
     value: int | None = None
-

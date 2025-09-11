@@ -30,8 +30,12 @@ if TYPE_CHECKING:
 class Share(Base):
     __tablename__ = "shares"
     __table_args__ = (UniqueConstraint("host_id", "name", name="share_host_name_uc"),)
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    time_created: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    time_created: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
     host_id: Mapped[UUID] = mapped_column(ForeignKey("hosts.id"))
     name: Mapped[str] = mapped_column(String)
     unc_path: Mapped[str] = mapped_column(String)

@@ -87,7 +87,7 @@ def list_processes(
                 result = dict(user="")
                 for key, value in record.items():
                     result[key.lower()] = value["value"]
-                if load_owners and result.get('name', '') != 'lsass.exe':
+                if load_owners and result.get("name", "") != "lsass.exe":
                     try:
                         owner = pEnum.GetOwner()
                         if owner:

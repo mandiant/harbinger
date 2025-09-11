@@ -16,7 +16,7 @@
 from datetime import datetime
 from typing import List
 
-from pydantic import (UUID4, BaseModel, ConfigDict)
+from pydantic import UUID4, BaseModel, ConfigDict
 
 
 from .label import Label
@@ -36,12 +36,13 @@ class HighlightBase(BaseModel):
     end: int | None = None
     line: int | None = None
 
+
 class HighlightCreate(HighlightBase):
     pass
+
 
 class Highlight(HighlightBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4
     time_created: datetime
     labels: List["Label"] | None = []
-

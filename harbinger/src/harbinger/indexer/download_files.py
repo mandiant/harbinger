@@ -43,7 +43,6 @@ settings = get_settings()
 
 
 class Downloader:
-
     def __init__(
         self,
         proxy: UniProxyTarget,
@@ -112,11 +111,12 @@ class Downloader:
                         downloaded = False
 
                     await crud.update_share_file(
-                        session, file.id,
+                        session,
+                        file.id,
                         schemas.ShareFileUpdate(
                             downloaded=downloaded,
                             file_id=new_file_id,
-                        )
+                        ),
                     )
                     await session.commit()
 
@@ -136,7 +136,6 @@ class Downloader:
             self.tg.start_soon(self.download_worker, f"worker-{i}")
 
         async with SessionLocal() as session:
-
             files = await crud.list_share_files(
                 session,
                 type="file",
@@ -159,13 +158,17 @@ class Downloader:
         self.logger.info("Done!")
         self.tg.cancel_scope.cancel()
 
-    async def download_file(self, key: str, file: models.ShareFile | schemas.ShareFile) -> bool:
+    async def download_file(
+        self, key: str, file: models.ShareFile | schemas.ShareFile
+    ) -> bool:
         if not file.unc_path:
             self.logger.error(f"Unc path not set")
             return False
         hostname = file.unc_path.split("\\")[2]
         self.logger.info(f"Downloading {file.name} from {hostname} to {key}")
-        target = SMBTarget(hostname=hostname, proxies=[self.proxy] if self.proxy else [])
+        target = SMBTarget(
+            hostname=hostname, proxies=[self.proxy] if self.proxy else []
+        )
         if self.smbv3:
             target.update_dialect(SMBConnectionDialect.SMB3)
         url = SMBConnectionFactory(self.credential, target)

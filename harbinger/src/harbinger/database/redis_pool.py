@@ -20,6 +20,7 @@ settings = get_settings()
 redis = aioredis.from_url(settings.redis_dsn, decode_responses=True)
 redis_no_decode = aioredis.from_url(settings.redis_dsn, decode_responses=False)
 
+
 async def close_redis():
     await redis.aclose()
     await redis_no_decode.aclose()

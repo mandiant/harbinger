@@ -30,7 +30,9 @@ if TYPE_CHECKING:
 
 class File(Base):
     __tablename__ = "files"
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     job_id: Mapped[UUID] = mapped_column(ForeignKey("proxy_jobs.id"), nullable=True)
     filename: Mapped[str] = mapped_column(String)
     bucket: Mapped[str] = mapped_column(String)
@@ -46,11 +48,17 @@ class File(Base):
     processing_status: Mapped[str] = mapped_column(String)
     processing_progress: Mapped[int] = mapped_column(Integer)
     processing_note: Mapped[str] = mapped_column(String)
-    c2_implant_id: Mapped[UUID] = mapped_column(ForeignKey("c2_implants.id"), nullable=True)
+    c2_implant_id: Mapped[UUID] = mapped_column(
+        ForeignKey("c2_implants.id"), nullable=True
+    )
     c2_task_id: Mapped[UUID] = mapped_column(ForeignKey("c2_tasks.id"), nullable=True)
-    manual_timeline_task_id: Mapped[UUID] = mapped_column(ForeignKey("manual_timeline_tasks.id"), nullable=True)
+    manual_timeline_task_id: Mapped[UUID] = mapped_column(
+        ForeignKey("manual_timeline_tasks.id"), nullable=True
+    )
 
-    time_created: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    time_created: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
 
     proxy_job = relationship("ProxyJob", back_populates="files", lazy="joined")
     labels = relationship(

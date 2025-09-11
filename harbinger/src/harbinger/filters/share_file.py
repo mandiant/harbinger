@@ -5,7 +5,7 @@ from pydantic import UUID4
 from .label import LabelFilter
 
 
-class ShareFileFilter(Filter): 
+class ShareFileFilter(Filter):
     order_by: list[str] | None = ["-time_created"]
     search: str | None = None
     type: str | None = None
@@ -22,5 +22,4 @@ class ShareFileFilter(Filter):
 
     class Constants(Filter.Constants):
         model = models.ShareFile
-        search_model_fields = ['type', 'unc_path', 'name']
-
+        search_model_fields = ["type", "unc_path", "name"]

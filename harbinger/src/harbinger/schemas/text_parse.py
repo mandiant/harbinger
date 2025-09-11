@@ -13,12 +13,10 @@
 # limitations under the License.
 
 
-from pydantic import (UUID4, BaseModel)
-
+from pydantic import UUID4, BaseModel
 
 
 class TextParse(BaseModel):
     text: str
     c2_implant_id: str | UUID4 | None = None
     c2_output_id: str | UUID4 | None = None
-

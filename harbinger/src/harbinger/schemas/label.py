@@ -15,8 +15,7 @@
 
 import random
 
-from pydantic import (UUID4, BaseModel, ConfigDict, field_validator)
-
+from pydantic import UUID4, BaseModel, ConfigDict, field_validator
 
 
 def create_random_color():
@@ -29,7 +28,7 @@ def create_random_color():
 class LabelBase(BaseModel):
     name: str
     category: str
-    color: str | None = ''
+    color: str | None = ""
 
     model_config = ConfigDict(validate_default=True)
 
@@ -39,14 +38,16 @@ class LabelBase(BaseModel):
             return create_random_color()
         return value
 
+
 class LabelCreate(LabelBase):
     id: str | UUID4 | None = None
+
 
 class Label(LabelBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4
 
+
 class LabelView(BaseModel):
     category: str
     labels: list[Label]
-

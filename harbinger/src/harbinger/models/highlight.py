@@ -29,16 +29,26 @@ if TYPE_CHECKING:
 
 class Highlight(Base):
     __tablename__ = "highlights"
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    time_created: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    time_created: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
     file_id: Mapped[UUID] = mapped_column(ForeignKey("files.id"))
     c2_task_id: Mapped[UUID] = mapped_column(ForeignKey("c2_tasks.id"), nullable=True)
-    c2_task_output_id: Mapped[UUID] = mapped_column(ForeignKey("c2_task_output.id"), nullable=True)
+    c2_task_output_id: Mapped[UUID] = mapped_column(
+        ForeignKey("c2_task_output.id"), nullable=True
+    )
     proxy_job_output_id: Mapped[UUID] = mapped_column(
         ForeignKey("proxy_job_output.id"), nullable=True
     )
-    proxy_job_id: Mapped[UUID] = mapped_column(ForeignKey("proxy_jobs.id"), nullable=True)
-    parse_result_id: Mapped[UUID] = mapped_column(ForeignKey("parse_results.id"), nullable=True)
+    proxy_job_id: Mapped[UUID] = mapped_column(
+        ForeignKey("proxy_jobs.id"), nullable=True
+    )
+    parse_result_id: Mapped[UUID] = mapped_column(
+        ForeignKey("parse_results.id"), nullable=True
+    )
     rule_id: Mapped[int] = mapped_column(Integer)
     rule_type: Mapped[str] = mapped_column(String)
     hit: Mapped[str] = mapped_column(String)

@@ -25,8 +25,12 @@ from harbinger.database.types import mapped_column
 
 class IpAddress(Base):
     __tablename__ = "ip_addresses"
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     host_id: Mapped[UUID] = mapped_column(ForeignKey("hosts.id"), nullable=True)
     ip_address: Mapped[str] = mapped_column(String)
 
-    time_created: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    time_created: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )

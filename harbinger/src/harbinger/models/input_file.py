@@ -24,7 +24,11 @@ from harbinger.database.types import mapped_column
 
 class InputFile(Base):
     __tablename__ = "input_files"
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     file_id: Mapped[UUID] = mapped_column(ForeignKey("files.id"))
     c2_job_id: Mapped[UUID] = mapped_column(ForeignKey("c2_jobs.id"), nullable=True)
-    proxy_job_id: Mapped[UUID] = mapped_column(ForeignKey("proxy_jobs.id"), nullable=True)
+    proxy_job_id: Mapped[UUID] = mapped_column(
+        ForeignKey("proxy_jobs.id"), nullable=True
+    )

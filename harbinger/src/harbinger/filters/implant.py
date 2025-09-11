@@ -21,4 +21,3 @@ class ImplantFilter(Filter):
     class Constants(Filter.Constants):
         model = models.C2Implant
         search_model_fields = ["name", "hostname", "description", "username", "domain"]
-

@@ -13,16 +13,17 @@
 # limitations under the License.
 
 
-from pydantic import (BaseModel, Field)
-
+from pydantic import BaseModel, Field
 
 
 class THEntry(BaseModel):
     file: str
     line: int
 
+
 class THData(BaseModel):
     filesytem: THEntry = Field(validation_alias="Filesystem")
+
 
 class THSourceMetadata(BaseModel):
     data: THData = Field(validation_alias="Data")

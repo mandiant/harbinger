@@ -15,7 +15,7 @@
 
 from typing import List
 
-from pydantic import (UUID4, BaseModel, ConfigDict)
+from pydantic import UUID4, BaseModel, ConfigDict
 
 
 from .label import Label
@@ -27,17 +27,19 @@ class ChecklistBase(BaseModel):
     phase: str | None = None
     name: str | None = None
     status: str | None = None
-    
+
+
 class ChecklistCreate(ChecklistBase):
     pass
+
 
 class ChecklistCreated(ChecklistBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4 | str
+
 
 class Checklist(ChecklistBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4 | str
 
     labels: List["Label"] | None = None
-

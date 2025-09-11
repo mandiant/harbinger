@@ -13,12 +13,10 @@
 # limitations under the License.
 
 
-from pydantic import (BaseModel)
-
+from pydantic import BaseModel
 
 
 class FilterOption(BaseModel):
     name: str | None = ""
     count: int = 0
     color: str | None = ""
-

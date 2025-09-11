@@ -30,18 +30,28 @@ if TYPE_CHECKING:
 
 class PlaybookStep(Base):
     __tablename__ = "playbook_step"
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     number: Mapped[int] = mapped_column(Integer)
     label: Mapped[str] = mapped_column(String, default="")
     depends_on: Mapped[str] = mapped_column(String, default="")
     playbook_id: Mapped[UUID] = mapped_column(ForeignKey("playbooks.id"), nullable=True)
-    proxy_job_id: Mapped[UUID] = mapped_column(ForeignKey("proxy_jobs.id"), nullable=True)
+    proxy_job_id: Mapped[UUID] = mapped_column(
+        ForeignKey("proxy_jobs.id"), nullable=True
+    )
     c2_job_id: Mapped[UUID] = mapped_column(ForeignKey("c2_jobs.id"), nullable=True)
     status: Mapped[str] = mapped_column(String)
     delay: Mapped[Interval] = mapped_column(Interval, nullable=True)
-    execute_after: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=True)
-    time_created: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    time_updated: Mapped[DateTime] = mapped_column(DateTime(timezone=True), onupdate=func.now())
+    execute_after: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    time_created: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    time_updated: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), onupdate=func.now()
+    )
     time_started: Mapped[DateTime] = mapped_column(DateTime(timezone=True))
     time_completed: Mapped[DateTime] = mapped_column(DateTime(timezone=True))
 

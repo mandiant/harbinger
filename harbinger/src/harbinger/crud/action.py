@@ -11,10 +11,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import func
 
 from ._common import create_filter_for_column
-from .label import (create_label, create_label_item, delete_label_item,
-                    get_label_by_name, get_labels_for_q)
-from .playbook import (add_action_playbook_mapping,
-                       delete_action_playbook_mapping)
+from .label import (
+    create_label,
+    create_label_item,
+    delete_label_item,
+    get_label_by_name,
+    get_labels_for_q,
+)
+from .playbook import add_action_playbook_mapping, delete_action_playbook_mapping
 
 
 async def update_action_status(

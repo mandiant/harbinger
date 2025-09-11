@@ -29,7 +29,9 @@ if TYPE_CHECKING:
 
 class Kerberos(Base):
     __tablename__ = "kerberos"
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     client: Mapped[str] = mapped_column(String)
     server: Mapped[str] = mapped_column(String)
     key: Mapped[str] = mapped_column(String)
@@ -41,7 +43,9 @@ class Kerberos(Base):
     ccache: Mapped[str] = mapped_column(String)
     kirbi: Mapped[str] = mapped_column(String)
 
-    time_created: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    time_created: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
 
     labels = relationship(
         "Label", secondary="labeled_item", lazy="joined", viewonly=True

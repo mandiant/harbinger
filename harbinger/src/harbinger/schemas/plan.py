@@ -17,7 +17,7 @@
 from datetime import datetime
 from typing import List
 
-from pydantic import (UUID4, BaseModel, ConfigDict)
+from pydantic import UUID4, BaseModel, ConfigDict
 
 
 from .checklist import ChecklistBase
@@ -27,18 +27,22 @@ from .label import Label
 class PlanBase(BaseModel):
     name: str
     objective: str | None = None
-    status: str | None = ''
-    llm_status: str | None = ''
+    status: str | None = ""
+    llm_status: str | None = ""
+
 
 class PlanCreate(PlanBase):
     pass
 
+
 class PlanUpdate(PlanBase):
     name: str | None = None
+
 
 class PlanCreated(ChecklistBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4 | str
+
 
 class Plan(PlanBase):
     id: UUID4
@@ -47,4 +51,3 @@ class Plan(PlanBase):
     # steps: List[PlanStep] = []
     labels: List["Label"] = []
     model_config = ConfigDict(from_attributes=True)
-

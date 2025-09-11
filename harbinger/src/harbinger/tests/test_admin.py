@@ -22,7 +22,6 @@ from sqladmin.models import ModelViewMeta
 
 
 class TestAdminModels(unittest.IsolatedAsyncioTestCase):
-
     def test_admin_models(self):
         database_objects = dict(
             [
@@ -30,15 +29,19 @@ class TestAdminModels(unittest.IsolatedAsyncioTestCase):
                 for name, cls in models.__dict__.items()
                 if type(cls) == DeclarativeMeta
             ]
-        )   
+        )
 
         admin_models = dict(
             [
                 (name, cls)
                 for name, cls in admin.__dict__.items()
-                if type(cls) == ModelViewMeta and name != 'ModelView'
+                if type(cls) == ModelViewMeta and name != "ModelView"
             ]
-        ) 
+        )
         for name, value in admin_models.items():
-            self.assertNotEqual(getattr(value, 'name'), '', f'name of {name} is unset')
-            self.assertIn(getattr(value, 'name'), database_objects, f'{name} is missing from the database objects')
+            self.assertNotEqual(getattr(value, "name"), "", f"name of {name} is unset")
+            self.assertIn(
+                getattr(value, "name"),
+                database_objects,
+                f"{name} is missing from the database objects",
+            )

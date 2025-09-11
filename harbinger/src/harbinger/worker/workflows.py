@@ -31,7 +31,6 @@ log = structlog.get_logger()
 
 
 class ProgressBarMixin:
-
     def __init__(self):
         self.bar = schemas.ProgressBar()
 
@@ -64,7 +63,6 @@ class ProgressBarMixin:
 
 @workflow.defn(sandboxed=False)
 class RunPlaybook(ProgressBarMixin):
-
     async def update_step(
         self,
         step: schemas.ChainStep,
@@ -102,7 +100,6 @@ class RunPlaybook(ProgressBarMixin):
         step: schemas.ChainStep,
         result_queue: asyncio.Queue[schemas.WorkflowStepResult],
     ) -> None:
-
         c2_job = await workflow.execute_activity(
             activities.get_c2_job,
             str(step.c2_job_id),
@@ -333,21 +330,23 @@ class RunPlaybook(ProgressBarMixin):
                                     for i in range(3):
                                         output = await workflow.start_activity(
                                             activities.get_c2_task_output,
-                                            data['id'],
-                                            schedule_to_close_timeout=timedelta(seconds=120),
+                                            data["id"],
+                                            schedule_to_close_timeout=timedelta(
+                                                seconds=120
+                                            ),
                                         )
                                         if not output:
-                                            log.info(f"Did not receive output, waiting for {i*2 + 1} seconds")
-                                            await asyncio.sleep(i*2 + 1)
+                                            log.info(
+                                                f"Did not receive output, waiting for {i * 2 + 1} seconds"
+                                            )
+                                            await asyncio.sleep(i * 2 + 1)
                                     if s.regex:
                                         t = re.compile(s.regex)
                                         match = t.search(output)
                                         if match:
                                             output = match.group(0)
                                         else:
-                                            log.warning(
-                                                "Unable to match the regex..."
-                                            )
+                                            log.warning("Unable to match the regex...")
                                             continue
                                     await self.update_step(
                                         node,
@@ -429,7 +428,6 @@ class RunPlaybook(ProgressBarMixin):
 
 @workflow.defn(sandboxed=False)
 class RunC2Job:
-
     @workflow.run
     async def run(self, job: schemas.C2Job) -> None:
         implant = await workflow.execute_activity(
@@ -499,7 +497,6 @@ FILE_YIELDING_PARSING_MAP: dict[schemas.FileType | str, str] = {
 
 @workflow.defn(sandboxed=False, name="ParseFile")
 class ParseFile(ProgressBarMixin):
-
     @workflow.run
     async def run(self, file_id: str) -> None:
         log.info(f"Parsing file: {file_id}")
@@ -580,7 +577,6 @@ class ParseFile(ProgressBarMixin):
 
 @workflow.defn(sandboxed=False)
 class LabelProcesses:
-
     @workflow.run
     async def run(self, label: schemas.LabelProcess) -> None:
         await workflow.execute_activity(
@@ -592,7 +588,6 @@ class LabelProcesses:
 
 @workflow.defn(sandboxed=False)
 class MarkDead:
-
     @workflow.run
     async def run(self) -> None:
         await workflow.execute_activity(
@@ -603,7 +598,6 @@ class MarkDead:
 
 @workflow.defn(sandboxed=False)
 class CreateTimeline:
-
     @workflow.run
     async def run(self, timeline: schemas.CreateTimeline) -> None:
         await workflow.execute_activity(
@@ -630,7 +624,6 @@ class CreateTimeline:
 
 @workflow.defn(sandboxed=False)
 class TextParser:
-
     @workflow.run
     async def run(self, output: schemas.TextParse) -> None:
         await workflow.execute_activity(
@@ -642,7 +635,6 @@ class TextParser:
 
 @workflow.defn(sandboxed=False, name="UpdateSocksServer")
 class UpdateSocksServer:
-
     @workflow.run
     async def run(self, socks_server: schemas.SocksServerCreate) -> None:
         await workflow.execute_activity(
@@ -654,7 +646,6 @@ class UpdateSocksServer:
 
 @workflow.defn(sandboxed=False, name="C2ConnectorWorkflow")
 class C2ConnectorWorkflow:
-
     @workflow.run
     async def run(self, c2_server_id: str) -> schemas.C2ServerAll | None:
         result = await workflow.execute_activity(
@@ -667,7 +658,6 @@ class C2ConnectorWorkflow:
 
 @workflow.defn(sandboxed=False)
 class SyncAll:
-
     @workflow.run
     async def run(self, c2_server_id: str) -> None:
         queue = f"{c2_server_id}_jobs"
@@ -680,7 +670,6 @@ class SyncAll:
 
 @workflow.defn(sandboxed=False, name="C2ConnectorDataWorkflow")
 class C2ConnectorDataWorkflow:
-
     def __init__(self) -> None:
         self.implant_queue: asyncio.Queue[schemas.C2ImplantCreate] = asyncio.Queue()
         self.task_queue: asyncio.Queue[schemas.C2TaskCreate] = asyncio.Queue()
@@ -855,7 +844,6 @@ class C2ConnectorDataWorkflow:
 
 @workflow.defn(sandboxed=False)
 class CreateSummaries:
-
     @workflow.run
     async def run(self) -> None:
         await workflow.execute_activity(
@@ -876,7 +864,6 @@ class CreateSummaries:
 
 @workflow.defn(sandboxed=False)
 class CreateC2ImplantSuggestion:
-
     @workflow.run
     async def run(self, req: schemas.C2ImplantSuggestionRequest) -> None:
         await workflow.execute_activity(
@@ -888,7 +875,6 @@ class CreateC2ImplantSuggestion:
 
 @workflow.defn(sandboxed=False)
 class CreateDomainSuggestion:
-
     @workflow.run
     async def run(self, req: schemas.SuggestionsRequest) -> None:
         await workflow.execute_activity(
@@ -900,7 +886,6 @@ class CreateDomainSuggestion:
 
 @workflow.defn(sandboxed=False)
 class CreateFileSuggestion:
-
     @workflow.run
     async def run(self, req: schemas.SuggestionsRequest) -> None:
         await workflow.execute_activity(
@@ -930,8 +915,9 @@ class CreateFileSuggestion:
 
 @workflow.defn(sandboxed=False)
 class PlaybookDetectionRisk:
-
-    async def c2_job_detection_risk(self, req: schemas.C2JobDetectionRiskRequest) -> None:
+    async def c2_job_detection_risk(
+        self, req: schemas.C2JobDetectionRiskRequest
+    ) -> None:
         await workflow.execute_activity(
             activities.c2_job_detection_risk,
             req,
@@ -947,7 +933,7 @@ class PlaybookDetectionRisk:
         )
         for step in steps:
             if step.c2_job_id:
-                c2_req  = schemas.C2JobDetectionRiskRequest(
+                c2_req = schemas.C2JobDetectionRiskRequest(
                     additional_prompt=req.additional_prompt,
                     c2_job_id=step.c2_job_id,
                 )
@@ -957,7 +943,6 @@ class PlaybookDetectionRisk:
 
 @workflow.defn(sandboxed=False)
 class PrivEscSuggestions:
-
     @workflow.run
     async def run(self, req: schemas.SuggestionsRequest) -> None:
         await workflow.execute_activity(

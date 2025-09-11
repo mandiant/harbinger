@@ -27,9 +27,7 @@ log = structlog.get_logger()
 
 
 @activity.defn
-async def create(
-    server_command: schemas.C2ServerCommand
-):
+async def create(server_command: schemas.C2ServerCommand):
     log.info(f"Running create command for {server_command.id}")
     if not server_command.c2_server:
         log.warning("Unable to find the c2_server")
@@ -66,6 +64,7 @@ async def create(
                 schemas.C2ServerStatus(status=schemas.Status.created, name=name),
             )
 
+
 @activity.defn
 async def start(
     server_command: schemas.C2ServerCommand,
@@ -79,7 +78,12 @@ async def start(
         async with SessionLocal() as session:
             for container in await docker.containers.list(
                 all=True,
-                filters=dict(label=[f"type={server_command.name}", f"c2_server_id={server_command.id}"]),
+                filters=dict(
+                    label=[
+                        f"type={server_command.name}",
+                        f"c2_server_id={server_command.id}",
+                    ]
+                ),
             ):
                 await container.start()
                 await crud.update_c2_server_status(
@@ -99,11 +103,12 @@ async def start(
     finally:
         await docker.close()
 
+
 @activity.defn
 async def stop(
     server_command: schemas.C2ServerCommand,
 ):
-    docker = aiodocker.Docker() 
+    docker = aiodocker.Docker()
     try:
         log.info(f"Running stop command for {server_command.id}")
         if not server_command.name:
@@ -115,7 +120,12 @@ async def stop(
         async with SessionLocal() as session:
             for container in await docker.containers.list(
                 all=True,
-                filters=dict(label=[f"type={server_command.name}", f"c2_server_id={server_command.id}"]),
+                filters=dict(
+                    label=[
+                        f"type={server_command.name}",
+                        f"c2_server_id={server_command.id}",
+                    ]
+                ),
             ):
                 await container.stop()
                 await crud.update_c2_server_status(
@@ -129,11 +139,12 @@ async def stop(
                 return
             log.warning(
                 f"Was not able to find a correct container for: id: <{server_command.id}> name: <{server_command.name}>"
-        )
+            )
     except aiodocker.exceptions.DockerError as e:
         log.warning(f"Unable to access the docker socket: {e}")
     finally:
         await docker.close()
+
 
 @activity.defn
 async def restart(
@@ -149,7 +160,12 @@ async def restart(
         async with SessionLocal() as session:
             for container in await docker.containers.list(
                 all=True,
-                filters=dict(label=[f"type={server_command.name}", f"c2_server_id={server_command.id}"]),
+                filters=dict(
+                    label=[
+                        f"type={server_command.name}",
+                        f"c2_server_id={server_command.id}",
+                    ]
+                ),
             ):
                 await container.restart()
                 await crud.update_c2_server_status(
@@ -183,7 +199,12 @@ async def delete(
         async with SessionLocal() as session:
             for container in await docker.containers.list(
                 all=True,
-                filters=dict(label=[f"type={server_command.name}", f"c2_server_id={server_command.id}"]),
+                filters=dict(
+                    label=[
+                        f"type={server_command.name}",
+                        f"c2_server_id={server_command.id}",
+                    ]
+                ),
             ):
                 await container.stop()
                 await container.delete()
@@ -203,6 +224,7 @@ async def delete(
     finally:
         await docker.close()
 
+
 async def create_new_c2(
     c2_server_id: str,
     environment: list[str],
@@ -212,9 +234,9 @@ async def create_new_c2(
     connector_type: str,
 ):
     docker = aiodocker.Docker()
-    network = await docker.networks.get('harbinger')
+    network = await docker.networks.get("harbinger")
     attrs = await network.show()
-    dns_ip = attrs.get("IPAM", {}).get("Config", [{}])[0].get("Gateway", '')
+    dns_ip = attrs.get("IPAM", {}).get("Config", [{}])[0].get("Gateway", "")
     try:
         environment.append(f"C2_SERVER_ID={c2_server_id}")
         config = {

@@ -15,7 +15,7 @@
 
 from typing import List
 
-from pydantic import (UUID4, BaseModel, ConfigDict)
+from pydantic import UUID4, BaseModel, ConfigDict
 
 
 from .domain import Domain
@@ -31,8 +31,10 @@ class CredentialBase(BaseModel):
     kerberos_id: UUID4 | None = None
     note: str | None = None
 
+
 class CredentialCreate(CredentialBase):
     mark_owned: bool = True
+
 
 class Credential(CredentialBase):
     model_config = ConfigDict(from_attributes=True)
@@ -41,4 +43,3 @@ class Credential(CredentialBase):
     password: Password | None = None
     kerberos: Kerberos | None = None
     labels: List["Label"] | None = None
-

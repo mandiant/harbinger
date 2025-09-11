@@ -17,6 +17,7 @@ from harbinger import models
 
 import unittest
 
+
 class TestMythicC2(unittest.TestCase):
     def test_db_models(self):
         test_text = "\x00 test test \x00"

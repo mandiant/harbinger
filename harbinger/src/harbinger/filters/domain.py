@@ -5,7 +5,7 @@ from pydantic import UUID4
 from .label import LabelFilter
 
 
-class DomainFilter(Filter): 
+class DomainFilter(Filter):
     order_by: list[str] | None = ["-time_created"]
     search: str | None = None
     short_name: str | None = None
@@ -14,5 +14,4 @@ class DomainFilter(Filter):
 
     class Constants(Filter.Constants):
         model = models.Domain
-        search_model_fields = ['short_name', 'long_name']
-
+        search_model_fields = ["short_name", "long_name"]

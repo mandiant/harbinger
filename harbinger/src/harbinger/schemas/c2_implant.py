@@ -15,8 +15,7 @@
 from datetime import datetime
 from typing import List
 
-from pydantic import (UUID4, AliasChoices, BaseModel, ConfigDict, Field,
-                      field_validator)
+from pydantic import UUID4, AliasChoices, BaseModel, ConfigDict, Field, field_validator
 
 
 from .label import Label
@@ -84,19 +83,23 @@ class C2ImplantBase(BaseModel):
             return "linux"
         return value
 
+
 class C2ImplantCreate(C2ImplantBase):
     internal_id: str | None = Field(
         validation_alias=AliasChoices("c2_uid", "ID", "internal_id"), default=None
     )
 
+
 class C2ImplantUpdate(C2ImplantCreate):
     c2_server_id: UUID4 | str | None = None
+
 
 class C2Implant(C2ImplantBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4
     labels: List["Label"] | None = []
 
+
 class C2ImplantSuggestionRequest(SuggestionBaseRequest):
     c2_implant_id: str
-    additional_prompt: str = ''
+    additional_prompt: str = ""

@@ -19,13 +19,13 @@ from typing import Optional
 from fastapi_users import schemas
 
 
-
 class UserCreate(schemas.BaseUserCreate):
     email: str
+
 
 class UserRead(schemas.BaseUser[uuid.UUID]):
     email: str
 
+
 class UserUpdate(schemas.BaseUserUpdate):
     email: Optional[str] = None
-

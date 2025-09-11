@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-from pydantic import (BaseModel)
+from pydantic import BaseModel
 
 
 from .c2_implant import C2Implant
@@ -23,4 +23,3 @@ from .c2_job import C2Job
 class RunJob(BaseModel):
     c2_job: C2Job
     c2_implant: C2Implant
-

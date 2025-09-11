@@ -13,11 +13,10 @@
 # limitations under the License.
 
 
-from pydantic import (BaseModel, Field)
-
+from pydantic import BaseModel, Field
 
 
 class GeneratedYamlOutput(BaseModel):
     """Schema for returning the AI-generated YAML."""
-    yaml: str = Field(..., description="The generated playbook template YAML string.")
 
+    yaml: str = Field(..., description="The generated playbook template YAML string.")

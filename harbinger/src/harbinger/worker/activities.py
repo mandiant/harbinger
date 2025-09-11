@@ -311,7 +311,6 @@ async def update_filetype(file: schemas.File) -> None:
 
 
 class FileParsing:
-
     def __init__(self) -> None:
         self.pool = concurrent.futures.ThreadPoolExecutor()
 
@@ -787,12 +786,23 @@ async def create_timeline(timeline: schemas.CreateTimeline):
             artefact_headers = ["File Name", "File Hash (MD5)", "File Hash (SHA1)"]
 
             async with SessionLocal() as db:
-                skip_commands: list[str] = await crud.get_setting(db, "timeline", "skipped_commands", [])  # type: ignore
-                include_status: list[str] = await crud.get_setting(db, "timeline", "include_status", ["completed", schemas.Status.error.value])  # type: ignore
-                ignore_labels: set[str] = set(await crud.get_setting(db, "timeline", "ignore_labels", ["Test"]))  # type: ignore
+                skip_commands: list[str] = await crud.get_setting(
+                    db, "timeline", "skipped_commands", []
+                )  # type: ignore
+                include_status: list[str] = await crud.get_setting(
+                    db,
+                    "timeline",
+                    "include_status",
+                    ["completed", schemas.Status.error.value],
+                )  # type: ignore
+                ignore_labels: set[str] = set(
+                    await crud.get_setting(db, "timeline", "ignore_labels", ["Test"])
+                )  # type: ignore
                 speed: int = await crud.get_setting(db, "timeline", "speed", 2)  # type: ignore
                 idle_time: int = await crud.get_setting(db, "timeline", "idle_time", 1)  # type: ignore
-                agg_timeout: int = await crud.get_setting(db, "timeline", "agg_timeout", 30)  # type: ignore
+                agg_timeout: int = await crud.get_setting(
+                    db, "timeline", "agg_timeout", 30
+                )  # type: ignore
 
                 timeline_tasks = list(
                     await crud.get_timeline(db, status=include_status)
@@ -850,7 +860,7 @@ async def create_timeline(timeline: schemas.CreateTimeline):
                         if timeline.create_screenshots:
                             if task.object_type == "C2Task":
                                 log.info(
-                                    f"[{count+1}/{total_tasks}] Looking for output of {task.id}"
+                                    f"[{count + 1}/{total_tasks}] Looking for output of {task.id}"
                                 )
                                 output = list(
                                     await crud.get_c2_task_output(
@@ -873,12 +883,19 @@ async def create_timeline(timeline: schemas.CreateTimeline):
                                 cast_exists = len(output) > 0
 
                             if task.object_type == "ManualTimelineTask":
-                                files = await crud.get_files(db, filters.FileFilter(manual_timeline_task_id=task.id))
+                                files = await crud.get_files(
+                                    db,
+                                    filters.FileFilter(manual_timeline_task_id=task.id),
+                                )
                                 if files:
                                     for file in files:
                                         if file.filetype == "cast":
-                                            data = await download_file(file.path, file.bucket)
-                                            async with aiofiles.open(cast_file, "wb") as f:
+                                            data = await download_file(
+                                                file.path, file.bucket
+                                            )
+                                            async with aiofiles.open(
+                                                cast_file, "wb"
+                                            ) as f:
                                                 await f.write(data)
                                             cast_exists = True
                                             break
@@ -894,16 +911,23 @@ async def create_timeline(timeline: schemas.CreateTimeline):
                                             text.append(json.dumps(entry))
 
                                         async with aiofiles.open(cast_file, "wb") as f:
-                                            await f.write("\n".join(text).encode("utf-8"))
+                                            await f.write(
+                                                "\n".join(text).encode("utf-8")
+                                            )
                                         cast_exists = len(task.output) > 0
 
                             if task.object_type == "ProxyJob":
                                 cast_files = list(
-                                    await crud.get_files(db, filters.FileFilter(job_id=task.id, search="output.cast"))
+                                    await crud.get_files(
+                                        db,
+                                        filters.FileFilter(
+                                            job_id=task.id, search="output.cast"
+                                        ),
+                                    )
                                 )
                                 if cast_files:
                                     log.info(
-                                        f"[{count+1}/{total_tasks}] Found the cast file of: {task.id}"
+                                        f"[{count + 1}/{total_tasks}] Found the cast file of: {task.id}"
                                     )
                                     cf: models.File = cast_files[0]
                                     data = await download_file(cf.path, cf.bucket)
@@ -917,7 +941,7 @@ async def create_timeline(timeline: schemas.CreateTimeline):
 
                         if cast_exists and timeline.create_screenshots:
                             log.info(
-                                f"[{count+1}/{total_tasks}] Creating gif file for {task.id}"
+                                f"[{count + 1}/{total_tasks}] Creating gif file for {task.id}"
                             )
                             gif_file = basedir / "screenshots" / f"output_{count}.gif"
                             proc = await asyncio.create_subprocess_exec(
@@ -949,7 +973,7 @@ async def create_timeline(timeline: schemas.CreateTimeline):
                                 screenshot_count = 0
 
                             log.info(
-                                f"[{count+1}/{total_tasks}] Extracted {screenshot_count} screenshots."
+                                f"[{count + 1}/{total_tasks}] Extracted {screenshot_count} screenshots."
                             )
                             if screenshot_count > 0:
                                 screenshot = True
@@ -1379,7 +1403,9 @@ async def summarize_c2_tasks():
         return
     async with SessionLocal() as db:
         for status in ["", schemas.Status.error.value]:
-            skip_commands: list[str] = await crud.get_setting(db, "timeline", "skipped_commands", [])  # type: ignore
+            skip_commands: list[str] = await crud.get_setting(
+                db, "timeline", "skipped_commands", []
+            )  # type: ignore
             tasks = list(
                 await crud.get_c2_tasks(
                     db, filters.C2TaskFilter(processing_status=status), limit=100000
@@ -1433,7 +1459,9 @@ async def summarize_socks_tasks():
         return
     async with SessionLocal() as db:
         for status in [schemas.Status.empty.value, schemas.Status.error.value]:
-            skip_commands: list[str] = await crud.get_setting(db, "timeline", "skipped_commands", [])  # type: ignore
+            skip_commands: list[str] = await crud.get_setting(
+                db, "timeline", "skipped_commands", []
+            )  # type: ignore
             tasks = list(
                 await crud.get_proxy_jobs(
                     db, filters.SocksJobFilter(processing_status=status), limit=100000
@@ -1453,7 +1481,11 @@ async def summarize_socks_tasks():
                         )
                         continue
                     output = ""
-                    cast_files = list(await crud.get_files(db, filters.FileFilter(job_id=task.id, search="output.cast")))
+                    cast_files = list(
+                        await crud.get_files(
+                            db, filters.FileFilter(job_id=task.id, search="output.cast")
+                        )
+                    )
                     if cast_files:
                         file = cast_files[0]
                         output = await cast_to_text(file.path, file.bucket)
@@ -1491,7 +1523,9 @@ async def summarize_manual_tasks():
         return
     async with SessionLocal() as db:
         for status in [schemas.Status.empty.value, schemas.Status.error.value]:
-            skip_commands: list[str] = await crud.get_setting(db, "timeline", "skipped_commands", [])  # type: ignore
+            skip_commands: list[str] = await crud.get_setting(
+                db, "timeline", "skipped_commands", []
+            )  # type: ignore
             tasks = list(await crud.get_manual_timeline_tasks(db, status))
             async with progress_bar.ProgressBar(
                 bar_id=str(uuid.uuid4()),
@@ -1604,7 +1638,6 @@ async def create_c2_implant_suggestion(req: schemas.C2ImplantSuggestionRequest):
             max=10,
             description="Creating AI suggestion",
         ) as bar:
-
             data = await load_data_for_ai(db, req, req.c2_implant_id)
 
             await bar(1)
@@ -1656,8 +1689,12 @@ async def create_domain_suggestion(req: schemas.SuggestionsRequest):
 
             await bar(5)
 
-            edr_detections: str = await crud.get_setting(db, "suggestions", "edr_detections", "")  # type: ignore
-            domain_checklist: str = await crud.get_setting(db, "suggestions", "domain_checklist", "")  # type: ignore
+            edr_detections: str = await crud.get_setting(
+                db, "suggestions", "edr_detections", ""
+            )  # type: ignore
+            domain_checklist: str = await crud.get_setting(
+                db, "suggestions", "domain_checklist", ""
+            )  # type: ignore
 
             pipeline = (
                 prompts.generator.chat([{"role": "system", "content": ""}])
@@ -1702,11 +1739,15 @@ async def create_file_download_suggestion(req: schemas.SuggestionsRequest):
             pipeline = (
                 prompts.generator.chat([{"role": "system", "content": ""}])
                 .watch(log_message)
-                .using([tools.get_all_c2_implant_info, tools.get_undownloaded_share_files])
+                .using(
+                    [tools.get_all_c2_implant_info, tools.get_undownloaded_share_files]
+                )
             )
             await bar(1)
             run = prompts.suggest_file_download_actions.bind(pipeline)
-            interesting_files: str = await crud.get_setting(db, "suggestions", "interesting_files", "")  # type: ignore
+            interesting_files: str = await crud.get_setting(
+                db, "suggestions", "interesting_files", ""
+            )  # type: ignore
             suggestions: dict[str, list[prompts.File]] = dict()
             result = await run(
                 interesting_files=interesting_files,
@@ -1759,9 +1800,13 @@ async def create_dir_ls_suggestion(req: schemas.SuggestionsRequest):
             max=10,
             description="Creating ai suggestion for dir listing",
         ) as bar:
-            pipeline = prompts.generator.chat([{"role": "system", "content": ""}]).watch(
-                log_message
-            ).using([tools.get_all_c2_implant_info, tools.get_unindexed_share_folders])
+            pipeline = (
+                prompts.generator.chat([{"role": "system", "content": ""}])
+                .watch(log_message)
+                .using(
+                    [tools.get_all_c2_implant_info, tools.get_unindexed_share_folders]
+                )
+            )
             run = prompts.suggest_dir_list_actions.bind(pipeline)
             suggestions: dict[str, list[prompts.File]] = dict()
             await bar(1)
@@ -1813,9 +1858,11 @@ async def create_share_list_suggestion(req: schemas.SuggestionsRequest):
             max=10,
             description="Creating AI suggestion for share listing",
         ) as bar:
-            pipeline = prompts.generator.chat(
-                [{"role": "system", "content": ""}]
-            ).watch(log_message).using([tools.get_all_c2_implant_info, tools.get_hosts])
+            pipeline = (
+                prompts.generator.chat([{"role": "system", "content": ""}])
+                .watch(log_message)
+                .using([tools.get_all_c2_implant_info, tools.get_hosts])
+            )
             run = prompts.suggest_hosts_list_shares.bind(pipeline)
             await bar(1)
             result = await run()
@@ -1860,16 +1907,15 @@ async def create_share_root_list_suggestion(req: schemas.SuggestionsRequest):
             max=10,
             description="Creating AI suggestion for listing the root of shares",
         ) as bar:
-            pipeline = prompts.generator.chat(
-                [{"role": "system", "content": ""}]
-            ).watch(log_message).using([tools.get_network_shares, tools.get_all_c2_implant_info])
+            pipeline = (
+                prompts.generator.chat([{"role": "system", "content": ""}])
+                .watch(log_message)
+                .using([tools.get_network_shares, tools.get_all_c2_implant_info])
+            )
             run = prompts.suggest_shares_list.bind(pipeline)
             await bar(1)
             result = await run()
-            to_list = [
-                share
-                for share in result.share_list or []
-            ]
+            to_list = [share for share in result.share_list or []]
             if to_list:
                 _ = await crud.create_suggestion(
                     db,
@@ -1918,9 +1964,7 @@ async def c2_job_detection_risk(req: schemas.C2JobDetectionRiskRequest) -> None:
             max=5,
             description="Checking detections",
         ) as bar:
-            pipeline = prompts.generator.chat(
-                [{"role": "system", "content": ""}]
-            )
+            pipeline = prompts.generator.chat([{"role": "system", "content": ""}])
             run = prompts.c2_job_detection_risk.bind(pipeline).watch(log_message)
 
             c2_job = await crud.get_c2_job(req.c2_job_id)
@@ -1946,7 +1990,9 @@ async def c2_job_detection_risk(req: schemas.C2JobDetectionRiskRequest) -> None:
             c2_implant_dict = c2_implant.__dict__
             c2_implant_dict["labels"] = labels
             implant_information = dict_to_string(c2_implant_dict)
-            edr_detections: str = await crud.get_setting(db, "suggestions", "edr_detections", "")  # type: ignore
+            edr_detections: str = await crud.get_setting(
+                db, "suggestions", "edr_detections", ""
+            )  # type: ignore
 
             await bar(1)
             result = await run(
@@ -2194,26 +2240,37 @@ async def create_plan_activity(objective: str, name: str) -> str:
     as it's a discrete, user-initiated task that benefits from Temporal's durability.
     """
     activity.logger.info(f"Generating plan '{name}' for objective: {objective}")
-    
+
     current_state = "Use the tools to retrieve the current state of the assignement."
-    
+
     async def log_message(chats: list[rg.Chat]) -> None:
         for chat in chats:
             for message in chat.generated:
                 log.info(message)
 
-    
     pipeline = (
         prompts.generator.chat()
         .watch(log_message)
-        .using([
-            tools.get_all_c2_implant_info, tools.get_c2_tasks_executed, tools.get_playbooks,
-            tools.get_playbook_templates, tools.get_proxies_info, tools.get_previous_suggestions,
-            tools.get_socks_servers_info, tools.get_credentials_info, tools.get_situational_awareness_info,
-            tools.get_domains_info, tools.get_undownloaded_share_files, tools.get_unindexed_share_folders,
-            tools.get_hosts, tools.get_network_shares, tools.list_filters,
-            tools.create_suggestion_for_plan_step,
-        ])
+        .using(
+            [
+                tools.get_all_c2_implant_info,
+                tools.get_c2_tasks_executed,
+                tools.get_playbooks,
+                tools.get_playbook_templates,
+                tools.get_proxies_info,
+                tools.get_previous_suggestions,
+                tools.get_socks_servers_info,
+                tools.get_credentials_info,
+                tools.get_situational_awareness_info,
+                tools.get_domains_info,
+                tools.get_undownloaded_share_files,
+                tools.get_unindexed_share_folders,
+                tools.get_hosts,
+                tools.get_network_shares,
+                tools.list_filters,
+                tools.create_suggestion_for_plan_step,
+            ]
+        )
     )
     run = prompts.generate_testing_plan.bind(pipeline)
     llm_response: prompts.GeneratedPlan = await run(objective, current_state)
@@ -2223,10 +2280,14 @@ async def create_plan_activity(objective: str, name: str) -> str:
         _, plan = await crud.create_plan(db, plan=plan_schema)
 
         for step_data in llm_response.steps:
-            step_schema = schemas.PlanStepCreate(plan_id=plan.id, **step_data.model_dump())
+            step_schema = schemas.PlanStepCreate(
+                plan_id=plan.id, **step_data.model_dump()
+            )
             await crud.create_plan_step(db, plan_step=step_schema)
-            
-        activity.logger.info(f"Successfully created plan {plan.id} with {len(llm_response.steps)} steps.")
+
+        activity.logger.info(
+            f"Successfully created plan {plan.id} with {len(llm_response.steps)} steps."
+        )
         return str(plan.id)
 
 

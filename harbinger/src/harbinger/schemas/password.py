@@ -15,7 +15,7 @@
 
 from typing import List
 
-from pydantic import (UUID4, BaseModel, ConfigDict)
+from pydantic import UUID4, BaseModel, ConfigDict
 
 
 from .label import Label
@@ -27,11 +27,12 @@ class PasswordBase(BaseModel):
     aes256_key: str | None = None
     aes128_key: str | None = None
 
+
 class PasswordCreate(PasswordBase):
     pass
+
 
 class Password(PasswordBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4
     labels: List["Label"] | None = None
-

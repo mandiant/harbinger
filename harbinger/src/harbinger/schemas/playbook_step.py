@@ -15,8 +15,7 @@
 
 from datetime import datetime
 
-from pydantic import (UUID4, BaseModel, ConfigDict)
-
+from pydantic import UUID4, BaseModel, ConfigDict
 
 
 class PlaybookStepModifierBase(BaseModel):
@@ -29,14 +28,17 @@ class PlaybookStepModifierBase(BaseModel):
     data: str = ""
     status_message: str = ""
 
+
 class PlaybookStepModifierCreate(PlaybookStepModifierBase):
     playbook_step_id: UUID4 | str
+
 
 class PlaybookStepModifier(PlaybookStepModifierBase):
     model_config = ConfigDict(from_attributes=True)
     playbook_step_id: UUID4 | str
     id: UUID4
     time_created: datetime | None = None
+
 
 class PlaybookStepModifierEntry(PlaybookStepModifierBase):
     # To pass more data during execution of the workflow

@@ -34,7 +34,7 @@ class JobTemplateModel(BaseTemplateModel):
         if template:
             result = await template.render_async(**self.model_dump(), **objects)
         return result
-    
+
     async def generate_command(self) -> str:
         if hasattr(self.Settings, "command_str"):
             template = env.from_string(self.Settings.command_str)

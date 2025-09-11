@@ -14,9 +14,11 @@
 
 import unittest
 
+
 class TestMythicC2(unittest.TestCase):
     def test_command_names(self):
         from harbinger.job_templates import schemas
+
         for entry in schemas.LIST:
             self.assertTrue(hasattr(entry, "Settings"))
             self.assertNotEqual(entry.Settings.command, "")
