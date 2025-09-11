@@ -29,7 +29,7 @@ import { StatisticViewModel } from 'src/models';
 
 const statistics: Array<StatisticViewModel> = [
   {
-    url: 'job_statistics',
+    url: 'statistics/job',
     icon: 'work',
     name: 'Job Overview',
     to: [{ to: '/proxy_jobs', label: 'Socks Jobs' }, { to: '/c2_jobs', label: 'C2 Jobs' }]
@@ -47,7 +47,7 @@ const statistics: Array<StatisticViewModel> = [
     to: [{ to: '/bloodhound_utils', label: 'BloodHound utils' }]
   },
   {
-    url: 'implant_statistics',
+    url: 'statistics/implant',
     icon: 'fas fa-satellite-dish',
     name: 'Implants',
     to: [{ to: '/implants', label: 'Implants' }]
@@ -59,13 +59,13 @@ const statistics: Array<StatisticViewModel> = [
   //   to: [{ to: '/situational_awareness', label: 'Situational Awareness' }]
   // },
   {
-    url: 'share_statistics',
+    url: 'statistics/share',
     icon: 'folder_shared',
     name: 'Share Overview',
     to: [{ to: '/shares', label: 'Shares' }]
   },
   {
-    url: 'servers/statistics',
+    url: 'statistics/server',
     icon: 'dns',
     name: 'Server Overview',
     to: [{ to: '/servers', label: 'C2 Servers' }, { to: '/socks_servers', label: 'Socks Servers'}]

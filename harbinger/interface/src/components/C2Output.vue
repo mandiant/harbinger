@@ -23,7 +23,7 @@
   </q-card-section>
   <q-card-section>
     <q-timeline dense color="secondary">
-      <filter-view object-type="c2/output" v-model="filters" v-on:updateFilters="store.updateFilters" />
+      <filter-view object-type="c2_output" v-model="filters" v-on:updateFilters="store.updateFilters" />
       <q-timeline-entry v-for="entry in data" v-bind:key="entry.id">
         <template v-slot:title>
           <labels-list object-type="c2_task_output" :object-id="String(entry.id)" v-model="entry.labels" />
@@ -70,7 +70,7 @@ const props = defineProps({
   },
 });
 
-const useStore = defineTypedStore<C2Output>('c2/output');
+const useStore = defineTypedStore<C2Output>('c2_output');
 const store = useStore();
 const { loading, data, pagination, filters } = storeToRefs(store);
 
@@ -110,7 +110,7 @@ const pages = computed(() =>
 
 
 function exportOutput() {
-  api.get('/c2/output/export', { params: { ...store.filters }, responseType: 'blob' }).then((response) => {
+  api.get('/c2_output/export', { params: { ...store.filters }, responseType: 'blob' }).then((response) => {
     const url = window.URL.createObjectURL(new Blob([response.data]));
     const link = document.createElement('a');
     link.href = url;

@@ -12,21 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 import sys
-from harbinger.database.redis_pool import redis
-from harbinger.config import get_settings
-from harbinger.database.users import current_active_user
+from inspect import getdoc
+
 from fastapi import APIRouter, Depends, Response
+from neo4j.exceptions import ServiceUnavailable
 
 from harbinger import models
-
-from harbinger.graph.database import get_async_neo4j_session_context
+from harbinger.config import get_settings
+from harbinger.config.dependencies import current_active_user
+from harbinger.config.dependencies import current_active_user
 from harbinger.graph import crud, schemas
-from neo4j.exceptions import ServiceUnavailable
-from inspect import getdoc
-import logging
+from harbinger.graph.database import get_async_neo4j_session_context
 
-logger = logging.getLogger('uvicorn.error')
+logger = logging.getLogger("uvicorn.error")
 
 settings = get_settings()
 
@@ -53,9 +53,7 @@ async def read_graph_users(
         )
     except ServiceUnavailable:
         logger.warning("Unable to connect to Neo4j")
-        return dict(
-            items=[], total=0, page=0, size=0, pages=0
-        )
+        return dict(items=[], total=0, page=0, size=0, pages=0)
 
 
 @router.get("/groups/", response_model=schemas.GraphGroups, tags=["graph"])
@@ -82,9 +80,7 @@ async def read_graph_groups(
         )
     except ServiceUnavailable:
         logger.warning("Unable to connect to Neo4j")
-        return dict(
-            items=[], total=0, page=0, size=0, pages=0
-        )
+        return dict(items=[], total=0, page=0, size=0, pages=0)
 
 
 @router.get("/computers/", response_model=schemas.GraphComputers, tags=["graph"])
@@ -111,16 +107,16 @@ async def read_graph_computers(
         )
     except ServiceUnavailable:
         logger.warning("Unable to connect to Neo4j")
-        return dict(
-            items=[], total=0, page=0, size=0, pages=0
-        )
+        return dict(items=[], total=0, page=0, size=0, pages=0)
 
 
-@router.get("/domain_controllers/", response_model=schemas.GraphComputers, tags=["graph"])
+@router.get(
+    "/domain_controllers/", response_model=schemas.GraphComputers, tags=["graph"]
+)
 async def read_domain_controllers(
     page: int = 1,
     size: int = 10,
-    search: str = '',
+    search: str = "",
     user: models.User = Depends(current_active_user),
 ):
     if size == 0:
@@ -129,7 +125,10 @@ async def read_domain_controllers(
         async with get_async_neo4j_session_context() as session:
             computer_count = await crud.count_domain_controllers(session, search=search)
             computers = await crud.get_domain_controllers(
-                session, skip=(page - 1) * size, limit=size, search=search,
+                session,
+                skip=(page - 1) * size,
+                limit=size,
+                search=search,
             )
         return dict(
             items=computers,
@@ -140,9 +139,8 @@ async def read_domain_controllers(
         )
     except ServiceUnavailable:
         logger.warning("Unable to connect to Neo4j")
-        return dict(
-            items=[], total=0, page=0, size=0, pages=0
-        )
+        return dict(items=[], total=0, page=0, size=0, pages=0)
+
 
 @router.post("/mark_owned", response_model=schemas.MarkResult, tags=["graph"])
 async def mark_owned(
@@ -233,6 +231,7 @@ async def get_owned_stats(
         logger.warning("Unable to connect to Neo4j")
         return {"items": []}
 
+
 @router.get(
     "/pre-defined-queries/", response_model=schemas.PreDefinedQueries, tags=["graph"]
 )
@@ -246,7 +245,9 @@ async def get_pre_defined_queries(
 
 
 @router.get(
-    "/pre-defined-queries-graph/", response_model=schemas.PreDefinedQueries, tags=["graph"]
+    "/pre-defined-queries-graph/",
+    response_model=schemas.PreDefinedQueries,
+    tags=["graph"],
 )
 async def get_pre_defined_queries_graph(
     user: models.User = Depends(current_active_user),
@@ -274,7 +275,9 @@ async def pre_defined_query(
 
 
 @router.get(
-    "/pre-defined-queries-graph/{query}", response_model=schemas.GraphQueryResult, tags=["graph"]
+    "/pre-defined-queries-graph/{query}",
+    response_model=schemas.GraphQueryResult,
+    tags=["graph"],
 )
 async def pre_defined_query_graph(
     query: str,

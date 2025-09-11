@@ -19,7 +19,7 @@ from typing import Optional
 
 import aiofiles
 import structlog
-from harbinger.database import crud, schemas
+from harbinger import crud, schemas
 from harbinger.worker.files.parsers import BaseFileParser
 from neo4j import AsyncSession as AsyncNeo4jSession
 from sqlalchemy.ext.asyncio import AsyncSession

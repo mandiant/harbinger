@@ -48,7 +48,7 @@ const props = defineProps({
 const { id } = toRefs(props);
 
 const { object, loadObject } = useLoadObject<C2Implant>(
-  'c2/implants',
+  'c2_implants',
   id.value
 );
 

@@ -203,7 +203,7 @@ function Goto(row: C2Job) {
 
 function start(row: C2Job) {
   api
-    .post(`/c2/jobs/${row.id}/start`)
+    .post(`/c2_jobs/${row.id}/start`)
     .then(() => {
       loading.value = false;
       $q.notify({
@@ -227,7 +227,7 @@ function start(row: C2Job) {
 
 function clone(row: C2Job) {
   api
-    .post(`/c2/jobs/${row.id}/clone`)
+    .post(`/c2_jobs/${row.id}/clone`)
     .then(() => {
       loading.value = false;
       $q.notify({

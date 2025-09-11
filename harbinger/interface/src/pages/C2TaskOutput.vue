@@ -38,7 +38,7 @@ const props = defineProps({
 const { id } = toRefs(props);
 
 const { object, loadObject } = useLoadObject<C2Output>(
-  'c2/output',
+  'c2_output',
   id.value
 );
 

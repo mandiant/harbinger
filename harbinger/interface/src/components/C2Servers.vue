@@ -216,7 +216,7 @@ function status_to_icon(status: string){
 
 function run_command(c2_server_id: string, name: string, command: string) {
   loading.value = true;
-  api.post(`/c2/servers/${c2_server_id}/command`, { name: name, command: command }).then(() => {
+  api.post(`/c2_servers/${c2_server_id}/command`, { name: name, command: command }).then(() => {
     $q.notify({
       color: 'green-4',
       textColor: 'white',

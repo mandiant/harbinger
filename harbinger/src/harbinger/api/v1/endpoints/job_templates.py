@@ -12,37 +12,40 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Type, Union, Optional
-import yaml
-import uuid
-import jsonref
 import json
-from harbinger.config import get_settings
-from harbinger import crud
-from harbinger import schemas
-from harbinger import models
-from harbinger.database.users import current_active_user
-from fastapi import APIRouter, Depends, Request, Response, status
-from harbinger.job_templates.proxy import PROXY_JOB_BASE_MAP
-from harbinger.job_templates.schemas import C2_JOB_BASE_MAP, C2ImplantTemplateModel
-from harbinger.job_templates.proxy.base import JobTemplateModel
-from harbinger.job_templates.schemas import BaseTemplateModel, TemplateList
-from pydantic import ValidationError
-from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi_pagination import Page, add_pagination
-from fastapi_filter import FilterDepends
-from harbinger.database import filters
-from pydantic import UUID4
-from harbinger.worker.genai import prompts
+import uuid
+from typing import Optional, Type, Union
 
+import jsonref
+import yaml
+from fastapi import APIRouter, Depends, Request, Response, status
+from fastapi_filter import FilterDepends
+from fastapi_pagination import Page, add_pagination
+from pydantic import UUID4, ValidationError
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from harbinger import crud, models, schemas
+from harbinger.config import get_settings
+from harbinger.config.dependencies import current_active_user, get_db
+from harbinger.database import filters
+from harbinger.config.dependencies import current_active_user
+from harbinger.job_templates.proxy import PROXY_JOB_BASE_MAP
+from harbinger.job_templates.proxy.base import JobTemplateModel
+from harbinger.job_templates.schemas import (
+    C2_JOB_BASE_MAP,
+    BaseTemplateModel,
+    C2ImplantTemplateModel,
+    TemplateList,
+)
+from harbinger.worker.genai import prompts
 
 settings = get_settings()
 
 router = APIRouter()
 
 
-def get_db(request: Request):
-    return request.state.db
+
+
 
 @router.get(
     "/playbooks/",
@@ -50,11 +53,14 @@ def get_db(request: Request):
     tags=["proxy_jobs", "crud"],
 )
 async def playbook_templates(
-    filters: filters.PlaybookTemplateFilter = FilterDepends(filters.PlaybookTemplateFilter),
+    filters: filters.PlaybookTemplateFilter = FilterDepends(
+        filters.PlaybookTemplateFilter
+    ),
     user: models.User = Depends(current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
     return await crud.get_chain_templates_paged(db, filters)
+
 
 @router.get(
     "/playbooks/filters",
@@ -62,11 +68,14 @@ async def playbook_templates(
     tags=["proxy_jobs", "crud"],
 )
 async def playbook_template_filters(
-    filters: filters.PlaybookTemplateFilter = FilterDepends(filters.PlaybookTemplateFilter),
+    filters: filters.PlaybookTemplateFilter = FilterDepends(
+        filters.PlaybookTemplateFilter
+    ),
     user: models.User = Depends(current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
     return await crud.get_playbook_template_filters(db, filters)
+
 
 @router.get(
     "/{c2_type}/",
@@ -102,7 +111,9 @@ async def chain_templates_schema(
     schema = await crud.get_playbook_template(uuid)
     if schema:
         schema_templ = schemas.PlaybookTemplate(**yaml.safe_load(schema.yaml))
-        return jsonref.loads(json.dumps(schema_templ.create_model(default_arguments).model_json_schema()))
+        return jsonref.loads(
+            json.dumps(schema_templ.create_model(default_arguments).model_json_schema())
+        )
     return Response(status_code=status.HTTP_404_NOT_FOUND)
 
 
@@ -211,7 +222,7 @@ async def preview(
             command=command,
             arguments=args,
             playbook_id=template.playbook_id,
-            c2_implant_id=uuid.uuid4()
+            c2_implant_id=uuid.uuid4(),
         )
 
 
@@ -250,17 +261,17 @@ async def create_proxy_job(
 
 
 @router.post(
-    "/playbooks/ai", # Path as used in the frontend
-    response_model=schemas.GeneratedYamlOutput, # Use the new output schema
-    tags=["templates", "ai"], # Add relevant tags for docs
+    "/playbooks/ai",  # Path as used in the frontend
+    response_model=schemas.GeneratedYamlOutput,  # Use the new output schema
+    tags=["templates", "ai"],  # Add relevant tags for docs
     summary="Generate Playbook Template YAML from README",
     description="Accepts README markdown content and uses an AI model to generate a playbook template YAML.",
-    status_code=status.HTTP_200_OK, # Explicitly set success code (200 is default for POST often 201, but here we return generated content)
+    status_code=status.HTTP_200_OK,  # Explicitly set success code (200 is default for POST often 201, but here we return generated content)
 )
 async def generate_playbook_template_from_ai(
-    input_data: schemas.ReadmeInput, # Use the new input schema
+    input_data: schemas.ReadmeInput,  # Use the new input schema
     # db: AsyncSession = Depends(get_db), # Keep DB if needed for logging or other checks
-    user: models.User = Depends(current_active_user), # Ensure user is authenticated
+    user: models.User = Depends(current_active_user),  # Ensure user is authenticated
 ):
     """
     Receives README content and attempts to generate a playbook YAML using an AI service.
@@ -268,7 +279,7 @@ async def generate_playbook_template_from_ai(
     if not settings.gemini_enabled:
         return Response(
             f"Gemini is not enabled, please configure the gemini api key and set GEMINI_ENABLED=True",
-            status_code=status.HTTP_400_BAD_REQUEST
+            status_code=status.HTTP_400_BAD_REQUEST,
         )
     try:
         # Call the AI generation service function
@@ -283,8 +294,10 @@ async def generate_playbook_template_from_ai(
     except Exception as e:
         # Catch any other unexpected errors during the process
         print(f"Unexpected error during AI playbook generation: {e}")
-        return Response(f"Unexpected error during AI playbook generation", status_code=status.
-        HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response(
+            f"Unexpected error during AI playbook generation",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
 
 
 @router.post(
@@ -328,15 +341,20 @@ async def create_chain_template(
     user: models.User = Depends(current_active_user),
 ):
     try:
-        schema = schemas.PlaybookTemplateCreate(**yaml.safe_load(chain_template.yaml), yaml=chain_template.yaml)
+        schema = schemas.PlaybookTemplateCreate(
+            **yaml.safe_load(chain_template.yaml), yaml=chain_template.yaml
+        )
     except ValidationError as e:
         return Response(e.json(), status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
     except yaml.YAMLError as e:
-        return Response(f"yaml is invalid: {e}", status_code=status.
-        HTTP_422_UNPROCESSABLE_ENTITY)
+        return Response(
+            f"yaml is invalid: {e}", status_code=status.HTTP_422_UNPROCESSABLE_ENTITY
+        )
     except TypeError:
-        return Response(f"yaml is invalid: format is wrong.", status_code=status.
-        HTTP_422_UNPROCESSABLE_ENTITY)
+        return Response(
+            f"yaml is invalid: format is wrong.",
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        )
 
     return await crud.create_playbook_template(db, schema)
 
@@ -373,5 +391,6 @@ async def create_from_template(
 
     response.status_code = status.HTTP_400_BAD_REQUEST
     return dict(error="Not found")
+
 
 add_pagination(router)

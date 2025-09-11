@@ -81,7 +81,7 @@ import { defineTypedStore } from 'src/stores/datastore';
 import { storeToRefs } from 'pinia'
 
 
-const store = defineTypedStore<C2Job>('c2/jobs')();
+const store = defineTypedStore<C2Job>('c2_jobs')();
 const file_store = useFileStore();
 
 const $q = useQuasar();
@@ -133,7 +133,7 @@ store.loadById(job_id.value).then((item => {
 
 function start() {
   api
-    .post(`/c2/jobs/${job_id.value}/start`)
+    .post(`/c2_jobs/${job_id.value}/start`)
     .then(() => {
       loading.value = false;
       $q.notify({
@@ -166,7 +166,7 @@ function save() {
   })
 
   api
-    .put(`/c2/jobs/${job_id.value}`, job.value)
+    .put(`/c2_jobs/${job_id.value}`, job.value)
     .then((response) => {
       job.value = response.data;
       loading.value = false;

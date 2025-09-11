@@ -34,7 +34,7 @@ export const useMythicImplantStore = defineStore('mythic_implant', {
       return new Promise<C2Implant>((resolve, reject) => {
         if (!this.implants.has(implant_id)) {
           api
-            .get(`/c2/implants/${implant_id}`)
+            .get(`/c2_implants/${implant_id}`)
             .then((response) => {
               this.implants.set(implant_id, response.data);
               resolve(response.data)
@@ -52,7 +52,7 @@ export const useMythicImplantStore = defineStore('mythic_implant', {
     async LoadAliveImplants() {
       if(this.aliveImplants.length === 0){
         api
-        .get('/c2/implants/', {params: {alive_only: true}})
+        .get('/c2_implants/', {params: {alive_only: true}})
         .then((response) => {
           this.aliveImplants = response.data.items;
           return this.aliveImplants
@@ -65,7 +65,7 @@ export const useMythicImplantStore = defineStore('mythic_implant', {
     // Debounced version of ReLoadAliveImplants
     debouncedReLoadAliveImplants: debounce(async function (this: ReturnType<typeof useMythicImplantStore>) {
       api
-        .get('/c2/implants/', { params: { alive_only: true } })
+        .get('/c2_implants/', { params: { alive_only: true } })
         .then((response) => {
           this.aliveImplants = response.data.items;
         });

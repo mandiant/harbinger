@@ -19,7 +19,7 @@ def setup(subparsers):
 
 def list_servers(args):
     """List C2 servers."""
-    response = make_api_request("GET", "/c2/servers/")
+    response = make_api_request("GET", "/c2_servers/")
     if response:
         servers_data = response.json()
         servers = servers_data.get("items", [])
@@ -38,7 +38,7 @@ def list_servers(args):
 
 def list_implants(args):
     """List C2 implants."""
-    response = make_api_request("GET", "/c2/implants/")
+    response = make_api_request("GET", "/c2_implants/")
     if response:
         implants_data = response.json()
         implants = implants_data.get("items", [])
