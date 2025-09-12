@@ -20,6 +20,6 @@ class TestMythicC2(unittest.TestCase):
         from harbinger.job_templates import schemas
 
         for entry in schemas.LIST:
-            self.assertTrue(hasattr(entry, "Settings"))
-            self.assertNotEqual(entry.Settings.command, "")
-            self.assertIn(entry.Settings.command, schemas.Command)
+            assert hasattr(entry, "Settings")
+            assert entry.Settings.command != ""
+            assert entry.Settings.command in schemas.Command

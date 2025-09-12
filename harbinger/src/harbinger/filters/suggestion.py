@@ -1,7 +1,9 @@
 from fastapi_filter import FilterDepends, with_prefix
 from fastapi_filter.contrib.sqlalchemy import Filter
-from harbinger import models
 from pydantic import UUID4
+
+from harbinger import models
+
 from .label import LabelFilter
 from .plan_step import PlanStepFilter
 
@@ -14,7 +16,7 @@ class SuggestionFilter(Filter):
     playbook_template_id: str | UUID4 | None = None
     c2_implant_id: str | UUID4 | None = None
     plan_step: PlanStepFilter | None = FilterDepends(
-        with_prefix("plan_step", PlanStepFilter)
+        with_prefix("plan_step", PlanStepFilter),
     )
     labels: LabelFilter | None = FilterDepends(with_prefix("label", LabelFilter))
 

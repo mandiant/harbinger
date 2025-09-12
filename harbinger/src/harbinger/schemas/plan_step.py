@@ -14,19 +14,19 @@
 
 
 from datetime import datetime
-from typing import List, Optional
+from typing import TYPE_CHECKING
 
 from pydantic import UUID4, BaseModel, ConfigDict
 
-
-from .label import Label
-from .suggestion import Suggestion
+if TYPE_CHECKING:
+    from .label import Label
+    from .suggestion import Suggestion
 
 
 class PlanStepBase(BaseModel):
     description: str = ""
     order: int = 0
-    notes: Optional[str] = None
+    notes: str | None = None
     status: str | None = ""
     llm_status: str | None = ""
     plan_id: str | UUID4 | None = None
@@ -42,8 +42,8 @@ class PlanStepUpdate(PlanStepBase):
 
 class PlanStep(PlanStepBase):
     id: UUID4
-    suggestions: List["Suggestion"] = []
+    suggestions: list["Suggestion"] = []
     time_created: datetime | None = None
     time_updated: datetime | None = None
-    labels: List["Label"] = []
+    labels: list["Label"] = []
     model_config = ConfigDict(from_attributes=True)

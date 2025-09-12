@@ -14,12 +14,12 @@
 
 
 from datetime import datetime
-from typing import List
+from typing import TYPE_CHECKING
 
 from pydantic import UUID4, BaseModel, ConfigDict
 
-
-from .label import Label
+if TYPE_CHECKING:
+    from .label import Label
 
 
 class SuggestionBase(BaseModel):
@@ -47,7 +47,7 @@ class Suggestion(SuggestionBase):
     time_created: datetime | None = None
     time_updated: datetime | None = None
 
-    labels: List["Label"] | None = None
+    labels: list["Label"] | None = None
 
 
 class SuggestionBaseRequest(BaseModel):

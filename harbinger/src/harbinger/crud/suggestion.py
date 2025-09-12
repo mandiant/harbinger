@@ -1,23 +1,24 @@
 import uuid
-from typing import Iterable, Optional, Tuple
+from collections.abc import Iterable
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
-from harbinger import models, schemas
-from harbinger import filters
-from harbinger.database.cache import redis_cache
-from harbinger.database.database import SessionLocal
 from pydantic import UUID4
 from sqlalchemy import Select, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import func
+
+from harbinger import filters, models, schemas
+from harbinger.database.cache import redis_cache
+from harbinger.database.database import SessionLocal
 
 from ._common import DEFAULT_CACHE_TTL, create_filter_for_column
 from .label import get_labels_for_q
 
 
 async def get_suggestions_paged(
-    db: AsyncSession, filters: filters.SuggestionFilter
+    db: AsyncSession,
+    filters: filters.SuggestionFilter,
 ) -> Page[models.Suggestion]:
     q: Select = select(models.Suggestion)
     q = q.outerjoin(models.Suggestion.labels)
@@ -56,7 +57,11 @@ async def get_suggestions_filters(db: AsyncSession, filters: filters.SuggestionF
     result.extend(lb_entry)
     for field in ["name"]:
         res = await create_filter_for_column(
-            db, q, getattr(models.Suggestion, field), field, field
+            db,
+            q,
+            getattr(models.Suggestion, field),
+            field,
+            field,
         )
         result.append(res)
     return result
@@ -70,17 +75,17 @@ async def get_suggestions_filters(db: AsyncSession, filters: filters.SuggestionF
     ttl_seconds=DEFAULT_CACHE_TTL,
 )
 async def get_suggestion(
-    db: AsyncSession, id: UUID4 | str
-) -> Optional[models.Suggestion]:
+    db: AsyncSession,
+    id: UUID4 | str,
+) -> models.Suggestion | None:
     return await db.get(models.Suggestion, id)
 
 
 async def create_suggestion(
-    db: AsyncSession, suggestion: schemas.SuggestionCreate
-) -> Tuple[bool, models.Suggestion]:
-    """
-    Creates a new suggestion in the database.
-    """
+    db: AsyncSession,
+    suggestion: schemas.SuggestionCreate,
+) -> tuple[bool, models.Suggestion]:
+    """Creates a new suggestion in the database."""
     db_suggestion = models.Suggestion(**suggestion.model_dump())
     db.add(db_suggestion)
     await db.commit()
@@ -89,26 +94,19 @@ async def create_suggestion(
 
 
 async def update_suggestion(
-    db: AsyncSession, id: str | uuid.UUID, suggestions: schemas.SuggestionCreate
+    db: AsyncSession,
+    id: str | uuid.UUID,
+    suggestions: schemas.SuggestionCreate,
 ) -> None:
-    q = (
-        update(models.Suggestion)
-        .where(models.Suggestion.id == id)
-        .values(**suggestions.model_dump())
-    )
+    q = update(models.Suggestion).where(models.Suggestion.id == id).values(**suggestions.model_dump())
     await db.execute(q)
     await db.commit()
 
 
 async def delete_suggestion(db: AsyncSession, id: str | uuid.UUID) -> None:
-    """
-    Disassociates a suggestion from a plan step by setting its plan_step_id to NULL.
+    """Disassociates a suggestion from a plan step by setting its plan_step_id to NULL.
     This effectively "archives" the suggestion without deleting it.
     """
-    q = (
-        update(models.Suggestion)
-        .where(models.Suggestion.id == id)
-        .values(plan_step_id=None)
-    )
+    q = update(models.Suggestion).where(models.Suggestion.id == id).values(plan_step_id=None)
     await db.execute(q)
     await db.commit()

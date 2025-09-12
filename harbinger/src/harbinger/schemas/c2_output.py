@@ -14,15 +14,16 @@
 
 
 from datetime import datetime
-from typing import List
+from typing import TYPE_CHECKING
 
 from pydantic import UUID4, AliasChoices, BaseModel, ConfigDict, Field, field_validator
 
-
 from .c2_task import C2TaskBase
 from .file_list import FileList
-from .label import Label
 from .process import ProcessCreate
+
+if TYPE_CHECKING:
+    from .label import Label
 
 
 class C2OutputBase(BaseModel):
@@ -31,10 +32,12 @@ class C2OutputBase(BaseModel):
     c2_task_id: UUID4 | str | None = None
     c2_server_id: UUID4 | str
     response_text: str | None = Field(
-        validation_alias=AliasChoices("response_text", "result"), default=""
+        validation_alias=AliasChoices("response_text", "result"),
+        default="",
     )
     output_type: str | None = Field(
-        validation_alias=AliasChoices("output_type", "type"), default=""
+        validation_alias=AliasChoices("output_type", "type"),
+        default="",
     )
     timestamp: datetime | None = None
 
@@ -53,7 +56,7 @@ class C2OutputCreate(C2OutputBase):
     bucket: str | None = None
     path: str | None = None
 
-    processes: List[ProcessCreate] | None = []
+    processes: list[ProcessCreate] | None = []
     file_list: FileList | None = None
 
     @field_validator("response_bytes")
@@ -67,7 +70,7 @@ class C2OutputCreate(C2OutputBase):
 class C2Output(C2OutputBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4
-    labels: List["Label"] | None = []
+    labels: list["Label"] | None = []
 
 
 class C2OutputCreated(BaseModel):

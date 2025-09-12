@@ -12,8 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from harbinger.config import get_settings
-from harbinger.database import database
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi_pagination import add_pagination
+
 from harbinger.api.v1.endpoints import (
     actions,
     c2_implants,
@@ -56,28 +61,26 @@ from harbinger.api.v1.endpoints import (
     proxies,
     proxy_job_output,
     proxy_jobs,
-    settings as settings_router,
     share_files,
     shares,
     situational_awareness,
     socks_servers,
+    statistics,
     step_modifiers,
     steps,
     suggestions,
     timeline,
     ws,
-    statistics,
 )
-
-from harbinger.schemas import UserRead, UserUpdate
-from harbinger.database.users import auth_backend_cookie, fastapi_users
-from fastapi import FastAPI, Request, Response
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi_pagination import add_pagination
+from harbinger.api.v1.endpoints import (
+    settings as settings_router,
+)
+from harbinger.config import get_settings
 from harbinger.config.admin import add_admin
+from harbinger.database import database
 from harbinger.database.redis_pool import redis
-from contextlib import asynccontextmanager
+from harbinger.database.users import auth_backend_cookie, fastapi_users
+from harbinger.schemas import UserRead, UserUpdate
 
 settings = get_settings()
 
@@ -135,7 +138,9 @@ app.include_router(
     tags=["c2_server_arguments"],
 )
 app.include_router(
-    c2_server_types.router, prefix="/c2_server_types", tags=["c2_server_types"]
+    c2_server_types.router,
+    prefix="/c2_server_types",
+    tags=["c2_server_types"],
 )
 app.include_router(c2_servers.router, prefix="/c2_servers", tags=["c2"])
 app.include_router(c2_tasks.router, prefix="/c2_tasks", tags=["c2"])
@@ -151,10 +156,14 @@ app.include_router(
 )
 app.include_router(checklists.router, prefix="/checklist", tags=["checklists"])
 app.include_router(
-    create_summaries.router, prefix="/create_summaries", tags=["create_summaries"]
+    create_summaries.router,
+    prefix="/create_summaries",
+    tags=["create_summaries"],
 )
 app.include_router(
-    create_timeline.router, prefix="/create_timeline", tags=["create_timeline"]
+    create_timeline.router,
+    prefix="/create_timeline",
+    tags=["create_timeline"],
 )
 app.include_router(credentials.router, prefix="/credentials", tags=["credentials"])
 app.include_router(domains.router, prefix="/domains", tags=["domains"])
@@ -169,7 +178,9 @@ app.include_router(item_label.router, prefix="/item_label", tags=["item_label"])
 app.include_router(job_templates.router, prefix="/templates", tags=["job_templates"])
 app.include_router(kerberos.router, prefix="/kerberos", tags=["kerberos"])
 app.include_router(
-    label_categories.router, prefix="/label_categories", tags=["label_categories"]
+    label_categories.router,
+    prefix="/label_categories",
+    tags=["label_categories"],
 )
 app.include_router(labels.router, prefix="/labels", tags=["labels"])
 app.include_router(llm_logs.router, prefix="/llm_logs", tags=["llm_logs"])
@@ -180,7 +191,9 @@ app.include_router(
 )
 app.include_router(objectives.router, prefix="/objectives", tags=["objectives"])
 app.include_router(
-    parse_results.router, prefix="/parse_results", tags=["parse_results"]
+    parse_results.router,
+    prefix="/parse_results",
+    tags=["parse_results"],
 )
 app.include_router(passwords.router, prefix="/passwords", tags=["passwords"])
 app.include_router(plan_steps.router, prefix="/plan_steps", tags=["plan_steps"])
@@ -188,11 +201,15 @@ app.include_router(plans.router, prefix="/plans", tags=["plans"])
 app.include_router(playbooks.router, prefix="/playbooks", tags=["playbooks"])
 app.include_router(processes.router, prefix="/processes", tags=["processes"])
 app.include_router(
-    progress_bars.router, prefix="/progress_bars", tags=["progress_bars"]
+    progress_bars.router,
+    prefix="/progress_bars",
+    tags=["progress_bars"],
 )
 app.include_router(proxies.router, prefix="/proxies", tags=["proxies"])
 app.include_router(
-    proxy_job_output.router, prefix="/proxy_job_output", tags=["proxy_job_output"]
+    proxy_job_output.router,
+    prefix="/proxy_job_output",
+    tags=["proxy_job_output"],
 )
 app.include_router(proxy_jobs.router, prefix="/proxy_jobs", tags=["proxy_jobs"])
 app.include_router(settings_router.router, prefix="/settings", tags=["settings"])
@@ -205,14 +222,18 @@ app.include_router(
 )
 app.include_router(socks_servers.router, prefix="/socks_servers", tags=["socks"])
 app.include_router(
-    step_modifiers.router, prefix="/playbook_step_modifier", tags=["step_modifiers"]
+    step_modifiers.router,
+    prefix="/playbook_step_modifier",
+    tags=["step_modifiers"],
 )
 app.include_router(steps.router, prefix="/playbook_step", tags=["steps"])
 app.include_router(suggestions.router, prefix="/suggestions", tags=["suggestions"])
 app.include_router(timeline.router, prefix="/timeline", tags=["timeline"])
 app.include_router(statistics.router, prefix="/statistics", tags=["statistics"])
 app.include_router(
-    fastapi_users.get_auth_router(auth_backend_cookie), prefix="/auth", tags=["auth"]
+    fastapi_users.get_auth_router(auth_backend_cookie),
+    prefix="/auth",
+    tags=["auth"],
 )
 app.include_router(
     fastapi_users.get_users_router(UserRead, UserUpdate),

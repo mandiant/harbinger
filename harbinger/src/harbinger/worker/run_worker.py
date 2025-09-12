@@ -13,30 +13,32 @@
 # limitations under the License.
 
 import asyncio
-from temporalio.worker import Worker
+import contextlib
+import signal
+
+import anyio
+import structlog
+from rigging.logging import configure_logging
 from temporalio.client import (
     Schedule,
     ScheduleActionStartWorkflow,
-    ScheduleSpec,
     ScheduleAlreadyRunningError,
+    ScheduleSpec,
 )
+from temporalio.service import RPCError
+from temporalio.worker import Worker
+
+from harbinger.config import constants
+from harbinger.database.redis_pool import redis
 from harbinger.worker import activities, workflows
+from harbinger.worker.client import get_client
 from harbinger.worker.supervisor_workflow import (
     PlanSupervisorWorkflow,
+    create_consumer_group_activity,
     generate_initial_steps_activity,
     handle_events_activity,
     poll_for_stream_events_activity,
-    create_consumer_group_activity,
 )
-from harbinger.worker.client import get_client
-from harbinger.database.redis_pool import redis
-import anyio
-import structlog
-import signal
-from temporalio.service import RPCError
-from harbinger.config import constants
-from rigging.logging import configure_logging
-
 
 log = structlog.get_logger()
 
@@ -170,13 +172,11 @@ async def main():
     # delete older cron version of the loop
     handle = client.get_workflow_handle(workflow_id="markdead-loop")
     if handle:
-        try:
+        with contextlib.suppress(RPCError):
             await handle.terminate()
-        except RPCError:
-            pass
 
     # create new schedule based.
-    try:
+    with contextlib.suppress(ScheduleAlreadyRunningError):
         await client.create_schedule(
             "check-implant-states",
             Schedule(
@@ -190,8 +190,6 @@ async def main():
                 ),
             ),
         )
-    except ScheduleAlreadyRunningError:
-        pass
 
     try:
         with anyio.open_signal_receiver(signal.SIGTERM, signal.SIGINT) as signals:

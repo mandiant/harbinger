@@ -13,31 +13,29 @@
 # limitations under the License.
 
 import json
-from harbinger import crud
-from harbinger import filters
-from harbinger import schemas
-from harbinger.database.database import SessionLocal
-import structlog
-from harbinger.config import get_settings
-import rigging as rg
-
 import typing as t
-from typing import List, Optional, Dict, Any, Iterable
+from collections.abc import Iterable
+from typing import Any
+
+import rigging as rg
+import structlog
+from harbinger import crud, filters, schemas
+from harbinger.config import get_settings
+from harbinger.database.database import SessionLocal
 from harbinger.enums import PlanStepStatus
 from harbinger.graph import crud as graph_crud
 from harbinger.graph.database import get_async_neo4j_session_context
-
 
 settings = get_settings()
 
 log = structlog.get_logger()
 
 
-def dict_to_string(data: Dict[str, Any]) -> str:
+def dict_to_string(data: dict[str, Any]) -> str:
     return str(data)
 
 
-def sequence_to_string_list(sequence: Iterable, schema_class: Any) -> List[str]:
+def sequence_to_string_list(sequence: Iterable, schema_class: Any) -> list[str]:
     return [str(obj.__dict__) for obj in sequence]
 
 
@@ -45,13 +43,15 @@ def sequence_to_string_list(sequence: Iterable, schema_class: Any) -> List[str]:
 
 
 @rg.tool
-async def get_all_c2_implant_info() -> List[str]:
-    """
-    Retrieves information for all ACTIVE C2 implants. Implants labeled "Dead" are automatically excluded.
+async def get_all_c2_implant_info() -> list[str]:
+    """Retrieves information for all ACTIVE C2 implants. Implants labeled "Dead" are automatically excluded.
     Each implant's information includes its associated labels. This tool is useful
     for getting a list of viable implants to target.
-    Returns:
+
+    Returns
+    -------
         A list of string representations for each active implant's information.
+
     """
     async with SessionLocal() as db:
         # Filter out implants with the "Dead" label.
@@ -65,9 +65,7 @@ async def get_all_c2_implant_info() -> List[str]:
         for implant in implants:
             labels = await crud.recurse_labels_c2_implant(db, implant.id)
             c2_implant_dict = schemas.C2Implant.model_validate(implant).model_dump()
-            c2_implant_dict["labels"] = [
-                schemas.Label.model_validate(l).model_dump() for l in labels
-            ]
+            c2_implant_dict["labels"] = [schemas.Label.model_validate(label).model_dump() for label in labels]
             implants_list.append(json.dumps(c2_implant_dict, default=str))
 
         return implants_list
@@ -75,27 +73,32 @@ async def get_all_c2_implant_info() -> List[str]:
 
 @rg.tool
 async def get_c2_tasks_executed(
-    c2_implant_id: Optional[str] = None,
+    c2_implant_id: str | None = None,
     include_output: bool = False,
-    search: Optional[str] = None,
-    labels_id__in: Optional[List[str]] = None,
-    labels_name__in: Optional[List[str]] = None,
-    labels_category: Optional[str] = None,
-) -> List[str]:
-    """
-    Retrieves C2 tasks executed, optionally for a specific implant and including task output,
+    search: str | None = None,
+    labels_id__in: list[str] | None = None,
+    labels_name__in: list[str] | None = None,
+    labels_category: str | None = None,
+) -> list[str]:
+    """Retrieves C2 tasks executed, optionally for a specific implant and including task output,
     with various filtering options. This tool helps to understand command execution history.
+
     Args:
+    ----
         c2_implant_id: The ID of the C2 implant to filter tasks by.
         include_output: Whether to include the task output in the retrieved data.
                         Set to True to get the command's results.
-        search: A general search string to apply across relevant task fields (original_params, display_params, command_name).
+        search: A general search string to apply across relevant task fields
+                (original_params, display_params, command_name).
                 Use single argument query only, OR/AND/NOT is not supported.
         labels_id__in: List of label IDs to include tasks by.
         labels_name__in: List of label names to include tasks by.
         labels_category: Category of labels to include tasks by.
+
     Returns:
+    -------
         A list of string representations for each executed task.
+
     """
     async with SessionLocal() as db:
         task_filter = filters.C2TaskFilter(
@@ -129,23 +132,27 @@ async def get_c2_tasks_executed(
 
 @rg.tool
 async def get_playbooks(
-    search: Optional[str] = None,
-    labels_id__in: Optional[List[str]] = None,
-    labels_name__in: Optional[List[str]] = None,
-    labels_category: Optional[str] = None,
-) -> List[str]:
-    """
-    Retrieves a list of all available playbooks, with various filtering options.
+    search: str | None = None,
+    labels_id__in: list[str] | None = None,
+    labels_name__in: list[str] | None = None,
+    labels_category: str | None = None,
+) -> list[str]:
+    """Retrieves a list of all available playbooks, with various filtering options.
     Playbooks represent automated sequences of actions.
+
     Args:
+    ----
         search: A general search string to apply across relevant playbook fields (playbook_name, description, status).
                 Use single argument query only, OR/AND/NOT is not supported.
         labels_id__in: List of label IDs to include playbooks by.
         labels_name__in: List of label names to include playbooks by.
         labels_category: Category of labels to include playbooks by.
         labels_name__not_in: List of label names to exclude playbooks by.
+
     Returns:
+    -------
         A list of string representations for each playbook.
+
     """
     async with SessionLocal() as db:
         playbook_filter = filters.PlaybookFilter(
@@ -165,17 +172,18 @@ async def get_playbooks(
 
 @rg.tool
 async def get_playbook_templates(
-    search: Optional[str] = None,
-    tactic: Optional[str] = None,
-    technique: Optional[str] = None,
-    labels_id__in: Optional[List[str]] = None,
-    labels_name__in: Optional[List[str]] = None,
-    labels_category: Optional[str] = None,
-) -> List[str]:
-    """
-    Retrieves playbook templates and organizes them into a list and a map, with filtering options.
+    search: str | None = None,
+    tactic: str | None = None,
+    technique: str | None = None,
+    labels_id__in: list[str] | None = None,
+    labels_name__in: list[str] | None = None,
+    labels_category: str | None = None,
+) -> list[str]:
+    """Retrieves playbook templates and organizes them into a list and a map, with filtering options.
     Playbook templates are blueprints for creating new playbooks.
+
     Args:
+    ----
         search: A general search string to apply across relevant template fields (name, yaml, tactic, technique).
                 Use single argument query only, OR/AND/NOT is not supported.
         tactic: Filter templates by the MITRE ATT&CK Tactic they relate to (e.g., "Initial Access").
@@ -184,14 +192,19 @@ async def get_playbook_templates(
         labels_name__in: List of label names to include templates by.
         labels_category: Category of labels to include templates by.
         labels_name__not_in: List of label names to exclude templates by.
+
     Returns:
+    -------
         A dictionary containing:
         - 'templates': A list of string representations for each playbook template.
         - 'map': A dictionary mapping template IDs (string) to their full object dictionaries.
+
     """
     async with SessionLocal() as db:
         template_filter = filters.PlaybookTemplateFilter(
-            search=search, tactic=tactic, technique=technique
+            search=search,
+            tactic=tactic,
+            technique=technique,
         )
         if labels_id__in or labels_name__in or labels_category:
             template_filter.labels = filters.LabelFilter(
@@ -207,25 +220,30 @@ async def get_playbook_templates(
 
 @rg.tool
 async def get_proxies_info(
-    search: Optional[str] = None,
-    status: Optional[str] = None,
-    labels_id__in: Optional[List[str]] = None,
-    labels_name__in: Optional[List[str]] = None,
-    labels_category: Optional[str] = None,
-) -> List[str]:
-    """
-    Retrieves a list of all configured proxies, with various filtering options.
+    search: str | None = None,
+    status: str | None = None,
+    labels_id__in: list[str] | None = None,
+    labels_name__in: list[str] | None = None,
+    labels_category: str | None = None,
+) -> list[str]:
+    """Retrieves a list of all configured proxies, with various filtering options.
     Proxies facilitate network communication through compromised hosts.
+
     Args:
+    ----
         order_by: Fields to order the results by (e.g., ["-time_created", "host"]).
-        search: A general search string to apply across relevant proxy fields (host, type, status, note, remote_hostname).
+        search: A general search string to apply across relevant proxy fields
+                (host, type, status, note, remote_hostname).
                 Use single argument query only, OR/AND/NOT is not supported.
         status: Filter by the current status of the proxy (e.g., "active", "inactive").
         labels_id__in: List of label IDs to include proxies by.
         labels_name__in: List of label names to include proxies by.
         labels_category: Category of labels to include proxies by.
+
     Returns:
+    -------
         A list of string representations for each proxy.
+
     """
     async with SessionLocal() as db:
         proxy_filter = filters.ProxyFilter(
@@ -244,17 +262,18 @@ async def get_proxies_info(
 
 @rg.tool
 async def get_previous_suggestions(
-    c2_implant_id: Optional[str] = None,
-    search: Optional[str] = None,
-    playbook_template_id: Optional[str] = None,
-    labels_id__in: Optional[List[str]] = None,
-    labels_name__in: Optional[List[str]] = None,
-    labels_category: Optional[str] = None,
-) -> List[str]:
-    """
-    Retrieves previous suggestions, optionally filtered by various criteria.
+    c2_implant_id: str | None = None,
+    search: str | None = None,
+    playbook_template_id: str | None = None,
+    labels_id__in: list[str] | None = None,
+    labels_name__in: list[str] | None = None,
+    labels_category: str | None = None,
+) -> list[str]:
+    """Retrieves previous suggestions, optionally filtered by various criteria.
     Suggestions provide historical recommendations or next steps generated by the system.
+
     Args:
+    ----
         c2_implant_id: Filter suggestions by the ID of the C2 implant they relate to.
         search: A general search string to apply across relevant suggestion fields (name, reason).
                 Use single argument query only, OR/AND/NOT is not supported.
@@ -262,8 +281,11 @@ async def get_previous_suggestions(
         labels_id__in: List of label IDs to include suggestions by.
         labels_name__in: List of label names to include suggestions by.
         labels_category: Category of labels to include suggestions by.
+
     Returns:
+    -------
         A list of string representations for each previous suggestion.
+
     """
     async with SessionLocal() as db:
         suggestion_filter = filters.SuggestionFilter(
@@ -278,31 +300,37 @@ async def get_previous_suggestions(
                 category=labels_category,
             )
         previous_suggestions = await crud.get_suggestions(
-            db, suggestion_filter, limit=1000
+            db,
+            suggestion_filter,
+            limit=1000,
         )
         return sequence_to_string_list(previous_suggestions, schemas.Suggestion)
 
 
 @rg.tool
 async def get_socks_servers_info(
-    search: Optional[str] = None,
-    status: Optional[str] = None,
-    labels_id__in: Optional[List[str]] = None,
-    labels_name__in: Optional[List[str]] = None,
-    labels_category: Optional[str] = None,
-) -> List[str]:
-    """
-    Retrieves a list of all configured SOCKS servers, with various filtering options.
+    search: str | None = None,
+    status: str | None = None,
+    labels_id__in: list[str] | None = None,
+    labels_name__in: list[str] | None = None,
+    labels_category: str | None = None,
+) -> list[str]:
+    """Retrieves a list of all configured SOCKS servers, with various filtering options.
     SOCKS servers enable proxying of network traffic through an established SOCKS proxy.
+
     Args:
+    ----
         search: A general search string to apply across relevant SOCKS server fields (type, hostname, operating_system).
                 Use single argument query only, OR/AND/NOT is not supported.
         status: Filter by the operational status of the SOCKS server (e.g., "connected").
         labels_id__in: List of label IDs to include SOCKS servers by.
         labels_name__in: List of label names to include SOCKS servers by.
         labels_category: Category of labels to include SOCKS servers by.
+
     Returns:
+    -------
         A list of string representations for each SOCKS server.
+
     """
     async with SessionLocal() as db:
         socks_filter = filters.SocksServerFilter(
@@ -321,16 +349,17 @@ async def get_socks_servers_info(
 
 @rg.tool
 async def get_credentials_info(
-    search: Optional[str] = None,
-    labels_id__in: Optional[List[str]] = None,
-    labels_name__in: Optional[List[str]] = None,
-    labels_category: Optional[str] = None,
-    domain_search: Optional[str] = None,
-) -> List[str]:
-    """
-    Retrieves a list of all stored credentials, with various filtering options.
+    search: str | None = None,
+    labels_id__in: list[str] | None = None,
+    labels_name__in: list[str] | None = None,
+    labels_category: str | None = None,
+    domain_search: str | None = None,
+) -> list[str]:
+    """Retrieves a list of all stored credentials, with various filtering options.
     Credentials can include usernames, passwords, or Kerberos tickets.
+
     Args:
+    ----
         search: A general search string to apply across relevant credential fields (username).
                 Use single argument query only, OR/AND/NOT is not supported.
         username: Filter by a specific username.
@@ -340,8 +369,11 @@ async def get_credentials_info(
         labels_name__in: List of label names to include credentials by.
         domain_search: A general search string for the associated domain (short_name, long_name).
                        Use single argument query only, OR/AND/NOT is not supported.
+
     Returns:
+    -------
         A list of string representations for each credential.
+
     """
     async with SessionLocal() as db:
         credential_filter = filters.CredentialFilter(
@@ -365,22 +397,26 @@ async def get_credentials_info(
 
 @rg.tool
 async def get_situational_awareness_info(
-    search: Optional[str] = None,
-    name: Optional[str] = None,
-    category: Optional[str] = None,
-    domain_id: Optional[str] = None,
-) -> List[str]:
-    """
-    Retrieves a list of all situational awareness entries, with various filtering options.
+    search: str | None = None,
+    name: str | None = None,
+    category: str | None = None,
+    domain_id: str | None = None,
+) -> list[str]:
+    """Retrieves a list of all situational awareness entries, with various filtering options.
     Situational awareness provides context about the operational environment.
+
     Args:
+    ----
         search: A general search string to apply across relevant SA fields (name, category, value_string).
                 Use single argument query only, OR/AND/NOT is not supported.
         name: Filter by the name of the situational awareness entry.
         category: Filter by the category of the situational awareness entry (e.g., "Threat", "Vulnerability").
         domain_id: Filter by the ID of the domain associated with the situational awareness.
+
     Returns:
+    -------
         A list of string representations for each situational awareness entry.
+
     """
     async with SessionLocal() as db:
         # sa_filter = filters.SituationalAwarenessFilter(
@@ -396,28 +432,33 @@ async def get_situational_awareness_info(
             domain_id=domain_id if domain_id else "",
         )
         return sequence_to_string_list(
-            situational_awareness, schemas.SituationalAwareness
+            situational_awareness,
+            schemas.SituationalAwareness,
         )
 
 
 @rg.tool
 async def get_domains_info(
-    search: Optional[str] = None,
-    labels_id__in: Optional[List[str]] = None,
-    labels_name__in: Optional[List[str]] = None,
-    labels_category: Optional[str] = None,
-) -> List[str]:
-    """
-    Retrieves a list of all known domains and organizes them into a list and a map, with filtering options.
+    search: str | None = None,
+    labels_id__in: list[str] | None = None,
+    labels_name__in: list[str] | None = None,
+    labels_category: str | None = None,
+) -> list[str]:
+    """Retrieves a list of all known domains and organizes them into a list and a map, with filtering options.
     Domains represent network domains identified during operations.
+
     Args:
+    ----
         search: A general search string to apply across relevant domain fields (short_name, long_name).
                 Use single argument query only, OR/AND/NOT is not supported.
         labels_id__in: List of label IDs to include domains by.
         labels_name__in: List of label names to include domains by.
         labels_category: Category of labels to include domains by.
+
     Returns:
+    -------
         - list of string representations for each domain.
+
     """
     async with SessionLocal() as db:
         domain_filter = filters.DomainFilter(search=search)
@@ -434,16 +475,17 @@ async def get_domains_info(
 @rg.tool
 async def get_undownloaded_share_files(
     search: str = "",
-    file_type: Optional[str] = "file",  # Default to "file" as in your original filter
+    file_type: str | None = "file",  # Default to "file" as in your original filter
     limit: int = 1000,  # Keep the large limit as in your original code
-    labels_id__in: Optional[List[str]] = None,
-    labels_name__in: Optional[List[str]] = None,
-    labels_category: Optional[str] = None,
-) -> List[str]:
-    """
-    Retrieves a list of shareable files that have not yet been downloaded.
+    labels_id__in: list[str] | None = None,
+    labels_name__in: list[str] | None = None,
+    labels_category: str | None = None,
+) -> list[str]:
+    """Retrieves a list of shareable files that have not yet been downloaded.
     This tool is crucial for identifying potential files for download suggestions.
+
     Args:
+    ----
         search: A general search string to apply across relevant file fields (e.g., name, path).
                 Use single argument query only, OR/AND/NOT is not supported.
         file_type: Filter by the type of share file (e.g., "file", "directory"). Defaults to "file".
@@ -451,8 +493,11 @@ async def get_undownloaded_share_files(
         labels_id__in: List of label IDs to include share files by.
         labels_name__in: List of label names to include share files by.
         labels_category: Category of labels to include share files by.
+
     Returns:
+    -------
         A list of string representations for each undownloaded share file.
+
     """
     async with SessionLocal() as db:
         share_file_filter = filters.ShareFileFilter(
@@ -468,7 +513,9 @@ async def get_undownloaded_share_files(
             )
 
         share_files = await crud.get_share_files(
-            db, filters=share_file_filter, limit=limit
+            db,
+            filters=share_file_filter,
+            limit=limit,
         )
 
         share_files_list = sequence_to_string_list(share_files, schemas.ShareFile)
@@ -480,15 +527,16 @@ async def get_undownloaded_share_files(
 async def get_unindexed_share_folders(
     search: str = "",
     limit: int = 1000,  # Providing a default limit for practicality
-    labels_id__in: Optional[List[str]] = None,
-    labels_name__in: Optional[List[str]] = None,
-    labels_category: Optional[str] = None,
+    labels_id__in: list[str] | None = None,
+    labels_name__in: list[str] | None = None,
+    labels_category: str | None = None,
     indexed: bool = False,  # Added a specific 'indexed' filter for flexibility
-) -> List[str]:
-    """
-    Retrieves a list of share folders that are considered unindexed or have a specific index status.
+) -> list[str]:
+    """Retrieves a list of share folders that are considered unindexed or have a specific index status.
     This tool is useful for identifying network shares that need further processing or analysis.
+
     Args:
+    ----
         search: A general search string to apply across relevant share folder fields (e.g., name, path).
                 Use single argument query only, OR/AND/NOT is not supported. Optional
         limit: The maximum number of share folders to retrieve, default 1000.
@@ -496,8 +544,11 @@ async def get_unindexed_share_folders(
         labels_name__in: List of label names to include share folders by.
         labels_category: Category of labels to include share folders by.
         indexed: Boolean to filter by index status (True for indexed, False for unindexed, None for all).
+
     Returns:
+    -------
         A list of string representations for each unindexed share folder.
+
     """
     async with SessionLocal() as db:
         # Assuming ShareFileFilter can filter by 'type' and potentially 'indexed' status
@@ -516,7 +567,9 @@ async def get_unindexed_share_folders(
 
         # Assuming crud.get_share_files can handle filtering for directories and indexed status
         unindexed_folders = await crud.get_share_files(
-            db, filters=share_folder_filter, limit=limit
+            db,
+            filters=share_folder_filter,
+            limit=limit,
         )
 
         result = sequence_to_string_list(unindexed_folders, schemas.ShareFile)
@@ -528,25 +581,31 @@ async def get_unindexed_share_folders(
 async def get_hosts(
     search: str = "",
     neo4j_limit: int = 10000,
-) -> List[str]:
-    """
-    Retrieves a list of active hosts, excluding those marked with a specific 'skip' label.
+) -> list[str]:
+    """Retrieves a list of active hosts, excluding those marked with a specific 'skip' label.
     This is useful for focusing on relevant hosts for further actions or analysis,
     bypassing hosts that are intentionally excluded (e.g., dead, test, or sensitive hosts).
 
     Args:
+    ----
         search: An optional search string to filter hosts from the graph database (Neo4j).
         neo4j_limit: The maximum number of hosts to retrieve from the graph database.
+
     Returns:
+    -------
         A list of string representations for each filtered host. If no hosts are found,
         returns a list containing the string "No hosts found.".
+
     """
     skip_label_id: str = "e6a57aae-993a-4196-a23a-13a7e5f607a3"
     async with SessionLocal() as db:  # For SQL database access
         # 1. Get hosts from Neo4j
         async with get_async_neo4j_session_context() as graphsession:
             hosts_from_neo4j = await graph_crud.get_computers(
-                graphsession, search, 0, neo4j_limit
+                graphsession,
+                search,
+                0,
+                neo4j_limit,
             )
         log.info(f"Retrieved {len(hosts_from_neo4j)} hosts from Neo4j.")
 
@@ -554,7 +613,7 @@ async def get_hosts(
         skip_hosts_from_sql = await crud.get_hosts(
             db,
             filters=filters.HostFilter(
-                labels=filters.LabelFilter(id__in=[skip_label_id])
+                labels=filters.LabelFilter(id__in=[skip_label_id]),
             ),
             limit=10000,  # Max limit for skip hosts
         )
@@ -569,11 +628,7 @@ async def get_hosts(
         # 4. Filter Neo4j hosts
         filtered_hosts_list = []
         for host in hosts_from_neo4j:
-            host_name = (
-                host.get("name")
-                if isinstance(host, dict)
-                else getattr(host, "name", None)
-            )
+            host_name = host.get("name") if isinstance(host, dict) else getattr(host, "name", None)
 
             if not host_name:
                 log.warning(f"Host found in Neo4j without a 'name' attribute: {host}")
@@ -597,17 +652,20 @@ async def get_hosts(
 async def get_network_shares(
     search: str = "",
     limit: int = 1000,  # Default to a large limit as in your original code
-) -> List[str]:
-    """
-    Retrieves a list of network share UNC paths, excluding those marked with specific 'skip' labels.
+) -> list[str]:
+    """Retrieves a list of network share UNC paths, excluding those marked with specific 'skip' labels.
     This tool is useful for identifying accessible shares that are not otherwise marked for exclusion
     (e.g., test shares, or shares already processed/irrelevant).
 
     Args:
+    ----
         search: An optional search string to filter shares by name or path.
         limit: The maximum number of shares to retrieve. Defaults to 1000.
+
     Returns:
+    -------
         A list of UNC paths (strings) for the filtered network shares.
+
     """
     skip_label_ids = [
         "3f061979-055d-473f-ba15-d7b508f0ba83",
@@ -626,9 +684,7 @@ async def get_network_shares(
         to_skip_unc_paths: set[str] = set()
         for share in all_shares:
             # Assuming 'share.labels' is an iterable of label objects, each with an 'id' attribute
-            if (
-                hasattr(share, "labels") and share.labels
-            ):  # Check if 'labels' attribute exists and is not empty
+            if hasattr(share, "labels") and share.labels:  # Check if 'labels' attribute exists and is not empty
                 for label in share.labels:
                     if str(label.id) in skip_label_ids:
                         # Assuming 'share.unc_path' is the attribute holding the UNC path
@@ -636,7 +692,7 @@ async def get_network_shares(
                             to_skip_unc_paths.add(share.unc_path)
                         else:
                             log.warning(
-                                f"Share object missing 'unc_path' attribute: {share}"
+                                f"Share object missing 'unc_path' attribute: {share}",
                             )
                         break  # No need to check other labels on this share once a skip label is found
 
@@ -650,7 +706,7 @@ async def get_network_shares(
         ]
 
         log.info(
-            f"Returning {len(filtered_shares_unc_paths)} filtered network share UNC paths."
+            f"Returning {len(filtered_shares_unc_paths)} filtered network share UNC paths.",
         )
         return filtered_shares_unc_paths
 
@@ -658,11 +714,11 @@ async def get_network_shares(
 @rg.tool
 async def list_filters(
     model_name: str,
-) -> List[str]:
-    """
-    Retrieves a list of available filters for a given model.
+) -> list[str]:
+    """Retrieves a list of available filters for a given model.
 
     Args:
+    ----
         model_name: The name of the model to retrieve filters for.
             Valid options are: "action", "c2_implant", "c2_job", "c2_output",
             "c2_server", "c2_task", "certificate_authority", "certificate_template",
@@ -672,7 +728,9 @@ async def list_filters(
             "socks_server", "suggestion", "timeline".
 
     Returns:
+    -------
         A list of string representations for each available filter.
+
     """
     async with SessionLocal() as db:
         filters_list = await crud.get_filters_for_model(db, model_name)
@@ -681,10 +739,13 @@ async def list_filters(
 
 @rg.tool
 async def create_suggestion_for_plan_step(
-    plan_step_id: str, name: str, reason: str, playbook_template_id: str, arguments: str
+    plan_step_id: str,
+    name: str,
+    reason: str,
+    playbook_template_id: str,
+    arguments: str,
 ) -> str:
-    """
-    Creates a new suggestion linked to a specific plan step.
+    """Creates a new suggestion linked to a specific plan step.
     IMPORTANT: The `plan_step_id` and `playbook_template_id` MUST be the IDs of existing objects.
     This tool validates that the IDs exist before creating the suggestion.
     Use the `get_plan_steps` and `get_playbook_templates` tools to find valid IDs.
@@ -705,7 +766,10 @@ async def create_suggestion_for_plan_step(
         # Validate playbook_template_id
         playbook_template = await crud.get_playbook_template(playbook_template_id)
         if not playbook_template:
-            return f"Error: Playbook Template with ID '{playbook_template_id}' not found. Please use a valid ID from get_playbook_templates."
+            return (
+                f"Error: Playbook Template with ID '{playbook_template_id}' not found. "
+                + "Please use a valid ID from get_playbook_templates."
+            )
 
         # If validation passes, proceed to create the suggestion
         suggestion_schema = schemas.SuggestionCreate(
@@ -719,14 +783,13 @@ async def create_suggestion_for_plan_step(
             _, created_suggestion = await crud.create_suggestion(db, suggestion_schema)
             return f"Suggestion '{name}' created successfully with ID: {created_suggestion.id}"
         except Exception as e:
-            log.error(f"Failed to create suggestion in database: {e}")
-            return f"Error: An unexpected database error occurred while creating the suggestion."
+            log.exception(f"Failed to create suggestion in database: {e}")
+            return "Error: An unexpected database error occurred while creating the suggestion."
 
 
 @rg.tool
 async def create_plan_step(plan_id: str, description: str, notes: str = "") -> str:
-    """
-    Creates a new step at the end of the specified plan. The order is determined automatically.
+    """Creates a new step at the end of the specified plan. The order is determined automatically.
     Returns the ID of the newly created plan step.
     """
     async with SessionLocal() as db:
@@ -752,13 +815,18 @@ async def create_plan_step(plan_id: str, description: str, notes: str = "") -> s
 async def update_plan_step(
     step_id: str,
     status: t.Literal[
-        "pending", "in_progress", "completed", "failed", "blocked", "skipped"
+        "pending",
+        "in_progress",
+        "completed",
+        "failed",
+        "blocked",
+        "skipped",
     ],
-    notes: Optional[str] = None,
+    notes: str | None = None,
 ) -> str | bool:
-    """
-    Updates the status and notes of an existing plan step.
-    The 'status' parameter MUST be one of the following exact values: 'pending', 'in_progress', 'completed', 'failed', 'blocked', 'skipped'.
+    """Updates the status and notes of an existing plan step.
+    The 'status' parameter MUST be one of the following exact values:
+    'pending', 'in_progress', 'completed', 'failed', 'blocked', 'skipped'.
     Returns True on success, or an error string on failure.
     """
     # Layer 3: Runtime Validation
@@ -781,8 +849,7 @@ async def update_plan_step(
 
 @rg.tool
 async def delete_suggestion(suggestion_id: str) -> str:
-    """
-    Disassociates a suggestion from its plan step by setting its `plan_step_id` to null.
+    """Disassociates a suggestion from its plan step by setting its `plan_step_id` to null.
     This effectively removes the suggestion from the active plan for a cleaner view,
     without permanently deleting it from the database.
     """
@@ -797,12 +864,11 @@ async def delete_suggestion(suggestion_id: str) -> str:
 @rg.tool
 async def update_suggestion(
     suggestion_id: str,
-    name: Optional[str] = None,
-    reason: Optional[str] = None,
-    arguments: Optional[str] = None,
+    name: str | None = None,
+    reason: str | None = None,
+    arguments: str | None = None,
 ) -> str:
-    """
-    Updates the fields of an existing suggestion. All fields are optional.
+    """Updates the fields of an existing suggestion. All fields are optional.
     Use this to refine or correct a suggestion.
     """
     async with SessionLocal() as db:
@@ -827,9 +893,9 @@ async def update_suggestion(
 
 @rg.tool
 async def validate_playbook_arguments(playbook_template_id: str, arguments: str) -> str:
-    """
-    Performs a dry run validation for playbook arguments.
-    It checks that the playbook_template_id exists and that any c2_implant_id included in the arguments corresponds to a real implant.
+    """Performs a dry run validation for playbook arguments.
+    It checks that the playbook_template_id exists and that any c2_implant_id included
+    in the arguments corresponds to a real implant.
     This prevents errors when creating suggestions.
     """
     try:

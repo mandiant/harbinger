@@ -13,13 +13,13 @@
 # limitations under the License.
 
 from datetime import datetime
-from typing import List
+from typing import TYPE_CHECKING
 
 from pydantic import UUID4, BaseModel, ConfigDict, Field
 
-
-from .label import Label
-from .playbook_template import PlaybookTemplateView
+if TYPE_CHECKING:
+    from .label import Label
+    from .playbook_template import PlaybookTemplateView
 
 
 class ActionBase(BaseModel):
@@ -30,8 +30,8 @@ class ActionBase(BaseModel):
 
 class ActionCreate(ActionBase):
     id: UUID4 | str
-    labels: List[str] = Field(default=[], exclude=True)
-    playbook_template_ids: List[UUID4] = Field(default=[], exclude=True)
+    labels: list[str] = Field(default=[], exclude=True)
+    playbook_template_ids: list[UUID4] = Field(default=[], exclude=True)
 
 
 class Action(ActionBase):
@@ -42,5 +42,5 @@ class Action(ActionBase):
     time_started: datetime | None = None
     time_completed: datetime | None = None
 
-    labels: List["Label"] | None = None
-    playbook_templates: List["PlaybookTemplateView"] | None = None
+    labels: list["Label"] | None = None
+    playbook_templates: list["PlaybookTemplateView"] | None = None

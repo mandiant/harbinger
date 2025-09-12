@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import json
-from typing import Any, Optional
+from typing import Any
 
 from pydantic.json import pydantic_encoder
 from temporalio.api.common.v1 import Payload
@@ -32,7 +32,7 @@ class PydanticJSONPayloadConverter(JSONPlainPayloadConverter):
     :py:meth:`to_payload` using the Pydantic encoder.
     """
 
-    def to_payload(self, value: Any) -> Optional[Payload]:
+    def to_payload(self, value: Any) -> Payload | None:
         """Convert all values with Pydantic encoder or fail.
 
         Like the base class, we fail if we cannot convert. This payload
@@ -43,7 +43,10 @@ class PydanticJSONPayloadConverter(JSONPlainPayloadConverter):
         return Payload(
             metadata={"encoding": self.encoding.encode()},
             data=json.dumps(
-                value, separators=(",", ":"), sort_keys=True, default=pydantic_encoder
+                value,
+                separators=(",", ":"),
+                sort_keys=True,
+                default=pydantic_encoder,
             ).encode(),
         )
 
@@ -56,15 +59,13 @@ class PydanticPayloadConverter(CompositePayloadConverter):
     def __init__(self) -> None:
         super().__init__(
             *(
-                c
-                if not isinstance(c, JSONPlainPayloadConverter)
-                else PydanticJSONPayloadConverter()
+                c if not isinstance(c, JSONPlainPayloadConverter) else PydanticJSONPayloadConverter()
                 for c in DefaultPayloadConverter.default_encoding_payload_converters
-            )
+            ),
         )
 
 
 pydantic_data_converter = DataConverter(
-    payload_converter_class=PydanticPayloadConverter
+    payload_converter_class=PydanticPayloadConverter,
 )
 """Data converter using Pydantic JSON conversion."""

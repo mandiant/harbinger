@@ -13,28 +13,27 @@
 # limitations under the License.
 
 import uuid
-from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, relationship
 from sqlalchemy.sql import func
 
-from harbinger.database.database import Base
 from harbinger.database.types import mapped_column
-from .timeline import TimeLine
 
-if TYPE_CHECKING:
-    from .label import Label
+from .timeline import TimeLine
 
 
 class ManualTimelineTask(TimeLine):
     __tablename__ = "manual_timeline_tasks"
     id: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
     )
     time_created: Mapped[DateTime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True),
+        server_default=func.now(),
     )
     status: Mapped[str] = mapped_column(String)
     arguments: Mapped[str] = mapped_column(String)
@@ -52,7 +51,10 @@ class ManualTimelineTask(TimeLine):
     object_type = ""
 
     labels = relationship(
-        "Label", secondary="labeled_item", lazy="joined", viewonly=True
+        "Label",
+        secondary="labeled_item",
+        lazy="joined",
+        viewonly=True,
     )
 
     __mapper_args__ = {

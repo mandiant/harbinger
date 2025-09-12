@@ -7,3 +7,4 @@ grpcio-tools
 isort
 autoflake
 ruff
+pre-commit

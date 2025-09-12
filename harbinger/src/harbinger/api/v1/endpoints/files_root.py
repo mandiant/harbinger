@@ -14,18 +14,16 @@
 
 import os.path
 import uuid
-from typing import List
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request, UploadFile
-from sqlalchemy.ext.asyncio import AsyncSession
-
+from fastapi import APIRouter, Depends, UploadFile
 from harbinger import crud, models, schemas
 from harbinger.config import constants, get_settings
 from harbinger.config.dependencies import current_active_user, get_db
-from harbinger.config.dependencies import current_active_user
 from harbinger.files.client import upload_file
 from harbinger.worker.client import get_client
 from harbinger.worker.workflows import ParseFile
+from sqlalchemy.ext.asyncio import AsyncSession
 
 settings = get_settings()
 
@@ -36,8 +34,8 @@ router = APIRouter()
 async def create_upload_file(
     file: UploadFile,
     file_type: schemas.FileType | str,
-    db: AsyncSession = Depends(get_db),
-    user: models.User = Depends(current_active_user),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     filename = os.path.basename(file.filename or "file")
     file_db = await crud.add_file(
@@ -67,9 +65,9 @@ async def create_upload_file(
 
 @router.post("/upload_files/", tags=["files"])
 async def upload_files(
-    files: List[UploadFile],
-    db: AsyncSession = Depends(get_db),
-    user: models.User = Depends(current_active_user),
+    files: list[UploadFile],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     for file in files:
         filename = os.path.basename(file.filename or "file")
@@ -97,5 +95,5 @@ async def upload_files(
 
 
 @router.get("/file_types/", response_model=schemas.FileTypes, tags=["files"])
-def file_types(user: models.User = Depends(current_active_user)):
+def file_types(user: Annotated[models.User, Depends(current_active_user)]):
     return {"types": [entry.value for entry in schemas.FileType]}

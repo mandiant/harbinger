@@ -15,13 +15,14 @@
 
 
 from datetime import datetime
-from typing import List
+from typing import TYPE_CHECKING
 
 from pydantic import UUID4, BaseModel, ConfigDict
 
-
 from .checklist import ChecklistBase
-from .label import Label
+
+if TYPE_CHECKING:
+    from .label import Label
 
 
 class PlanBase(BaseModel):
@@ -49,5 +50,5 @@ class Plan(PlanBase):
     time_created: datetime | None = None
     time_updated: datetime | None = None
     # steps: List[PlanStep] = []
-    labels: List["Label"] = []
+    labels: list["Label"] = []
     model_config = ConfigDict(from_attributes=True)

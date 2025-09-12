@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from aiobotocore.session import get_session
-from harbinger.config import Settings, get_settings
 from typing import TypedDict
 
+from aiobotocore.session import get_session
+
+from harbinger.config import Settings, get_settings
 
 settings: Settings = get_settings()
 
@@ -36,7 +37,8 @@ class PartInfo(TypedDict):
 
 
 async def create_multipart_upload(
-    key: str, bucket: str = settings.minio_default_bucket
+    key: str,
+    bucket: str = settings.minio_default_bucket,
 ) -> str:
     session = get_session()
     async with session.create_client(
@@ -89,7 +91,7 @@ async def complete_multipart_upload(
         await client.complete_multipart_upload(
             Bucket=bucket,
             UploadId=upload_id,
-            MultipartUpload=dict(Parts=parts),
+            MultipartUpload={"Parts": parts},
             Key=key,
         )  # type:ignore
 
@@ -110,7 +112,9 @@ async def cancel_multipart_upload(
 
 
 async def upload_file(
-    key: str, data: bytes, bucket: str = settings.minio_default_bucket
+    key: str,
+    data: bytes,
+    bucket: str = settings.minio_default_bucket,
 ) -> None:
     session = get_session()
     async with session.create_client(
@@ -127,7 +131,9 @@ async def upload_file(
 
 
 async def download_file(
-    key: str, bucket: str = settings.minio_default_bucket, bytes_range: str = ""
+    key: str,
+    bucket: str = settings.minio_default_bucket,
+    bytes_range: str = "",
 ) -> bytes:
     session = get_session()
     async with session.create_client(
@@ -138,7 +144,9 @@ async def download_file(
     ) as client:
         try:
             response = await client.get_object(
-                Bucket=bucket, Key=key, Range=bytes_range
+                Bucket=bucket,
+                Key=key,
+                Range=bytes_range,
             )  # type: ignore
             async with response["Body"] as stream:
                 return await stream.read()

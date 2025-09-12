@@ -15,14 +15,15 @@
 
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional
+from typing import TYPE_CHECKING, Optional
 
 from pydantic import UUID4, BaseModel, ConfigDict
 
-
 from .implant import Implant
-from .label import Label
 from .required_argument import RequiredArgument
+
+if TYPE_CHECKING:
+    from .label import Label
 
 
 class C2ServerStatus(BaseModel):
@@ -75,8 +76,8 @@ class C2ServerCreate(C2ServerBase):
 class C2Server(C2ServerBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4
-    labels: List["Label"] | None = []
-    status: List[C2ServerStatus] | None = []
+    labels: list["Label"] | None = []
+    status: list[C2ServerStatus] | None = []
 
 
 class C2ServerAll(C2ServerBase):
@@ -134,5 +135,5 @@ class C2ServerTypeYaml(BaseModel):
     docker_image: str
     command: str
     icon_base64: str | None = ""
-    required_arguments: List[RequiredArgument]
-    implants: List[Implant] = []
+    required_arguments: list[RequiredArgument]
+    implants: list[Implant] = []

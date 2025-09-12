@@ -1,12 +1,11 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends
 from fastapi_filter import FilterDepends
 from fastapi_pagination import Page
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from harbinger import crud, models, schemas
+from harbinger import crud, filters, models, schemas
 from harbinger.config.dependencies import current_active_user, get_db
-from harbinger import filters
-from harbinger.config.dependencies import current_active_user
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 
@@ -23,8 +22,8 @@ async def read_passwords(
 @router.post("/", response_model=schemas.Password, tags=["passwords", "crud"])
 async def create_password(
     password: schemas.PasswordCreate,
-    db: AsyncSession = Depends(get_db),
-    user: models.User = Depends(current_active_user),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     return await crud.get_or_create_password(
         db=db,

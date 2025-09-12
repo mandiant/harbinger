@@ -1,24 +1,25 @@
+import contextlib
 import json
 import uuid
+from collections.abc import Iterable
 from datetime import timedelta
-from typing import Iterable, List, Optional, Tuple
 
-import harbinger.proto.v1.messages_pb2 as messages_pb2
 import jinja2
 import yaml
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
-from harbinger import models, schemas
-from harbinger import filters
-from harbinger.database.cache import redis_cache, redis_cache_invalidate
-from harbinger.database.database import SessionLocal
-from harbinger.database.redis_pool import redis
 from pydantic import UUID4, TypeAdapter, ValidationError
 from sqlalchemy import Select, delete, exc, or_, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import func
+
+from harbinger import filters, models, schemas
+from harbinger.database.cache import redis_cache, redis_cache_invalidate
+from harbinger.database.database import SessionLocal
+from harbinger.database.redis_pool import redis
+from harbinger.proto.v1 import messages_pb2
 
 from ._common import DEFAULT_CACHE_TTL, create_filter_for_column, env, to_excel
 from .c2_job import clone_c2_job, create_c2_job
@@ -36,21 +37,25 @@ from .proxy_job import clone_proxy_job, create_proxy_job
 
 
 async def preview_chain_from_template(
-    db: AsyncSession, chain: schemas.PlaybookTemplate, arguments: dict
+    db: AsyncSession,
+    chain: schemas.PlaybookTemplate,
+    arguments: dict,
 ) -> dict:
     labels = await get_labeled_items_list(
-        db, c2_implant_id=arguments.get("c2_implant", None), retrieve_parents=True
+        db,
+        c2_implant_id=arguments.get("c2_implant"),
+        retrieve_parents=True,
     )
     await _process_dynamic_argument_ids(db, arguments)
-    result = dict(steps="", valid=False, errors="", steps_errors="")
+    result = {"steps": "", "valid": False, "errors": "", "steps_errors": ""}
     try:
         value_template = env.from_string(chain.steps or "")
         steps_str = await value_template.render_async(**arguments, labels=labels)
         steps_dict = yaml.safe_load(steps_str)
-        StepValidator = TypeAdapter(List[schemas.Step])
-        result = dict(steps=steps_str, valid=False)
+        StepValidator = TypeAdapter(list[schemas.Step])
+        result = {"steps": steps_str, "valid": False}
         try:
-            steps: List[schemas.Step] = StepValidator.validate_python(steps_dict)
+            StepValidator.validate_python(steps_dict)
             result["valid"] = True
         except ValidationError as e:
             result["steps_errors"] = e.json()
@@ -66,17 +71,21 @@ async def preview_chain_from_template(
 
 
 async def create_chain_from_template(
-    db: AsyncSession, chain: schemas.PlaybookTemplate, arguments: dict
+    db: AsyncSession,
+    chain: schemas.PlaybookTemplate,
+    arguments: dict,
 ) -> models.Playbook:
     labels = await get_labeled_items_list(
-        db, c2_implant_id=arguments.get("c2_implant", None), retrieve_parents=True
+        db,
+        c2_implant_id=arguments.get("c2_implant"),
+        retrieve_parents=True,
     )
     await _process_dynamic_argument_ids(db, arguments)
     value_template = env.from_string(chain.steps or "")
     steps_str = await value_template.render_async(**arguments, labels=labels)
     steps_dict = yaml.safe_load(steps_str)
-    StepValidator = TypeAdapter(List[schemas.Step])
-    steps: List[schemas.Step] = StepValidator.validate_python(steps_dict)
+    StepValidator = TypeAdapter(list[schemas.Step])
+    steps: list[schemas.Step] = StepValidator.validate_python(steps_dict)
     playbook_obj = models.Playbook(
         playbook_name=chain.name,
         status=schemas.Status.created,
@@ -95,7 +104,7 @@ async def create_chain_from_template(
         job = None
         proxy_job_id = None
         c2_job_id = None
-        extra_args = dict()
+        extra_args = {}
         for arg in step.args or []:
             extra_args[arg.name] = arg.value
         if step.type == schemas.C2Type.proxy:
@@ -107,7 +116,7 @@ async def create_chain_from_template(
                 db,
                 schemas.ProxyJobCreate(
                     command=await proxy_job.generate_command(),
-                    proxy_id=arguments.get("proxy_id", None),
+                    proxy_id=arguments.get("proxy_id"),
                     arguments=await proxy_job.generate_arguments(db),
                     input_files=await proxy_job.files(db),
                     socks_server_id=proxy_job.socks_server_id,
@@ -151,7 +160,8 @@ async def create_chain_from_template(
                 data = modifier.model_dump()
                 data["playbook_step_id"] = step_db.id
                 await create_playbook_step_modifier(
-                    db, schemas.PlaybookStepModifierCreate(**data)
+                    db,
+                    schemas.PlaybookStepModifierCreate(**data),
                 )
         count += 1
     await db.commit()
@@ -160,7 +170,8 @@ async def create_chain_from_template(
 
 
 async def create_chain(
-    db: AsyncSession, chain: schemas.ProxyChainCreate
+    db: AsyncSession,
+    chain: schemas.ProxyChainCreate,
 ) -> models.Playbook:
     db_chain = models.Playbook(**chain.model_dump())
     db_chain.status = schemas.Status.created
@@ -173,7 +184,8 @@ async def create_chain(
 
 
 async def clone_chain(
-    db: AsyncSession, chain: models.Playbook | schemas.ProxyChainGraph
+    db: AsyncSession,
+    chain: models.Playbook | schemas.ProxyChainGraph,
 ) -> models.Playbook:
     new_chain = models.Playbook(
         playbook_name=f"Clone of {chain.playbook_name}",
@@ -194,13 +206,12 @@ async def clone_chain(
 
 
 async def get_playbooks(
-    db: AsyncSession, filters: filters.PlaybookFilter, offset: int = 0, limit: int = 0
+    db: AsyncSession,
+    filters: filters.PlaybookFilter,
+    offset: int = 0,
+    limit: int = 0,
 ) -> Iterable[models.Playbook]:
-    q: Select = (
-        select(models.Playbook)
-        .outerjoin(models.Playbook.labels)
-        .group_by(models.Playbook.id)
-    )
+    q: Select = select(models.Playbook).outerjoin(models.Playbook.labels).group_by(models.Playbook.id)
     q = q.outerjoin(models.Playbook.labels)
     q = filters.filter(q)
     q = filters.sort(q)
@@ -211,8 +222,10 @@ async def get_playbooks(
 
 @redis_cache_invalidate(key_prefix="playbook", key_param_name="playbook_id")
 async def update_chain(
-    db: AsyncSession, playbook_id: str, chain: schemas.ProxyChainCreate
-) -> Optional[models.Playbook]:
+    db: AsyncSession,
+    playbook_id: str,
+    chain: schemas.ProxyChainCreate,
+) -> models.Playbook | None:
     db_chain = await db.get(models.Playbook, playbook_id)
     if db_chain:
         db_chain.playbook_name = chain.playbook_name
@@ -230,7 +243,8 @@ async def send_update_playbook(playbook_id: str, event_name: str, id: str = ""):
 
 
 async def get_playbooks_paged(
-    db: AsyncSession, filters: filters.PlaybookFilter
+    db: AsyncSession,
+    filters: filters.PlaybookFilter,
 ) -> Page[models.Playbook]:
     q: Select = select(models.Playbook)
     q = q.outerjoin(models.Playbook.labels)
@@ -252,7 +266,11 @@ async def get_playbooks_filters(db: AsyncSession, filters: filters.PlaybookFilte
     result.extend(lb_entry)
     for field in ["playbook_name", "status"]:
         res = await create_filter_for_column(
-            db, q, getattr(models.Playbook, field), field, field
+            db,
+            q,
+            getattr(models.Playbook, field),
+            field,
+            field,
         )
         result.append(res)
     return result
@@ -265,18 +283,20 @@ async def get_playbooks_filters(db: AsyncSession, filters: filters.PlaybookFilte
     key_param_name="id",
     ttl_seconds=DEFAULT_CACHE_TTL,
 )
-async def get_playbook(db: AsyncSession, id: UUID4 | str) -> Optional[models.Playbook]:
+async def get_playbook(db: AsyncSession, id: UUID4 | str) -> models.Playbook | None:
     return await db.get(models.Playbook, id)
 
 
 async def get_chains(db: AsyncSession) -> Page[models.Playbook]:
     return await paginate(
-        db, select(models.Playbook).order_by(models.Playbook.time_created.desc())
+        db,
+        select(models.Playbook).order_by(models.Playbook.time_created.desc()),
     )
 
 
 async def get_chain_steps_paged(
-    db: AsyncSession, playbook_id: str = ""
+    db: AsyncSession,
+    playbook_id: str = "",
 ) -> Page[models.PlaybookStep]:
     q = select(models.PlaybookStep)
     if playbook_id:
@@ -301,12 +321,14 @@ async def get_playbook_steps(
 
 
 async def get_chain_step(
-    db: AsyncSession, playbook_id: str, number: int
-) -> Optional[models.PlaybookStep]:
+    db: AsyncSession,
+    playbook_id: str,
+    number: int,
+) -> models.PlaybookStep | None:
     q = await db.execute(
         select(models.PlaybookStep)
         .where(models.PlaybookStep.playbook_id == playbook_id)
-        .where(models.PlaybookStep.number == number)
+        .where(models.PlaybookStep.number == number),
     )
     try:
         return q.scalars().unique().one()
@@ -315,8 +337,9 @@ async def get_chain_step(
 
 
 async def get_chain_step_by_id(
-    db: AsyncSession, step_id: str
-) -> Optional[models.PlaybookStep]:
+    db: AsyncSession,
+    step_id: str,
+) -> models.PlaybookStep | None:
     return await db.get(models.PlaybookStep, step_id)
 
 
@@ -364,8 +387,11 @@ async def clone_chain_step(
 
 @redis_cache_invalidate(key_prefix="playbook", key_param_name="playbook_id")
 async def update_chain_status(
-    db: AsyncSession, status: str, playbook_id: str | UUID4, completed: int
-) -> Optional[models.Playbook]:
+    db: AsyncSession,
+    status: str,
+    playbook_id: str | UUID4,
+    completed: int,
+) -> models.Playbook | None:
     from .action import update_action_status
 
     chain = await db.get(models.Playbook, playbook_id)
@@ -383,12 +409,15 @@ async def update_chain_status(
         await redis.publish(f"playbook_stream_{playbook_id}", msg.SerializeToString())
         await update_action_status(db, status, playbook_id)
         return chain
+    return None
 
 
 @redis_cache_invalidate(key_prefix="playbook_step", key_param_name="step_id")
 async def update_step_status(
-    db: AsyncSession, status: str, step_id: str | uuid.UUID
-) -> Optional[models.PlaybookStep]:
+    db: AsyncSession,
+    status: str,
+    step_id: str | uuid.UUID,
+) -> models.PlaybookStep | None:
     step = await db.get(models.PlaybookStep, step_id)
     if step:
         if status in [
@@ -406,16 +435,19 @@ async def update_step_status(
         await db.refresh(step)
         msg = messages_pb2.Event(event="step_status", chain_status=status)
         await redis.publish(
-            f"playbook_stream_{step.playbook_id}", msg.SerializeToString()
+            f"playbook_stream_{step.playbook_id}",
+            msg.SerializeToString(),
         )
         return step
+    return None
 
 
 async def get_chain_step_by_proxy_job_id(
-    db: AsyncSession, job_id: str
-) -> Optional[models.PlaybookStep]:
+    db: AsyncSession,
+    job_id: str,
+) -> models.PlaybookStep | None:
     q = await db.execute(
-        select(models.PlaybookStep).where(models.PlaybookStep.proxy_job_id == job_id)
+        select(models.PlaybookStep).where(models.PlaybookStep.proxy_job_id == job_id),
     )
     try:
         return q.scalars().unique().one()
@@ -424,10 +456,11 @@ async def get_chain_step_by_proxy_job_id(
 
 
 async def get_chain_step_by_c2_job_id(
-    db: AsyncSession, job_id: str | UUID4
-) -> Optional[models.PlaybookStep]:
+    db: AsyncSession,
+    job_id: str | UUID4,
+) -> models.PlaybookStep | None:
     q = await db.execute(
-        select(models.PlaybookStep).where(models.PlaybookStep.c2_job_id == job_id)
+        select(models.PlaybookStep).where(models.PlaybookStep.c2_job_id == job_id),
     )
     try:
         return q.scalars().unique().one()
@@ -445,9 +478,7 @@ async def update_playbook_steps(db: AsyncSession, playbook_id: str | uuid.UUID) 
             step.number = count
             db.add(step)
         await db.execute(
-            update(models.Playbook)
-            .where(models.Playbook.id == playbook_id)
-            .values(steps=count)
+            update(models.Playbook).where(models.Playbook.id == playbook_id).values(steps=count),
         )
         await db.commit()
 
@@ -458,17 +489,17 @@ async def delete_step(db: AsyncSession, step_id: str) -> None:
         playbook_id = db_step.playbook_id
         await delete_input_files(db, db_step.proxy_job_id, db_step.c2_job_id)
         await db.execute(
-            delete(models.PlaybookStep).where(models.PlaybookStep.id == step_id)
+            delete(models.PlaybookStep).where(models.PlaybookStep.id == step_id),
         )
         if db_step.proxy_job_id:
             await db.execute(
                 delete(models.ProxyJob).where(
-                    models.ProxyJob.id == db_step.proxy_job_id
-                )
+                    models.ProxyJob.id == db_step.proxy_job_id,
+                ),
             )
         if db_step.c2_job_id:
             await db.execute(
-                delete(models.C2Job).where(models.C2Job.id == db_step.c2_job_id)
+                delete(models.C2Job).where(models.C2Job.id == db_step.c2_job_id),
             )
         await db.commit()
         if playbook_id:
@@ -487,7 +518,9 @@ async def get_highest_step(db, playbook_id) -> int:
 
 
 async def add_step(
-    db: AsyncSession, step: schemas.ChainStepCreate, add_depends_on: bool | None = True
+    db: AsyncSession,
+    step: schemas.ChainStepCreate,
+    add_depends_on: bool | None = True,
 ) -> models.PlaybookStep:
     if not step.number:
         highest = await get_highest_step(db, step.playbook_id)
@@ -509,8 +542,10 @@ async def add_step(
 
 @redis_cache_invalidate(key_prefix="playbook_step", key_param_name="step_id")
 async def update_step(
-    db: AsyncSession, step_id: str, step: schemas.ChainStepCreate
-) -> Optional[models.PlaybookStep]:
+    db: AsyncSession,
+    step_id: str,
+    step: schemas.ChainStepCreate,
+) -> models.PlaybookStep | None:
     db_step = await get_chain_step_by_id(db, step_id)
     if db_step:
         db_step.number = step.number
@@ -526,7 +561,9 @@ async def update_step(
         if step.playbook_id:
             await update_playbook_steps(db, step.playbook_id)
             await send_update_playbook(
-                str(step.playbook_id), "updated_step", str(db_step.id)
+                str(step.playbook_id),
+                "updated_step",
+                str(db_step.id),
             )
         await db.refresh(db_step)
         return db_step
@@ -541,60 +578,58 @@ async def update_step(
     ttl_seconds=DEFAULT_CACHE_TTL,
 )
 async def get_playbook_template(
-    db: AsyncSession, template_id: str | uuid.UUID
-) -> Optional[models.PlaybookTemplate]:
+    db: AsyncSession,
+    template_id: str | uuid.UUID,
+) -> models.PlaybookTemplate | None:
     return await db.get(models.PlaybookTemplate, template_id)
 
 
 async def get_chain_templates(
-    db: AsyncSession, filters: filters.PlaybookTemplateFilter
+    db: AsyncSession,
+    filters: filters.PlaybookTemplateFilter,
 ) -> Iterable[models.PlaybookTemplate]:
     q: Select = select(models.PlaybookTemplate).outerjoin(
-        models.PlaybookTemplate.labels
+        models.PlaybookTemplate.labels,
     )
     q = filters.filter(q)
-    try:
+    with contextlib.suppress(NotImplementedError):
         q = filters.sort(q)
-    except NotImplementedError:
-        pass
     q = q.group_by(models.PlaybookTemplate.id)
-    if filters.search:
-        if len(filters.search) == 36:
-            q = q.where(
-                or_(
-                    models.PlaybookTemplate.name.ilike(f"%{filters.search}%"),
-                    models.PlaybookTemplate.id == filters.search,
-                )
-            )
+    if filters.search and len(filters.search) == 36:
+        q = q.where(
+            or_(
+                models.PlaybookTemplate.name.ilike(f"%{filters.search}%"),
+                models.PlaybookTemplate.id == filters.search,
+            ),
+        )
     result = await db.execute(q)
     return result.scalars().unique().all()
 
 
 async def get_chain_templates_paged(
-    db: AsyncSession, filters: filters.PlaybookTemplateFilter
+    db: AsyncSession,
+    filters: filters.PlaybookTemplateFilter,
 ) -> Page[models.PlaybookTemplate]:
     q: Select = select(models.PlaybookTemplate).outerjoin(
-        models.PlaybookTemplate.labels
+        models.PlaybookTemplate.labels,
     )
     q = filters.filter(q)
-    try:
+    with contextlib.suppress(NotImplementedError):
         q = filters.sort(q)
-    except NotImplementedError:
-        pass
     q = q.group_by(models.PlaybookTemplate.id)
-    if filters.search:
-        if len(filters.search) == 36:
-            q = q.where(
-                or_(
-                    models.PlaybookTemplate.name.ilike(f"%{filters.search}%"),
-                    models.PlaybookTemplate.id == filters.search,
-                )
-            )
+    if filters.search and len(filters.search) == 36:
+        q = q.where(
+            or_(
+                models.PlaybookTemplate.name.ilike(f"%{filters.search}%"),
+                models.PlaybookTemplate.id == filters.search,
+            ),
+        )
     return await paginate(db, q)
 
 
 async def get_playbook_template_filters(
-    db: AsyncSession, filters: filters.PlaybookTemplateFilter
+    db: AsyncSession,
+    filters: filters.PlaybookTemplateFilter,
 ) -> list[schemas.Filter]:
     result: list[schemas.Filter] = []
     q: Select = (
@@ -605,7 +640,11 @@ async def get_playbook_template_filters(
     q = filters.filter(q)
     for name in ["tactic", "technique"]:
         entry = await create_filter_for_column(
-            db, q, getattr(models.PlaybookTemplate, name), name, name
+            db,
+            q,
+            getattr(models.PlaybookTemplate, name),
+            name,
+            name,
         )
         result.append(entry)
     lb_entry = await get_labels_for_q(db, q)
@@ -614,7 +653,8 @@ async def get_playbook_template_filters(
 
 
 async def create_playbook_template(
-    db: AsyncSession, playbook_template: schemas.PlaybookTemplateCreate
+    db: AsyncSession,
+    playbook_template: schemas.PlaybookTemplateCreate,
 ) -> models.PlaybookTemplate:
     template = await get_playbook_template(playbook_template.id)
     exists = False
@@ -641,39 +681,44 @@ async def create_playbook_template(
                 icon=playbook_template.icon,
                 tactic=playbook_template.tactic,
                 technique=playbook_template.technique,
-            )
+            ),
         )
         await db.commit()
         template = await db.get(models.PlaybookTemplate, playbook_template.id)
         orm_template_instance = await db.get(
-            models.PlaybookTemplate, playbook_template.id
+            models.PlaybookTemplate,
+            playbook_template.id,
         )
         if orm_template_instance:
             template = orm_template_instance
     if exists:
         await delete_label_item(
-            db, schemas.LabeledItemDelete(playbook_template_id=template.id)
+            db,
+            schemas.LabeledItemDelete(playbook_template_id=template.id),
         )
     for entry in playbook_template.labels or []:
         label = await get_label_by_name(db, entry)
         if not label:
             label = await create_label(
-                db, schemas.LabelCreate(name=entry, category="Playbooks")
+                db,
+                schemas.LabelCreate(name=entry, category="Playbooks"),
             )
         await create_label_item(
             db,
             schemas.LabeledItemCreate(
-                label_id=label.id, playbook_template_id=template.id
+                label_id=label.id,
+                playbook_template_id=template.id,
             ),
         )
     return template
 
 
 async def get_playbook_steps_modifiers_paged(
-    db: AsyncSession, playbook_step_id: UUID4 | str
+    db: AsyncSession,
+    playbook_step_id: UUID4 | str,
 ) -> Page[models.PlaybookStepModifier]:
     q = select(models.PlaybookStepModifier).order_by(
-        models.PlaybookStepModifier.time_created.desc()
+        models.PlaybookStepModifier.time_created.desc(),
     )
     if playbook_step_id:
         q = q.where(models.PlaybookStepModifier.playbook_step_id == playbook_step_id)
@@ -681,10 +726,11 @@ async def get_playbook_steps_modifiers_paged(
 
 
 async def get_playbook_steps_modifiers(
-    db: AsyncSession, playbook_step_id: UUID4 | str
+    db: AsyncSession,
+    playbook_step_id: UUID4 | str,
 ) -> Iterable[models.PlaybookStepModifier]:
     q = select(models.PlaybookStepModifier).order_by(
-        models.PlaybookStepModifier.time_created.desc()
+        models.PlaybookStepModifier.time_created.desc(),
     )
     if playbook_step_id:
         q = q.where(models.PlaybookStepModifier.playbook_step_id == playbook_step_id)
@@ -693,7 +739,8 @@ async def get_playbook_steps_modifiers(
 
 
 async def create_playbook_step_modifier(
-    db: AsyncSession, step: schemas.playbook_step.PlaybookStepModifierCreate
+    db: AsyncSession,
+    step: schemas.playbook_step.PlaybookStepModifierCreate,
 ) -> models.PlaybookStepModifier:
     db_step = models.PlaybookStepModifier(**step.model_dump())
     db.add(db_step)
@@ -703,7 +750,8 @@ async def create_playbook_step_modifier(
 
 
 async def get_playbook_step_modifier(
-    db: AsyncSession, step_id: str | UUID4
+    db: AsyncSession,
+    step_id: str | UUID4,
 ) -> models.PlaybookStepModifier | None:
     return await db.get(models.PlaybookStepModifier, step_id)
 
@@ -712,7 +760,7 @@ async def update_playbook_step_modifier(
     db: AsyncSession,
     step_id: str,
     step: schemas.playbook_step.PlaybookStepModifierCreate,
-) -> Optional[models.PlaybookStepModifier]:
+) -> models.PlaybookStepModifier | None:
     step_db = await get_playbook_step_modifier(db, step_id=step_id)
     if step_db:
         q = (
@@ -732,27 +780,31 @@ async def delete_playbook_step_modifier(db: AsyncSession, step_id: str | UUID4) 
     if step_db:
         await db.execute(
             delete(models.PlaybookStepModifier).where(
-                models.PlaybookStepModifier.id == step_id
-            )
+                models.PlaybookStepModifier.id == step_id,
+            ),
         )
         await db.commit()
 
 
 async def delete_action_playbook_mapping(
-    db: AsyncSession, action_id: UUID4 | str
+    db: AsyncSession,
+    action_id: UUID4 | str,
 ) -> None:
     q = delete(models.ActionPlaybook).where(
-        models.ActionPlaybook.action_id == action_id
+        models.ActionPlaybook.action_id == action_id,
     )
     await db.execute(q)
     await db.commit()
 
 
 async def add_action_playbook_mapping(
-    db: AsyncSession, action_id: UUID4 | str, playbook_template_id: UUID4 | str
+    db: AsyncSession,
+    action_id: UUID4 | str,
+    playbook_template_id: UUID4 | str,
 ) -> bool:
     q = insert(models.ActionPlaybook).values(
-        action_id=action_id, playbook_template_id=playbook_template_id
+        action_id=action_id,
+        playbook_template_id=playbook_template_id,
     )
     try:
         await db.execute(q)
@@ -764,7 +816,8 @@ async def add_action_playbook_mapping(
 
 
 async def get_plan_steps_paged(
-    db: AsyncSession, filters: filters.PlanStepFilter
+    db: AsyncSession,
+    filters: filters.PlanStepFilter,
 ) -> Page[models.PlanStep]:
     q: Select = select(models.PlanStep)
     q = q.outerjoin(models.PlanStep.labels)
@@ -775,7 +828,10 @@ async def get_plan_steps_paged(
 
 
 async def get_plan_steps(
-    db: AsyncSession, filters: filters.PlanStepFilter, offset: int = 0, limit: int = 10
+    db: AsyncSession,
+    filters: filters.PlanStepFilter,
+    offset: int = 0,
+    limit: int = 10,
 ) -> Iterable[models.PlanStep]:
     q: Select = select(models.PlanStep)
     q = q.outerjoin(models.PlanStep.labels)
@@ -798,19 +854,24 @@ async def get_plan_steps_filters(db: AsyncSession, filters: filters.PlanStepFilt
     result.extend(lb_entry)
     for field in ["status"]:
         res = await create_filter_for_column(
-            db, q, getattr(models.PlanStep, field), field, field
+            db,
+            q,
+            getattr(models.PlanStep, field),
+            field,
+            field,
         )
         result.append(res)
     return result
 
 
-async def get_plan_step(db: AsyncSession, id: UUID4 | str) -> Optional[models.PlanStep]:
+async def get_plan_step(db: AsyncSession, id: UUID4 | str) -> models.PlanStep | None:
     return await db.get(models.PlanStep, id)
 
 
 async def create_plan_step(
-    db: AsyncSession, plan_step: schemas.PlanStepCreate
-) -> Tuple[bool, models.PlanStep]:
+    db: AsyncSession,
+    plan_step: schemas.PlanStepCreate,
+) -> tuple[bool, models.PlanStep]:
     data = plan_step.model_dump()
     q = insert(models.PlanStep).values(**data).values(time_created=func.now())
     data["time_updated"] = func.now()
@@ -821,11 +882,13 @@ async def create_plan_step(
     )
     await db.commit()
     result = result.unique().one()
-    return (result.time_updated == None, result)
+    return (result.time_updated is None, result)
 
 
 async def update_plan_step(
-    db: AsyncSession, id: str | uuid.UUID, plan_step: schemas.PlanStepUpdate
+    db: AsyncSession,
+    id: str | uuid.UUID,
+    plan_step: schemas.PlanStepUpdate,
 ) -> None:
     q = (
         update(models.PlanStep)
@@ -837,14 +900,14 @@ async def update_plan_step(
 
 
 async def get_highest_plan_step_order(
-    db: AsyncSession, plan_id: str | uuid.UUID
+    db: AsyncSession,
+    plan_id: str | uuid.UUID,
 ) -> int:
-    """
-    Retrieves the highest 'order' number for the steps in a given plan.
+    """Retrieves the highest 'order' number for the steps in a given plan.
     Returns 0 if the plan has no steps.
     """
     q = select(func.max(models.PlanStep.order)).where(
-        models.PlanStep.plan_id == plan_id
+        models.PlanStep.plan_id == plan_id,
     )
     result = await db.execute(q)
     highest_order = result.scalar_one_or_none()

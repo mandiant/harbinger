@@ -27,6 +27,6 @@ def list_credentials(args):
                     "password": c.get("password").get("password")
                     if c.get("password")
                     else "",
-                }
+                },
             )
         print_output(output_data, headers, args.output)

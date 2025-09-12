@@ -1,27 +1,30 @@
-from typing import Any, Iterable, Optional
+from collections.abc import Iterable
+from typing import Any
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
-from harbinger import models, schemas
-from harbinger import filters
-from harbinger.database.cache import redis_cache, redis_cache_invalidate
-from harbinger.database.database import SessionLocal
 from pydantic import UUID4
 from sqlalchemy import Select, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import func
 
+from harbinger import filters, models, schemas
+from harbinger.database.cache import redis_cache, redis_cache_invalidate
+from harbinger.database.database import SessionLocal
+
 from ._common import DEFAULT_CACHE_TTL, create_filter_for_column
-from .file import create_input_file
+from .file import create_input_file, delete_input_files
 from .label import get_labels_for_q
 
 
 async def clone_c2_job(
-    db: AsyncSession, c2_job_id: str, playbook_id: str | None = None
+    db: AsyncSession,
+    c2_job_id: str,
+    playbook_id: str | None = None,
 ) -> models.C2Job | None:
     c2_job = await db.get(models.C2Job, c2_job_id)
     if c2_job:
-        new_c2_job = await create_c2_job(
+        return await create_c2_job(
             db,
             schemas.C2JobCreate(
                 command=c2_job.command,
@@ -32,11 +35,12 @@ async def clone_c2_job(
                 playbook_id=playbook_id,
             ),
         )
-        return new_c2_job
+    return None
 
 
 async def get_c2_jobs_paged(
-    db: AsyncSession, filters: filters.C2JobFilter
+    db: AsyncSession,
+    filters: filters.C2JobFilter,
 ) -> Page[models.C2Job]:
     q: Select = select(models.C2Job)
     q = q.outerjoin(models.C2Job.labels)
@@ -58,19 +62,24 @@ async def get_c2_jobs_filters(db: AsyncSession, filters: filters.C2JobFilter):
     result.extend(lb_entry)
     for field in ["status", "command", "arguments"]:
         res = await create_filter_for_column(
-            db, q, getattr(models.C2Job, field), field, field
+            db,
+            q,
+            getattr(models.C2Job, field),
+            field,
+            field,
         )
         result.append(res)
     return result
 
 
 async def get_c2_jobs(
-    db: AsyncSession, completed_only: bool = False
+    db: AsyncSession,
+    completed_only: bool = False,
 ) -> Iterable[models.C2Job]:
     q = select(models.C2Job)
     if completed_only:
         q = q.where(models.C2Job.time_completed.isnot(None)).order_by(
-            models.C2Job.time_completed.asc()
+            models.C2Job.time_completed.asc(),
         )
     result = await db.execute(q)
     return result.scalars().unique().all()
@@ -96,14 +105,16 @@ async def create_c2_job(db: AsyncSession, job: schemas.C2JobCreate) -> models.C2
     key_param_name="job_id",
     ttl_seconds=DEFAULT_CACHE_TTL,
 )
-async def get_c2_job(db: AsyncSession, job_id: str | UUID4) -> Optional[models.C2Job]:
+async def get_c2_job(db: AsyncSession, job_id: str | UUID4) -> models.C2Job | None:
     return await db.get(models.C2Job, job_id)
 
 
 @redis_cache_invalidate(key_prefix="c2_job", key_param_name="c2_job_id")
 async def update_c2_job(
-    db: AsyncSession, c2_job_id: str | UUID4, job: schemas.C2JobCreate
-) -> Optional[models.C2Job]:
+    db: AsyncSession,
+    c2_job_id: str | UUID4,
+    job: schemas.C2JobCreate,
+) -> models.C2Job | None:
     from .playbook import send_update_playbook
 
     values = job.model_dump()
@@ -122,9 +133,12 @@ async def update_c2_job(
 
 @redis_cache_invalidate(key_prefix="c2_job", key_param_name="c2_job_id")
 async def update_c2_job_status(
-    db: AsyncSession, c2_job_id: str | UUID4, status: str, message: str = ""
+    db: AsyncSession,
+    c2_job_id: str | UUID4,
+    status: str,
+    message: str = "",
 ) -> None:
-    values = dict(status=status)
+    values = {"status": status}
     if message:
         values["message"] = message
     if status == schemas.Status.running:
@@ -137,8 +151,9 @@ async def update_c2_job_status(
 
 
 async def get_c2_job_status_by_task(
-    db: AsyncSession, c2_task_id: str | UUID4 | None = None
-) -> Optional[models.C2Job]:
+    db: AsyncSession,
+    c2_task_id: str | UUID4 | None = None,
+) -> models.C2Job | None:
     q = select(models.C2Job)
     if c2_task_id:
         q = q.where(models.C2Job.c2_task_id == c2_task_id)
@@ -147,12 +162,10 @@ async def get_c2_job_status_by_task(
 
 
 async def update_c2_job_c2_task_id(
-    db: AsyncSession, c2_job_id: UUID4 | str, c2_task_id: UUID4 | str
+    db: AsyncSession,
+    c2_job_id: UUID4 | str,
+    c2_task_id: UUID4 | str,
 ) -> None:
-    q = (
-        update(models.C2Job)
-        .where(models.C2Job.id == c2_job_id)
-        .values(c2_task_id=c2_task_id)
-    )
+    q = update(models.C2Job).where(models.C2Job.id == c2_job_id).values(c2_task_id=c2_task_id)
     await db.execute(q)
     await db.commit()

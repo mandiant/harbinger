@@ -1,28 +1,25 @@
-from typing import Iterable, Optional, Tuple
+from collections.abc import Iterable
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
-from harbinger import models, schemas
-from harbinger import filters
-from harbinger.database.cache import redis_cache, redis_cache_fixed_key
-from harbinger.database.database import SessionLocal
 from pydantic import UUID4
 from sqlalchemy import Select, exc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import func
+
+from harbinger import filters, models, schemas
+from harbinger.database.cache import redis_cache, redis_cache_fixed_key
+from harbinger.database.database import SessionLocal
 
 from ._common import DEFAULT_CACHE_TTL
 from .label import create_label_item, get_labels_for_q
 
 
 async def get_or_create_share(
-    db: AsyncSession, share: schemas.ShareCreate
-) -> Tuple[bool, models.Share]:
-    s = (
-        select(models.Share)
-        .where(models.Share.name == share.name)
-        .where(models.Share.host_id == share.host_id)
-    )
+    db: AsyncSession,
+    share: schemas.ShareCreate,
+) -> tuple[bool, models.Share]:
+    s = select(models.Share).where(models.Share.name == share.name).where(models.Share.host_id == share.host_id)
     q = await db.execute(s)
     db_share = q.scalars().first()
     if not db_share:
@@ -33,8 +30,7 @@ async def get_or_create_share(
             await db.refresh(db_share)
             if share.name and (
                 "$" in share.name
-                or share.name.lower()
-                in ["sysvol", "wsuscontent", "wsustemp", "updateservicespackages"]
+                or share.name.lower() in ["sysvol", "wsuscontent", "wsustemp", "updateservicespackages"]
             ):
                 await create_label_item(
                     db,
@@ -51,17 +47,19 @@ async def get_or_create_share(
 
 
 async def list_shares_paged(
-    db, share_filters: filters.ShareFilter
+    db,
+    share_filters: filters.ShareFilter,
 ) -> Page[models.Share]:
-    q: Select = (
-        select(models.Share).outerjoin(models.Share.labels).group_by(models.Share.id)
-    )
+    q: Select = select(models.Share).outerjoin(models.Share.labels).group_by(models.Share.id)
     q = share_filters.filter(q)
     return await paginate(db, q)
 
 
 async def get_shares(
-    db: AsyncSession, filters: filters.ShareFilter, offset: int = 0, limit: int = 10
+    db: AsyncSession,
+    filters: filters.ShareFilter,
+    offset: int = 0,
+    limit: int = 10,
 ) -> Iterable[models.Share]:
     q: Select = select(models.Share)
     q = q.outerjoin(models.Share.labels)
@@ -73,7 +71,8 @@ async def get_shares(
 
 
 async def get_share_filters(
-    db: AsyncSession, share_filters: filters.ShareFilter
+    db: AsyncSession,
+    share_filters: filters.ShareFilter,
 ) -> list[schemas.Filter]:
     result: list[schemas.Filter] = []
     q: Select = (
@@ -94,7 +93,7 @@ async def get_share_filters(
     key_param_name="share_id",
     ttl_seconds=DEFAULT_CACHE_TTL,
 )
-async def get_share(db: AsyncSession, share_id: str | UUID4) -> Optional[models.Share]:
+async def get_share(db: AsyncSession, share_id: str | UUID4) -> models.Share | None:
     return await db.get(models.Share, share_id)
 
 
@@ -117,15 +116,15 @@ async def get_share_statistics(db: AsyncSession) -> dict:
     result = await db.execute(q)
     entry = result.scalars().first()
     stats["Highlights"] = entry
-    return dict(items=[dict(key=key, value=value) for key, value in stats.items()])
+    return {"items": [{"key": key, "value": value} for key, value in stats.items()]}
 
 
 async def indexer_list_shares(
-    db: AsyncSession, max_shares: int = 0, not_label_ids: list[str] | None = None
+    db: AsyncSession,
+    max_shares: int = 0,
+    not_label_ids: list[str] | None = None,
 ) -> Iterable[models.Share]:
-    """
-    List shares
-    """
+    """List shares"""
     q = select(models.Share)
     q = q.filter(~models.Share.id.in_(select(models.ShareFile.share_id).distinct()))
     if max_shares > 0:

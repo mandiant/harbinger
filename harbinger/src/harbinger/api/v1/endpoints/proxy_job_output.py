@@ -1,16 +1,16 @@
 from fastapi import APIRouter, Depends
 from fastapi_pagination import Page
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from harbinger import crud, models, schemas
 from harbinger.config.dependencies import current_active_user, get_db
-from harbinger.config.dependencies import current_active_user
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 
 
 @router.get(
-    "/", response_model=Page[schemas.ProxyJobOutput], tags=["proxy_jobs", "crud"]
+    "/",
+    response_model=Page[schemas.ProxyJobOutput],
+    tags=["proxy_jobs", "crud"],
 )
 async def read_proxy_job_output(
     job_id: str = "",

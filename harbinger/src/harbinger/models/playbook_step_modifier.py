@@ -26,7 +26,9 @@ from harbinger.database.types import mapped_column
 class PlaybookStepModifier(Base):
     __tablename__ = "playbook_step_modifier"
     id: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
     )
     regex: Mapped[str] = mapped_column(String)
     input_path: Mapped[str] = mapped_column(String)
@@ -37,8 +39,10 @@ class PlaybookStepModifier(Base):
     data: Mapped[str] = mapped_column(String)
     status_message: Mapped[str] = mapped_column(String)
     playbook_step_id: Mapped[UUID] = mapped_column(
-        ForeignKey("playbook_step.id"), nullable=True
+        ForeignKey("playbook_step.id"),
+        nullable=True,
     )
     time_created: Mapped[DateTime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True),
+        server_default=func.now(),
     )

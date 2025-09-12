@@ -100,3 +100,32 @@ Quasar was not installed correctly use the next command to install:
 ```bash
 npm install -g @quasar/cli
 ```
+
+## Code Quality and Pre-commit Hooks
+
+This project uses `pre-commit` to automatically run code quality checks before each commit. This helps maintain a consistent and high-quality codebase. The configured tools are `ruff` (for linting and formatting) and `mypy` (for static type checking).
+
+### Setup
+
+After you've installed the development dependencies with `pip install -r requirements_dev.txt`, you need to install the Git hooks:
+
+```bash
+pre-commit install
+```
+
+This command only needs to be run once per local clone of the repository.
+
+### How it Works
+
+Once installed, the pre-commit hooks will run automatically every time you run `git commit`.
+
+-   If all checks pass, your commit will proceed as normal.
+-   If any check fails (e.g., `ruff` reformats a file), the commit will be aborted. You can then review the changes, `git add` the modified files, and run `git commit` again.
+
+### Manual Trigger
+
+You can run all the pre-commit checks on all files in the repository at any time with the following command:
+
+```bash
+pre-commit run --all-files
+```

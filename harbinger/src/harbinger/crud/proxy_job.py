@@ -1,16 +1,18 @@
+import contextlib
 import uuid
-from typing import Any, Iterable, Optional
+from collections.abc import Iterable
+from typing import Any
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
-from harbinger import models, schemas
-from harbinger import filters
-from harbinger.database.cache import redis_cache, redis_cache_invalidate
-from harbinger.database.database import SessionLocal
 from pydantic import UUID4
 from sqlalchemy import Select, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import func
+
+from harbinger import filters, models, schemas
+from harbinger.database.cache import redis_cache, redis_cache_invalidate
+from harbinger.database.database import SessionLocal
 
 from ._common import DEFAULT_CACHE_TTL
 from .file import create_input_file, delete_input_files
@@ -24,15 +26,18 @@ from .file import create_input_file, delete_input_files
     ttl_seconds=DEFAULT_CACHE_TTL,
 )
 async def get_proxy_job(
-    db: AsyncSession, job_id: str | UUID4
-) -> Optional[models.ProxyJob]:
+    db: AsyncSession,
+    job_id: str | UUID4,
+) -> models.ProxyJob | None:
     return await db.get(models.ProxyJob, job_id)
 
 
 @redis_cache_invalidate(key_prefix="proxy_job", key_param_name="job_id")
 async def update_proxy_job(
-    db: AsyncSession, job_id: str | UUID4, job: schemas.ProxyJobCreate
-) -> Optional[models.ProxyJob]:
+    db: AsyncSession,
+    job_id: str | UUID4,
+    job: schemas.ProxyJobCreate,
+) -> models.ProxyJob | None:
     from .playbook import send_update_playbook
 
     values = job.model_dump()
@@ -46,15 +51,20 @@ async def update_proxy_job(
     proxy_job = await db.get(models.ProxyJob, job_id)
     if proxy_job and proxy_job.playbook_id:
         await send_update_playbook(
-            proxy_job.playbook_id, "updated_proxy_job", str(proxy_job.id)
+            proxy_job.playbook_id,
+            "updated_proxy_job",
+            str(proxy_job.id),
         )
     return proxy_job
 
 
 @redis_cache_invalidate(key_prefix="proxy_job", key_param_name="job_id")
 async def update_proxy_job_status(
-    db: AsyncSession, status: str | None, job_id: str | UUID4, exit_code: int = 0
-) -> Optional[models.ProxyJob]:
+    db: AsyncSession,
+    status: str | None,
+    job_id: str | UUID4,
+    exit_code: int = 0,
+) -> models.ProxyJob | None:
     job = await db.get(models.ProxyJob, job_id)
     if job:
         if status == schemas.Status.started:
@@ -67,30 +77,29 @@ async def update_proxy_job_status(
         await db.commit()
         await db.refresh(job)
         return job
+    return None
 
 
 async def get_proxy_jobs_paged(
-    db: AsyncSession, filters: filters.SocksJobFilter
+    db: AsyncSession,
+    filters: filters.SocksJobFilter,
 ) -> Page[models.ProxyJob]:
     q: Select = select(models.ProxyJob)
     q = q.outerjoin(models.ProxyJob.labels)
     q = filters.filter(q)
-    try:
+    with contextlib.suppress(NotImplementedError):
         q = filters.sort(q)
-    except NotImplementedError:
-        pass
     q = q.group_by(models.ProxyJob.id)
     return await paginate(db, q)
 
 
 async def get_proxy_jobs(
-    db: AsyncSession, filters: filters.SocksJobFilter, offset: int = 0, limit: int = 10
+    db: AsyncSession,
+    filters: filters.SocksJobFilter,
+    offset: int = 0,
+    limit: int = 10,
 ) -> Iterable[models.ProxyJob]:
-    q: Select = (
-        select(models.ProxyJob)
-        .outerjoin(models.ProxyJob.labels)
-        .group_by(models.ProxyJob.id)
-    )
+    q: Select = select(models.ProxyJob).outerjoin(models.ProxyJob.labels).group_by(models.ProxyJob.id)
     q = filters.filter(q)
     q = q.offset(offset).limit(limit)
     q = q.order_by(models.ProxyJob.time_created.desc())
@@ -99,7 +108,8 @@ async def get_proxy_jobs(
 
 
 async def create_proxy_job(
-    db: AsyncSession, proxy_job: schemas.ProxyJobCreate
+    db: AsyncSession,
+    proxy_job: schemas.ProxyJobCreate,
 ) -> models.ProxyJob:
     entries: dict[str, Any] = proxy_job.model_dump()
     input_files = entries.pop("input_files")
@@ -114,7 +124,8 @@ async def create_proxy_job(
 
 
 async def create_proxy_job_output(
-    db: AsyncSession, output: schemas.ProxyJobOutputCreate
+    db: AsyncSession,
+    output: schemas.ProxyJobOutputCreate,
 ) -> None:
     proxy_job_output = models.ProxyJobOutput()
     proxy_job_output.output = output.output
@@ -124,7 +135,9 @@ async def create_proxy_job_output(
 
 
 async def get_proxy_job_output_paged(
-    db: AsyncSession, job_id: str = "", type: str = ""
+    db: AsyncSession,
+    job_id: str = "",
+    type: str = "",
 ) -> Page[models.ProxyJobOutput]:
     q = select(models.ProxyJobOutput)
     if job_id:
@@ -135,7 +148,9 @@ async def get_proxy_job_output_paged(
 
 
 async def get_proxy_job_output(
-    db: AsyncSession, job_id: str | uuid.UUID = "", type: str = ""
+    db: AsyncSession,
+    job_id: str | uuid.UUID = "",
+    type: str = "",
 ) -> Iterable[models.ProxyJobOutput]:
     q = select(models.ProxyJobOutput)
     if job_id:
@@ -148,11 +163,13 @@ async def get_proxy_job_output(
 
 
 async def clone_proxy_job(
-    db: AsyncSession, proxy_job_id: str, playbook_id: str | None = None
+    db: AsyncSession,
+    proxy_job_id: str,
+    playbook_id: str | None = None,
 ) -> models.ProxyJob | None:
     proxy_job = await db.get(models.ProxyJob, proxy_job_id)
     if proxy_job:
-        new_proxy_job = await create_proxy_job(
+        return await create_proxy_job(
             db,
             schemas.ProxyJobCreate(
                 credential_id=proxy_job.credential_id,
@@ -168,4 +185,4 @@ async def clone_proxy_job(
                 socks_server_id=proxy_job.socks_server_id,
             ),
         )
-        return new_proxy_job
+    return None

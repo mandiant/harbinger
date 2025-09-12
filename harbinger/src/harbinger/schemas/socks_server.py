@@ -14,12 +14,12 @@
 
 
 from enum import Enum
-from typing import List
+from typing import TYPE_CHECKING
 
 from pydantic import UUID4, BaseModel, ConfigDict
 
-
-from .label import Label
+if TYPE_CHECKING:
+    from .label import Label
 
 
 class SocksServerType(str, Enum):
@@ -47,4 +47,4 @@ class SocksServerCreate(SocksServerBase):
 class SocksServer(SocksServerBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4
-    labels: List["Label"] | None = []
+    labels: list["Label"] | None = []

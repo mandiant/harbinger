@@ -13,11 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from io import BytesIO
+import builtins
+import contextlib
 import json
 import logging
-import click
+from io import BytesIO
 
+import click
 from impacket.dcerpc.v5.dcom import wmi
 from impacket.dcerpc.v5.dcomrt import DCOMConnection
 from impacket.dcerpc.v5.dtypes import NULL
@@ -67,24 +69,25 @@ def list_processes(
             oxidResolver=True,
         )
 
-        iInterface = dcom.CoCreateInstanceEx(
-            wmi.CLSID_WbemLevel1Login, wmi.IID_IWbemLevel1Login
+        i_interface = dcom.CoCreateInstanceEx(
+            wmi.CLSID_WbemLevel1Login,
+            wmi.IID_IWbemLevel1Login,
         )
         click.echo("Connected!")
-        iWbemLevel1Login = wmi.IWbemLevel1Login(iInterface)
-        iWbemServices = iWbemLevel1Login.NTLMLogin("//./root/cimv2", NULL, NULL)
+        i_wbem_level1_login = wmi.IWbemLevel1Login(i_interface)
+        i_wbem_services = i_wbem_level1_login.NTLMLogin("//./root/cimv2", NULL, NULL)
 
-        iWbemLevel1Login.RemRelease()
+        i_wbem_level1_login.RemRelease()
         # "Select Name, Description, ExecutablePath, ProcessId, ParentProcessId, CommandLine FROM Win32_Process"
-        iEnumWbemClassObject = iWbemServices.ExecQuery(
-            "Select Name, Description, ExecutablePath, ProcessId, ParentProcessId, CommandLine, Handle FROM Win32_Process"
+        i_enum_wbem_class_object = i_wbem_services.ExecQuery(
+            "Select Name, Description, ExecutablePath, ProcessId, ParentProcessId, CommandLine, Handle FROM Win32_Process",
         )
         results = []
         while True:
             try:
-                pEnum = iEnumWbemClassObject.Next(0xFFFFFFFF, 1)[0]
+                pEnum = i_enum_wbem_class_object.Next(0xFFFFFFFF, 1)[0]
                 record = pEnum.getProperties()
-                result = dict(user="")
+                result = {"user": ""}
                 for key, value in record.items():
                     result[key.lower()] = value["value"]
                 if load_owners and result.get("name", "") != "lsass.exe":
@@ -108,25 +111,22 @@ def list_processes(
             except Exception as e:
                 if str(e).find("S_FALSE") < 0:
                     raise
-                else:
-                    break
-        iEnumWbemClassObject.RemRelease()
+                break
+        i_enum_wbem_class_object.RemRelease()
 
-        json.dump(dict(target=target, data=results), fp=output)
+        json.dump({"target": target, "data": results}, fp=output)
 
         click.echo(f"Retrieved {len(results)} processes from {target}")
 
-        iWbemServices.RemRelease()
+        i_wbem_services.RemRelease()
         dcom.disconnect()
     except Exception as e:
-        logging.error(str(e))
+        logging.exception(str(e))
         import traceback
 
         traceback.print_exc()
-        try:
+        with contextlib.suppress(builtins.BaseException):
             dcom.disconnect()
-        except:
-            pass
 
 
 if __name__ == "__main__":

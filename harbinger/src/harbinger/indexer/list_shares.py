@@ -14,18 +14,18 @@
 
 import asyncio
 import traceback
-from aiosmb.commons.connection.factory import SMBConnectionFactory
-from aiosmb.commons.interfaces.machine import SMBMachine
-from sqlalchemy.ext.asyncio import AsyncSession
+
 import structlog
-from harbinger.database.database import SessionLocal
-from harbinger import crud
-from harbinger import schemas
-from asyauth.common.credentials import UniCredential
-from asysocks.unicomm.common.proxy import UniProxyTarget
+from aiosmb.commons.connection.factory import SMBConnectionFactory
+from aiosmb.commons.connection.target import SMBConnectionDialect, SMBTarget
+from aiosmb.commons.interfaces.machine import SMBMachine
 from alive_progress import alive_bar
 from anyio.abc import TaskGroup
-from aiosmb.commons.connection.target import SMBTarget, SMBConnectionDialect
+from asyauth.common.credentials import UniCredential
+from asysocks.unicomm.common.proxy import UniProxyTarget
+
+from harbinger import crud, schemas
+from harbinger.database.database import SessionLocal
 
 
 class ListShares:
@@ -52,13 +52,17 @@ class ListShares:
                 count = await self.list_shares_on_host(hostname)
                 self.logger.info(f"{name} found {count} shares on {hostname}")
             except Exception as e:
-                self.logger.error(f"Exception {e}")
+                self.logger.exception(f"Exception {e}")
             finally:
                 self.queue.task_done()
                 self.bar()
 
     async def run(
-        self, hosts: list, workers: int, max_hosts: int = 100000000, wait: int = 0
+        self,
+        hosts: list,
+        workers: int,
+        max_hosts: int = 100000000,
+        wait: int = 0,
     ) -> None:
         for i in range(workers):
             self.tg.start_soon(self.worker, f"worker-{i}")
@@ -80,7 +84,8 @@ class ListShares:
 
     async def list_shares_on_host(self, hostname: str) -> int:
         target = SMBTarget(
-            hostname=hostname, proxies=[self.proxy] if self.proxy else []
+            hostname=hostname,
+            proxies=[self.proxy] if self.proxy else [],
         )
         if self.smbv3:
             target.update_dialect(SMBConnectionDialect.SMB3)
@@ -96,7 +101,7 @@ class ListShares:
                 self.logger.debug(f"Error during connection: {err}")
                 return 0
         except Exception as e:
-            self.logger.debug(f"Exception during connection: {str(e)}")
+            self.logger.debug(f"Exception during connection: {e!s}")
             return 0
 
         machine = SMBMachine(connection)
@@ -120,15 +125,15 @@ class ListShares:
                     if created:
                         count += 1
                         self.logger.info(
-                            f"Created share with name: {share.name} and unc_path: {share.unc_path}"
+                            f"Created share with name: {share.name} and unc_path: {share.unc_path}",
                         )
                     else:
                         self.logger.debug(
-                            f"Share with name: {share.name} and unc_path: {share.unc_path} already exists"
+                            f"Share with name: {share.name} and unc_path: {share.unc_path} already exists",
                         )
                 await session.commit()
         except Exception as e:
-            self.logger.error(f"Exception: {e}")
+            self.logger.exception(f"Exception: {e}")
             traceback.print_exc()
         finally:
             await connection.disconnect()

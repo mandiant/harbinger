@@ -14,12 +14,12 @@
 
 
 from datetime import datetime
-from typing import List
+from typing import TYPE_CHECKING
 
 from pydantic import UUID4, AliasChoices, BaseModel, ConfigDict, Field, field_validator
 
-
-from .label import Label
+if TYPE_CHECKING:
+    from .label import Label
 
 
 class C2TaskStatus(BaseModel):
@@ -37,7 +37,9 @@ class C2TaskBase(BaseModel):
     display_params: str | None = None
     time_started: datetime | None = Field(
         validation_alias=AliasChoices(
-            "status_timestamp_processing", "started_at", "time_started"
+            "status_timestamp_processing",
+            "started_at",
+            "time_started",
         ),
         default=None,
     )
@@ -46,15 +48,18 @@ class C2TaskBase(BaseModel):
         default=None,
     )
     command_name: str | None = Field(
-        validation_alias=AliasChoices("command_name", "command"), default=""
+        validation_alias=AliasChoices("command_name", "command"),
+        default="",
     )
     operator: str | None = Field(
-        validation_alias=AliasChoices("operator", "user", "created_by"), default=""
+        validation_alias=AliasChoices("operator", "user", "created_by"),
+        default="",
     )
     ai_summary: str | None = ""
     processing_status: str | None = ""
 
     @field_validator("processing_status")
+    @classmethod
     def set_processing_status(cls, processing_status):
         return processing_status or ""
 
@@ -66,4 +71,4 @@ class C2TaskCreate(C2TaskBase):
 class C2Task(C2TaskBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4 | str
-    labels: List["Label"] | None = []
+    labels: list["Label"] | None = []

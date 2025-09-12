@@ -13,16 +13,18 @@
 # limitations under the License.
 
 # Python script that will apply the migrations up to head
-import os
-from alembic.config import Config
-from alembic import command
-from harbinger.config import get_settings
-from pathlib import Path
 import logging
-import click
+import os
 import socket
-import backoff
 import sys
+from pathlib import Path
+
+import backoff
+import click
+from alembic import command
+from alembic.config import Config
+
+from harbinger.config import get_settings
 
 settings = get_settings()
 
@@ -37,7 +39,7 @@ def enable_logger():
     handler = logging.StreamHandler(sys.stdout)
     handler.setLevel(logging.INFO)
     formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
     handler.setFormatter(formatter)
     root.addHandler(handler)

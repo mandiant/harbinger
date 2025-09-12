@@ -13,34 +13,33 @@
 # limitations under the License.
 
 import uuid
-from typing import TYPE_CHECKING
 
 from sqlalchemy import (
+    JSON,
     Boolean,
     DateTime,
     ForeignKey,
     Integer,
     String,
-    JSON,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, relationship, validates
 from sqlalchemy.sql import func
 
-from ..database.database import Base
-from ..database.types import mapped_column
-
-if TYPE_CHECKING:
-    from .domain import Domain
+from harbinger.database.database import Base
+from harbinger.database.types import mapped_column
 
 
 class SituationalAwareness(Base):
     __tablename__ = "situational_awareness"
     id: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
     )
     time_created: Mapped[DateTime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True),
+        server_default=func.now(),
     )
     name: Mapped[str] = mapped_column(String)
     category: Mapped[str] = mapped_column(String)

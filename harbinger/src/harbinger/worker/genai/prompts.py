@@ -13,19 +13,19 @@
 # limitations under the License.
 
 import json
-import rigging as rg
-from harbinger.config import get_settings
-from pydantic import field_validator
-import typing as t
-import yaml
 import re
+import typing as t
 import uuid
+
+import rigging as rg
+import yaml
+from harbinger import schemas
+from harbinger.config import get_settings
+from harbinger.worker.genai import prompt_vars
 from pydantic import (
     ValidationError as PydanticValidationError,
 )
-from harbinger import schemas
-from harbinger.worker.genai import prompt_vars
-
+from pydantic import field_validator
 
 settings = get_settings()
 
@@ -111,7 +111,7 @@ safety_settings = [
 
 generator = rg.get_generator(
     settings.gemini_model,
-    params=rg.GenerateParams(extra=dict(safety_settings=safety_settings)),
+    params=rg.GenerateParams(extra={"safety_settings": safety_settings}),
 )
 
 
@@ -134,21 +134,20 @@ class ListOfCredentials(rg.Model):
                     password="password",
                     username="username",
                     domain="test.local",
-                )
+                ),
             ],
         ).to_pretty_xml()
 
 
 class Summary(rg.Model):
     text: t.Annotated[
-        str, rg.Ctx(example="Used wmiexec.py to execute cmd.exe on HOSTNAME.LOCAL")
+        str,
+        rg.Ctx(example="Used wmiexec.py to execute cmd.exe on HOSTNAME.LOCAL"),
     ] = rg.element()
     error: t.Annotated[bool, rg.Ctx(example="False")] = rg.element()
     successful: t.Annotated[bool, rg.Ctx(example="True")] = rg.element()
     status: t.Annotated[str, rg.Ctx(example="completed/error")] = rg.element()
-    attack_lifecycle: t.Annotated[str, rg.Ctx(example=",".join(attack_phases))] = (
-        rg.element()
-    )
+    attack_lifecycle: t.Annotated[str, rg.Ctx(example=",".join(attack_phases))] = rg.element()
 
     @classmethod
     def xml_example(cls) -> str:
@@ -161,23 +160,26 @@ class Summary(rg.Model):
         ).to_pretty_xml()
 
     @field_validator("error", mode="before")
+    @classmethod
     def parse_str_to_bool(cls, v: t.Any) -> t.Any:
         if isinstance(v, str):
             if v.strip().lower().startswith("yes"):
                 return True
-            elif v.strip().lower().startswith("no"):
+            if v.strip().lower().startswith("no"):
                 return False
         return v
 
     @field_validator("attack_lifecycle", mode="before")
+    @classmethod
     def parse_attack_lifecycle(cls, v: t.Any) -> t.Any:
         value = v.strip().lower()
         if value in attack_phases:
             return value
-        elif value in attack_phase_mapping:
+        if value in attack_phase_mapping:
             return attack_phase_mapping[value]
+        msg = f"not a valid attack phase, pick from: {','.join(attack_phases)}"
         raise ValueError(
-            f"not a valid attack phase, pick from: {','.join(attack_phases)}"
+            msg,
         )
 
 
@@ -216,11 +218,13 @@ async def summarize_attack_path(summaries: list[str]) -> str:  # type: ignore
 
 class Playbook(rg.Model):
     playbook_id: t.Annotated[
-        str, rg.Ctx(example="131cc3c9-e5da-4b3a-8db6-0ea47e7fc4f8")
+        str,
+        rg.Ctx(example="131cc3c9-e5da-4b3a-8db6-0ea47e7fc4f8"),
     ] = rg.element()
-    arguments: t.Annotated[t.Optional[str], rg.Ctx(example="")] = rg.element(default="")
+    arguments: t.Annotated[str | None, rg.Ctx(example="")] = rg.element(default="")
 
     @field_validator("arguments", mode="before")
+    @classmethod
     def check_arguments(cls, v: t.Any) -> t.Any:
         if v:
             json.loads(v)
@@ -228,10 +232,10 @@ class Playbook(rg.Model):
 
 
 class Command(rg.Model):
-    command_name: t.Annotated[t.Optional[str], rg.Ctx(example="ps")] = rg.element(
-        default=""
+    command_name: t.Annotated[str | None, rg.Ctx(example="ps")] = rg.element(
+        default="",
     )
-    arguments: t.Annotated[t.Optional[str], rg.Ctx(example="")] = rg.element(default="")
+    arguments: t.Annotated[str | None, rg.Ctx(example="")] = rg.element(default="")
 
 
 class Action(rg.Model):
@@ -240,7 +244,7 @@ class Action(rg.Model):
     reason: t.Annotated[
         str,
         rg.Ctx(
-            example="This command has not been executed yet and is the next according to the documentation"
+            example="This command has not been executed yet and is the next according to the documentation",
         ),
     ] = rg.element()
     name: t.Annotated[str, rg.Ctx(example="Run ps")] = rg.element()
@@ -273,8 +277,8 @@ class ActionList(rg.Model):
                     reason="Next logical action.",
                     # command=None,
                     name="Run ps",
-                )
-            ]
+                ),
+            ],
         ).to_pretty_xml()
 
 
@@ -418,7 +422,7 @@ class Shares(rg.Model):
                 Share(
                     share_name="\\\\host1.domain.local\\NETLOGON",
                     reason="Netlogon share could contain files with credentials",
-                )
+                ),
             ],
             c2_implant_id="e7d73d39-88b0-4900-b1a1-49205b56fde9",
         ).to_pretty_xml()
@@ -474,11 +478,13 @@ class DetectionRisk(rg.Model):
         ).to_pretty_xml()
 
     @field_validator("value", mode="before")
+    @classmethod
     def parse_value(cls, v: t.Any) -> t.Any:
         value = int(v)
         if value > 0 and value < 6:
             return v
-        raise ValueError("value should be between 1 and 5")
+        msg = "value should be between 1 and 5"
+        raise ValueError(msg)
 
 
 def replace_id(yaml_string: str) -> str:
@@ -493,7 +499,11 @@ def replace_id(yaml_string: str) -> str:
             return yaml_string
 
         updated_yaml_string_re, replacements_made = re.subn(
-            pattern, replacement, yaml_string, count=1, flags=re.MULTILINE
+            pattern,
+            replacement,
+            yaml_string,
+            count=1,
+            flags=re.MULTILINE,
         )
         if replacements_made == 0:
             print("Warning: Line starting with 'id:' not found. Original string kept.")
@@ -566,20 +576,21 @@ class PlaybookYamlOutput(rg.Model):
     @field_validator("yaml_content", mode="before")
     @classmethod
     def validate_yaml_content(cls, v: t.Any) -> str:
-        """
-        Validates the generated string ('v') to ensure it is valid YAML
+        """Validates the generated string ('v') to ensure it is valid YAML
         and conforms to the BasicPlaybookStructure.
         Raises ValueError on failure, which rigging typically handles.
         """
         if not isinstance(v, str):
             # Should already be a string based on type hint, but safety check
+            msg = f"Expected string output for yaml_content, but got {type(v)}"
             raise ValueError(
-                f"Expected string output for yaml_content, but got {type(v)}"
+                msg,
             )
 
         generated_yaml = v.strip()
         if not generated_yaml:
-            raise ValueError("Generated YAML content cannot be empty.")
+            msg = "Generated YAML content cannot be empty."
+            raise ValueError(msg)
 
         generated_yaml = generated_yaml.replace("```yaml", "")
         generated_yaml = generated_yaml.replace("```", "")
@@ -588,8 +599,9 @@ class PlaybookYamlOutput(rg.Model):
             # 1. Validate YAML syntax
             parsed_yaml = yaml.safe_load(generated_yaml)
             if not isinstance(parsed_yaml, dict):
+                msg = "Generated output is not a valid YAML dictionary/mapping."
                 raise ValueError(
-                    "Generated output is not a valid YAML dictionary/mapping."
+                    msg,
                 )
             schemas.PlaybookTemplateGenerated(**parsed_yaml)
             return replace_id(generated_yaml)
@@ -600,14 +612,16 @@ class PlaybookYamlOutput(rg.Model):
             # Include details for debugging.
             error_message = f"Generated YAML failed validation: {e}. Content received:\n---\n{generated_yaml}\n---"
             print(
-                f"Validation Error: {error_message}"
+                f"Validation Error: {error_message}",
             )  # Optional: log the error server-side
             raise ValueError(
-                error_message
+                error_message,
             )  # Raise ValueError to signal validation failure
         except Exception as e:
             # Catch any other unexpected validation errors
-            error_message = f"Unexpected validation error ({type(e).__name__}): {e}. Content received:\n---\n{generated_yaml}\n---"
+            error_message = (
+                f"Unexpected validation error ({type(e).__name__}): {e}. Content received:\n---\n{generated_yaml}\n---"
+            )
             print(f"Validation Error: {error_message}")
             raise ValueError(error_message)
 
@@ -664,7 +678,7 @@ class PlanStepOutput(rg.Model):
 class GeneratedPlan(rg.Model):
     """The complete output for a new plan generation request."""
 
-    steps: t.List[PlanStepOutput] = rg.element(default=[])
+    steps: list[PlanStepOutput] = rg.element(default=[])
 
     @classmethod
     def xml_example(cls) -> str:
@@ -676,16 +690,16 @@ class GeneratedPlan(rg.Model):
                     notes="Focus on identifying technologies and potential vulnerabilities.",
                 ),
                 PlanStepOutput(
-                    description="Scan for open ports on discovered servers.", order=2
+                    description="Scan for open ports on discovered servers.",
+                    order=2,
                 ),
-            ]
+            ],
         ).to_pretty_xml()
 
 
 @generator.prompt
 async def generate_testing_plan(objectives: str, current_state: str) -> GeneratedPlan:  # type: ignore
-    """
-    You are an expert penetration testing planner. Your role is to create a high-level, strategic plan to achieve a specific security assessment objective.
+    """You are an expert penetration testing planner. Your role is to create a high-level, strategic plan to achieve a specific security assessment objective.
 
     **Your Goal:**
     Based on the provided `objectives` and a `current_state` summary of the environment, generate a structured, logical, and actionable testing plan.
@@ -708,7 +722,6 @@ async def generate_testing_plan(objectives: str, current_state: str) -> Generate
     -   If `objectives` is "Achieve Domain Admin" and `current_state` shows "0 credentials", your first steps should focus on reconnaissance and initial access, such as "Enumerate public-facing assets" and "Identify potential phishing targets."
     -   If `current_state` already shows "5 credentials" and "2 active implants", you might skip initial access and start with steps like "Perform internal reconnaissance from existing implants" and "Attempt lateral movement with gathered credentials."
     """
-    pass
 
 
 class SupervisorSummary(rg.Model):
@@ -719,16 +732,16 @@ class SupervisorSummary(rg.Model):
     @classmethod
     def xml_example(cls) -> str:
         return cls(
-            summary_text="I have analyzed the event and taken the appropriate actions."
+            summary_text="I have analyzed the event and taken the appropriate actions.",
         ).to_pretty_xml()
 
 
 @generator.prompt
 async def update_testing_plan(
-    current_plan_summary: str, new_event: str
+    current_plan_summary: str,
+    new_event: str,
 ) -> SupervisorSummary:  # type: ignore
-    """
-    You are an expert penetration testing supervisor. Your role is to analyze the current state of a security assessment plan and adapt it based on new events by calling tools.
+    """You are an expert penetration testing supervisor. Your role is to analyze the current state of a security assessment plan and adapt it based on new events by calling tools.
 
     **Your Goal:**
     Your primary goal is to advance the plan's main objective. Analyze the provided `current_plan_summary` and the `new_event` (which includes a high-level state summary). Use your tools to modify the plan and create suggestions.
@@ -759,4 +772,3 @@ async def update_testing_plan(
     **Final Output:**
     After making all necessary tool calls, provide your final response using the `SupervisorSummary` model. Return a brief, one-sentence summary of the actions you took in the `summary_text` field.
     """
-    pass

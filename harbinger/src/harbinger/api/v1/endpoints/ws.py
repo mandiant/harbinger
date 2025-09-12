@@ -1,30 +1,30 @@
 import asyncio
+import io
 import logging
 import re
-import io
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
+
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from pydantic import UUID4
-from paramiko import (
-    SSHClient,
-    AutoAddPolicy,
-    AuthenticationException,
-    SSHException,
-    RSAKey,
-)
 from harbinger import crud
 from harbinger.crud import get_user_db
 from harbinger.database.database import SessionLocal
 from harbinger.database.redis_pool import redis_no_decode as redis
 from harbinger.database.users import get_redis_strategy, get_user_manager
+from paramiko import (
+    AuthenticationException,
+    AutoAddPolicy,
+    RSAKey,
+    SSHClient,
+    SSHException,
+)
+from pydantic import UUID4
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 
 
 def parse_tmate_ssh_username(output: str, readonly: bool = False) -> str:
-    """
-    Parses the tmate SSH connection string from the job output and returns just the username.
+    """Parses the tmate SSH connection string from the job output and returns just the username.
     Returns an empty string if the username cannot be found.
     """
     # Regex to capture the username part: ssh -p<port> <username>@
@@ -48,8 +48,7 @@ async def get_db_ws() -> AsyncGenerator[AsyncSession, None]:
 async def get_current_active_user(
     websocket: WebSocket,
 ):
-    """
-    Authenticates the user using the fastapiusersauth cookie.
+    """Authenticates the user using the fastapiusersauth cookie.
     This is a simplified example; a real-world scenario might involve
     more robust token validation and user retrieval.
     """
@@ -58,7 +57,7 @@ async def get_current_active_user(
         if not cookie:
             logging.warning("Authentication cookie 'fastapiusersauth' not found.")
             await websocket.close(code=1008, reason="Authentication required")
-            return
+            return None
         strat = get_redis_strategy()
         async with SessionLocal() as session:
             db = await anext(get_user_db(session))
@@ -70,11 +69,11 @@ async def get_current_active_user(
             await websocket.close(code=1008, reason="Authentication failed")
             return None
 
-        logging.info(f"User authenticated successfully for WebSocket.")
+        logging.info("User authenticated successfully for WebSocket.")
         return token
 
     except Exception as e:
-        logging.error(f"Authentication error: {e}")
+        logging.exception(f"Authentication error: {e}")
         await websocket.close(code=1011, reason=f"Authentication error: {e}")
         return None
 
@@ -86,19 +85,14 @@ async def handle_ssh_websocket(
     websocket: WebSocket,
     username: str,
 ):
-    """
-    Handles the SSH websocket communication.
-    """
-
+    """Handles the SSH websocket communication."""
     logging.info(f"Attempting SSH connection to {username}@tmate:2200 for user")
 
     ssh_client = None
     channel = None
 
     try:
-        await (
-            websocket.accept()
-        )  # Accept connection after successful authentication and details retrieval
+        await websocket.accept()  # Accept connection after successful authentication and details retrieval
 
         ssh_client = SSHClient()
         ssh_client.load_system_host_keys()
@@ -111,7 +105,9 @@ async def handle_ssh_websocket(
             pkey = RSAKey.from_private_key(dummy_key_str)
             logging.info("Generated dummy SSH key for tmate connection attempt.")
         except Exception as e:
-            logging.error(f"Failed to generate dummy SSH key for tmate connection: {e}")
+            logging.exception(
+                f"Failed to generate dummy SSH key for tmate connection: {e}",
+            )
             pkey = None  # Proceed without it if generation fails, though connection might fail
 
         ssh_client.connect(
@@ -140,7 +136,9 @@ async def handle_ssh_websocket(
                     else:
                         await asyncio.sleep(0.01)  # Small delay to prevent busy-waiting
                 except Exception as e:
-                    logging.error(f"Error in ssh_to_websocket for user {username}: {e}")
+                    logging.exception(
+                        f"Error in ssh_to_websocket for user {username}: {e}",
+                    )
                     break
             logging.info(f"ssh_to_websocket task finished for user {username}.")
 
@@ -156,42 +154,44 @@ async def handle_ssh_websocket(
                                 rows = int(rows_str)
                                 channel.resize_pty(width=cols, height=rows)
                                 logging.info(
-                                    f"Resized PTY to cols={cols}, rows={rows} for user {username}"
+                                    f"Resized PTY to cols={cols}, rows={rows} for user {username}",
                                 )
                             except ValueError as ve:
                                 logging.warning(
-                                    f"Failed to parse resize message: {message} - {ve}"
+                                    f"Failed to parse resize message: {message} - {ve}",
                                 )
                         else:
                             channel.send(message.encode("utf-8"))
                 except WebSocketDisconnect:
                     logging.info(
-                        f"WebSocket disconnected from client for user {username}."
+                        f"WebSocket disconnected from client for user {username}.",
                     )
                     break
                 except Exception as e:
-                    logging.error(f"Error in websocket_to_ssh for user {username}: {e}")
+                    logging.exception(
+                        f"Error in websocket_to_ssh for user {username}: {e}",
+                    )
                     break
             logging.info(f"websocket_to_ssh task finished for user {username}.")
 
         await asyncio.gather(ssh_to_websocket(), websocket_to_ssh())
 
     except AuthenticationException:
-        logging.error(
-            f"SSH authentication failed for user {username} to {username}@tmate:2200."
+        logging.exception(
+            f"SSH authentication failed for user {username} to {username}@tmate:2200.",
         )
         await websocket.send_text(
-            "SSH authentication failed. Please check the job output details."
+            "SSH authentication failed. Please check the job output details.",
         )
     except SSHException as e:
-        logging.error(f"SSH connection or channel error for user {username}: {e}")
+        logging.exception(f"SSH connection or channel error for user {username}: {e}")
         try:
             await websocket.send_text(f"SSH error: {e}")
         except RuntimeError:
             pass  # WebSocket might already be closed
     except Exception as e:
-        logging.error(
-            f"Unexpected error in SSH connection handler for user {username}: {e}"
+        logging.exception(
+            f"Unexpected error in SSH connection handler for user {username}: {e}",
         )
         try:
             await websocket.send_text(f"An unexpected error occurred: {e}")
@@ -213,11 +213,11 @@ async def websocket_ssh_readonly_endpoint(websocket: WebSocket, job_id: str):
     if not user:
         return
     logging.info(
-        f"Attempting read-only SSH connection for job_id: {job_id} and user: {user.email}"
+        f"Attempting read-only SSH connection for job_id: {job_id} and user: {user.email}",
     )
     async with SessionLocal() as db:
         job_output = "\n".join(
-            [entry.output for entry in await crud.get_proxy_job_output(db, job_id)]
+            [entry.output for entry in await crud.get_proxy_job_output(db, job_id)],
         )
     username = parse_tmate_ssh_username(job_output, readonly=True)
     await handle_ssh_websocket(websocket, username)
@@ -229,11 +229,11 @@ async def websocket_ssh_interactive_endpoint(websocket: WebSocket, job_id: str):
     if not user:
         return
     logging.info(
-        f"Attempting read-only SSH connection for job_id: {job_id} and user: {user.email}"
+        f"Attempting read-only SSH connection for job_id: {job_id} and user: {user.email}",
     )
     async with SessionLocal() as db:
         job_output = "\n".join(
-            [entry.output for entry in await crud.get_proxy_job_output(db, job_id)]
+            [entry.output for entry in await crud.get_proxy_job_output(db, job_id)],
         )
     username = parse_tmate_ssh_username(job_output, readonly=False)
     await handle_ssh_websocket(websocket, username)
@@ -241,9 +241,7 @@ async def websocket_ssh_interactive_endpoint(websocket: WebSocket, job_id: str):
 
 @router.websocket("/plans/{plan_id}/llm_logs")
 async def websocket_llm_logs(websocket: WebSocket, plan_id: UUID4):
-    """
-    WebSocket endpoint to stream real-time LLM logs for a specific plan.
-    """
+    """WebSocket endpoint to stream real-time LLM logs for a specific plan."""
     cookie = websocket._cookies["fastapiusersauth"]
     strat = get_redis_strategy()
     async with SessionLocal() as session:
@@ -269,7 +267,7 @@ async def websocket_llm_logs(websocket: WebSocket, plan_id: UUID4):
         except asyncio.CancelledError:
             logging.info(f"Redis listener for {channel} cancelled.")
         except Exception as e:
-            logging.error(f"Error in Redis listener for {channel}: {e}")
+            logging.exception(f"Error in Redis listener for {channel}: {e}")
         finally:
             await pubsub.unsubscribe(channel)
 

@@ -1,23 +1,20 @@
 import io
 import uuid
 import zipfile
-from typing import Optional
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Response, status
 from fastapi.responses import StreamingResponse
 from fastapi_filter import FilterDepends
 from fastapi_pagination import Page
-from pydantic import UUID4
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from harbinger import crud, models, schemas
+from harbinger import crud, filters, models, schemas
 from harbinger.config import constants
 from harbinger.config.dependencies import current_active_user, get_db
-from harbinger import filters
-from harbinger.config.dependencies import current_active_user
 from harbinger.files.client import download_file
 from harbinger.worker.client import get_client
 from harbinger.worker.workflows import ParseFile
+from pydantic import UUID4
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 
@@ -54,7 +51,7 @@ async def export_files(
             try:
                 data = await download_file(file.path, file.bucket)
                 zip_file.writestr(f"{file.id}_{file.filename}", data)
-            except:
+            except Exception:
                 pass
     zip_buffer.seek(0)
     return StreamingResponse(
@@ -64,8 +61,8 @@ async def export_files(
     )
 
 
-@router.get("/{file_id}", response_model=Optional[schemas.File], tags=["files", "crud"])
-async def read_file(file_id: UUID4, user: models.User = Depends(current_active_user)):
+@router.get("/{file_id}", response_model=schemas.File | None, tags=["files", "crud"])
+async def read_file(file_id: UUID4, user: Annotated[models.User, Depends(current_active_user)]):
     return await crud.get_file(file_id=file_id)
 
 
@@ -73,8 +70,8 @@ async def read_file(file_id: UUID4, user: models.User = Depends(current_active_u
 async def download_file_endpoint(
     file_id: UUID4,
     response: Response,
-    db: AsyncSession = Depends(get_db),
-    user: models.User = Depends(current_active_user),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     file = await crud.get_file(file_id=file_id)
     if file:
@@ -85,24 +82,26 @@ async def download_file_endpoint(
             headers={"Content-Disposition": f'attachment; filename="{file.filename}"'},
         )
     response.status_code = status.HTTP_400_BAD_REQUEST
-    return dict(error="File could not be found.")
+    return {"error": "File could not be found."}
 
 
-@router.put("/{file_id}", response_model=Optional[schemas.File], tags=["files", "crud"])
+@router.put("/{file_id}", response_model=schemas.File | None, tags=["files", "crud"])
 async def update_file(
     file_id: str,
     file: schemas.FileUpdate,
-    db: AsyncSession = Depends(get_db),
-    user: models.User = Depends(current_active_user),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     await crud.update_file_type(db, file_id, file.filetype)
     return await crud.get_file(file_id)
 
 
 @router.post(
-    "/{file_id}/parse", response_model=Optional[schemas.File], tags=["files", "crud"]
+    "/{file_id}/parse",
+    response_model=schemas.File | None,
+    tags=["files", "crud"],
 )
-async def parse_file(file_id: str, user: models.User = Depends(current_active_user)):
+async def parse_file(file_id: str, user: Annotated[models.User, Depends(current_active_user)]):
     file = await crud.get_file(file_id)
     client = await get_client()
     if file:
@@ -118,15 +117,17 @@ async def parse_file(file_id: str, user: models.User = Depends(current_active_us
 
 @router.get(
     "/{file_id}/content",
-    response_model=Optional[schemas.FileContent],
+    response_model=schemas.FileContent | None,
     tags=["files", "crud"],
 )
 async def file_content(
-    file_id: str, response: Response, user: models.User = Depends(current_active_user)
+    file_id: str,
+    response: Response,
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     file = await crud.get_file(file_id=file_id)
     if file:
         data = await download_file(file.path, file.bucket)
         return schemas.FileContent(text=data.decode("utf-8", "ignore"))
     response.status_code = status.HTTP_400_BAD_REQUEST
-    return dict(error="File could not be found.")
+    return {"error": "File could not be found."}

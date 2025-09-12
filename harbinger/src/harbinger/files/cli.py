@@ -13,19 +13,19 @@
 # limitations under the License.
 
 import asyncio
-import click
 import os
+import uuid
 from pathlib import Path
-from harbinger.config import get_settings
+
+import click
+
 from harbinger import crud
-from harbinger.files.client import upload_file, download_file
-from harbinger.worker.client import get_client
+from harbinger.config import constants, get_settings
 from harbinger.database.database import SessionLocal
 from harbinger.database.redis_pool import redis
-import uuid
-
+from harbinger.files.client import download_file, upload_file
+from harbinger.worker.client import get_client
 from harbinger.worker.workflows import ParseFile
-from harbinger.config import constants
 
 
 def is_uuid(uuid_str: str):
@@ -67,8 +67,13 @@ async def upload_single_file(path: Path, socks_job_id: str, filetype: str):
 
 
 async def upload_main(
-    path: str, exclude: list[str] = [], socks_job_id: str = "", filetype: str = ""
+    path: str,
+    exclude: list[str] | None = None,
+    socks_job_id: str = "",
+    filetype: str = "",
 ) -> None:
+    if exclude is None:
+        exclude = []
     p = Path(path)
     to_upload = []
     if p.is_dir():
@@ -82,7 +87,7 @@ async def upload_main(
 
     for u in to_upload:
         await upload_single_file(u, socks_job_id, filetype)
-        click.echo(f"Uploaded {str(u)}")
+        click.echo(f"Uploaded {u!s}")
     await redis.aclose()
 
 

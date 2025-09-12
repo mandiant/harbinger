@@ -1,7 +1,8 @@
-import os
-import requests
 import configparser
+import os
 from pathlib import Path
+
+import requests
 
 
 def setup(subparsers):

@@ -12,37 +12,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from asyncio import create_subprocess_exec
+import abc
 import asyncio
 import base64
-import json
-import uuid
-from harbinger.worker.client import get_client
-from pyasn1.codec.ber import decoder
-from impacket.krb5.asn1 import AP_REQ
-import re
-import abc
-import struct
 import ipaddress
-import aiofiles
+import json
+import re
+import struct
+import uuid
+from asyncio import create_subprocess_exec
+from base64 import b64decode, b64encode
+from datetime import datetime
 from pathlib import Path
 
-from base64 import b64decode, b64encode
-from impacket.krb5.ccache import CCache
-from sqlalchemy.ext.asyncio import AsyncSession
-from harbinger import crud
-from harbinger import schemas
-from datetime import datetime
+import aiofiles
 import structlog
+from impacket.krb5.asn1 import AP_REQ
+from impacket.krb5.ccache import CCache
+from pyasn1.codec.ber import decoder
 from pydantic import UUID4, TypeAdapter
-from harbinger.config import get_settings
-from harbinger.files.client import upload_file
 from pydantic_core import ValidationError
-from harbinger.config import constants
-from harbinger.graph.database import get_async_neo4j_session_context
-from harbinger.graph import crud as graph_crud
-from harbinger.worker.genai import prompts
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from harbinger import crud, schemas
+from harbinger.config import constants, get_settings
+from harbinger.files.client import upload_file
+from harbinger.graph import crud as graph_crud
+from harbinger.graph.database import get_async_neo4j_session_context
+from harbinger.worker.client import get_client
+from harbinger.worker.genai import prompts
 
 log = structlog.get_logger()
 settings = get_settings()
@@ -57,7 +55,8 @@ class OutputParser(abc.ABC):
 
     @abc.abstractmethod
     async def match(self, text: str) -> bool:
-        raise NotImplementedError("This should be implemented")
+        msg = "This should be implemented"
+        raise NotImplementedError(msg)
 
     @abc.abstractmethod
     async def parse(
@@ -67,7 +66,8 @@ class OutputParser(abc.ABC):
         c2_output_id: str | UUID4 | None = None,
         file_id: str | UUID4 | None = None,
     ) -> None:
-        raise NotImplementedError("This should be implemented")
+        msg = "This should be implemented"
+        raise NotImplementedError(msg)
 
     async def process_file(self, file_id: str) -> None:
         from harbinger.worker.workflows import ParseFile
@@ -88,10 +88,7 @@ class SimpleMatchParser(OutputParser):
         self,
         text: str,
     ) -> bool:
-        for needle in self.needle:
-            if needle in text:
-                return True
-        return False
+        return any(needle in text for needle in self.needle)
 
 
 class RegexMatchParser(OutputParser):
@@ -158,7 +155,7 @@ async def parse_ccache(db: AsyncSession, ticket: bytes):
         elif key[8:10] == "0x1)" or key[8:10] == "0x3)":
             keytype = "DES"
         else:
-            log.info(f"Unknown ticket type")
+            log.info("Unknown ticket type")
         times = cred.header["time"]
         kerb_cred = schemas.KerberosCreate(
             client=clientname,
@@ -178,7 +175,10 @@ async def parse_ccache(db: AsyncSession, ticket: bytes):
             username, domain = clientname.split("@", 1)
             domain_obj = await crud.get_or_create_domain(db, domain)
             cred = await crud.get_or_create_credential(
-                db, username, domain_obj.id, kerberos_id=kerb_obj.id
+                db,
+                username,
+                domain_obj.id,
+                kerberos_id=kerb_obj.id,
             )
             log.info(f"Created new credential: {cred.id}")
     else:
@@ -215,7 +215,7 @@ class KirbiParser(SimpleMatchParser):
             ticket_decoded = b64decode(ticket)
             await parse_ccache(self.db, ticket_decoded)
         except Exception as e:
-            log.error(f"Exception parsing ticket: {e}")
+            log.exception(f"Exception parsing ticket: {e}")
 
 
 class EnvParser(SimpleMatchParser):
@@ -229,7 +229,7 @@ class EnvParser(SimpleMatchParser):
         c2_output_id: str | UUID4 | None = None,
         file_id: str | UUID4 | None = None,
     ) -> None:
-        env_vars = dict()
+        env_vars = {}
         for entry in text.splitlines():
             if entry.count("=") == 1:
                 key, value = entry.split("=")
@@ -255,15 +255,12 @@ class EnvParser(SimpleMatchParser):
                 )
 
             domain = await crud.get_or_create_domain(self.db, userdomain)
-            if (
-                domain
-                and userdomain_long
-                and userdomain_long != userdomain
-                and not domain.long_name
-            ):
+            if domain and userdomain_long and userdomain_long != userdomain and not domain.long_name:
                 log.info(f"Setting long name of domain to {userdomain_long}")
                 await crud.set_long_name(
-                    self.db, domain_id=domain.id, long_name=userdomain_long
+                    self.db,
+                    domain_id=domain.id,
+                    long_name=userdomain_long,
                 )
 
             await self.db.refresh(implant)
@@ -272,7 +269,9 @@ class EnvParser(SimpleMatchParser):
                 if host and not host.domain_id:
                     log.info("Domain not set on this host, setting now.")
                     host = await crud.update_host(
-                        self.db, host.id, schemas.HostBase(domain_id=domain.id)
+                        self.db,
+                        host.id,
+                        schemas.HostBase(domain_id=domain.id),
                     )
             logon_server = logon_server.replace("\\", "")
             if logon_server != computername and logon_server:
@@ -359,7 +358,7 @@ class SnafflerParser(SimpleMatchParser):
         for share, description in pattern.findall(text):
             domain = ""
             try:
-                hostname, sharename = [x for x in share.split("\\") if x]
+                hostname, sharename = (x for x in share.split("\\") if x)
             except ValueError:
                 log.warning(f"ValueError on {share}")
                 continue
@@ -385,7 +384,7 @@ class SnafflerParser(SimpleMatchParser):
             )
             if created:
                 log.info(
-                    f"Created new share with name: {share_db.unc_path} ({share_db.id})"
+                    f"Created new share with name: {share_db.unc_path} ({share_db.id})",
                 )
 
         pattern = re.compile(r"\[File\] {(.*)}<.*>\((.*)\) .*")
@@ -396,7 +395,7 @@ class SnafflerParser(SimpleMatchParser):
             p.type = "file"
             _, sharefile = await crud.save_parsed_share_file(self.db, p)
 
-            label_id = label_map.get(color, None)
+            label_id = label_map.get(color)
             if label_id:
                 await crud.create_label_item(
                     self.db,
@@ -447,7 +446,7 @@ class KerberosHashParser(RegexMatchParser):
                 )
                 if created:
                     log.info(
-                        f"Created new hash with id: {hash_db.id} from user: {username}@{domain} with spn: {spn}"
+                        f"Created new hash with id: {hash_db.id} from user: {username}@{domain} with spn: {spn}",
                     )
 
 
@@ -521,14 +520,12 @@ class BofRoastParser(SimpleMatchParser):
             schemas.HashCreate(
                 type=hash_type,
                 hashcat_id=hashcat_id,
-                hash="$krb5tgs${0}$*{1}${2}${1}/{3}@{2}*${4}".format(
-                    encType, service, domain, host, hash
-                ),
+                hash=f"$krb5tgs${encType}$*{service}${domain}${service}/{host}@{domain}*${hash}",
             ),
         )
         if created:
             log.info(
-                f"Created new hash with id: {hash_db.id} from user: {service}@{domain} with spn: {host}"
+                f"Created new hash with id: {hash_db.id} from user: {service}@{domain} with spn: {host}",
             )
 
 
@@ -549,7 +546,11 @@ class LdapSearchParser(SimpleMatchParser):
                 await f.write(text)
 
             proc = await create_subprocess_exec(
-                settings.bofhound, "--input", d / "input", "--output", dir
+                settings.bofhound,
+                "--input",
+                d / "input",
+                "--output",
+                dir,
             )
 
             await proc.wait()
@@ -676,7 +677,7 @@ class TruffleHogParser(SimpleMatchParser):
                             ),
                         )
                 log.info(
-                    f"Found {len(results)} potential lines with credentials with TruffleHog"
+                    f"Found {len(results)} potential lines with credentials with TruffleHog",
                 )
 
 
@@ -787,7 +788,7 @@ class NoseyParkerParser(SimpleMatchParser):
                         )
                 if data:
                     log.info(
-                        f"Found {len(data)} potential lines with credentials with NoseyParker"
+                        f"Found {len(data)} potential lines with credentials with NoseyParker",
                     )
 
 
@@ -811,7 +812,10 @@ class CertifpyNTLMParser(SimpleMatchParser):
             domain_obj = await crud.get_or_create_domain(self.db, domain)
             password = await crud.get_or_create_password(self.db, nt_hash=nt)
             cred = await crud.get_or_create_credential(
-                self.db, username, domain_obj.id, password.id
+                self.db,
+                username,
+                domain_obj.id,
+                password.id,
             )
             log.info(f"Added Credential with id: {cred.id}")
 
@@ -898,27 +902,29 @@ class NetViewParser(SimpleMatchParser):
 
                     if "." in host and host.split(".", 1)[0] == domain:
                         log.info(
-                            f"Skipping user: {user} with domain: {domain} as its a local account"
+                            f"Skipping user: {user} with domain: {domain} as its a local account",
                         )
                         continue
 
                     domain_db = await crud.get_or_create_domain(self.db, domain)
                     if not domain_db.long_name:
                         log.info(
-                            f"Skipping user: {user} with domain: {domain} as there is no long name set."
+                            f"Skipping user: {user} with domain: {domain} as there is no long name set.",
                         )
                         continue
 
                     f"{user}@{domain_db.long_name.upper()} host.upper()"
 
                     res = await graph_crud.add_session(
-                        graphsession, host, f"{user}@{domain_db.long_name.upper()}"
+                        graphsession,
+                        host,
+                        f"{user}@{domain_db.long_name.upper()}",
                     )
                     if res:
                         count += 1
                     else:
                         log.info(
-                            f"Unable to create session: {host}-[:HasSession]->{user}@{domain_db.long_name.upper()}"
+                            f"Unable to create session: {host}-[:HasSession]->{user}@{domain_db.long_name.upper()}",
                         )
         if count:
             log.info(f"Created {count} sessions in neo4j.")
@@ -943,7 +949,7 @@ class RubeusKirbiParser(SimpleMatchParser):
                     await parse_ccache(self.db, ticket_decoded)
                 except Exception as e:
                     log.warning(
-                        f"Caught exception: {e} while trying to parse rubeus kirbi"
+                        f"Caught exception: {e} while trying to parse rubeus kirbi",
                     )
 
 
@@ -966,7 +972,10 @@ class SecretsDumpParser(RegexMatchParser):
                     domain_obj = await crud.get_or_create_domain(self.db, domain)
                     password = await crud.get_or_create_password(self.db, nt_hash=nt)
                     cred = await crud.get_or_create_credential(
-                        self.db, username, domain_obj.id, password.id
+                        self.db,
+                        username,
+                        domain_obj.id,
+                        password.id,
                     )
                     log.info(f"Added Credential with id: {cred.id}")
 
@@ -1013,12 +1022,7 @@ class LLMParser(SimpleMatchParser):
             for result in results.credentials:
                 # Check that Gemini actually gave a password and that the password is actually located in the text
                 # this should reduce the false positives by quite a lot.
-                if (
-                    result.password
-                    and result.password in text
-                    and result.username
-                    and result.username in text
-                ):
+                if result.password and result.password in text and result.username and result.username in text:
                     count += 1
                     await crud.create_highlight(
                         self.db,
@@ -1064,8 +1068,8 @@ class LLMParser(SimpleMatchParser):
             log.info(f"Found {count} potential credentials with Gemini")
         except TypeError:
             log.warning("TypeError while processing text")
-        except Exception as e:
-            log.error(f"Exception {e} while processing text")
+        except Exception:
+            log.exception("Exception while processing text")
 
 
 class NetShareParser(SimpleMatchParser):
@@ -1117,7 +1121,7 @@ class NetShareParser(SimpleMatchParser):
             )
             if created:
                 log.info(
-                    f"Created new share with name: {share_db.unc_path} ({share_db.id})"
+                    f"Created new share with name: {share_db.unc_path} ({share_db.id})",
                 )
 
 

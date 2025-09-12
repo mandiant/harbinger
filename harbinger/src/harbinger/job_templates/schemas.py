@@ -13,15 +13,16 @@
 # limitations under the License.
 
 import json
-from typing import Dict, List, Literal, Type
+from enum import Enum
+from typing import Literal
 
-from harbinger.job_templates import schemas
 from jinja2 import PackageLoader
-from jinja2.sandbox import SandboxedEnvironment
 from jinja2.ext import do
+from jinja2.sandbox import SandboxedEnvironment
 from pydantic import UUID4, BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
-from enum import Enum
+
+from harbinger.job_templates import schemas
 
 env = SandboxedEnvironment(
     loader=PackageLoader("harbinger.job_templates", "templates"),
@@ -63,11 +64,11 @@ class Arguments(BaseModel):
 
 
 class TemplateList(BaseModel):
-    templates: List[str]
+    templates: list[str]
 
 
 class ChainList(BaseModel):
-    chains: List[str]
+    chains: list[str]
 
 
 class BaseTemplateModel(BaseModel):
@@ -77,14 +78,14 @@ class BaseTemplateModel(BaseModel):
         command = ""
         add_labels: list[str] = []
 
-    async def files(self, db: AsyncSession) -> List[str]:
+    async def files(self, db: AsyncSession) -> list[str]:
         """Create any objects in the database and minio and return their ids"""
         return []
 
     async def generate_arguments(self, db: AsyncSession) -> str:
         objects = await self.resolve_objects(db)
         return json.dumps(
-            Arguments(**objects, **self.model_dump()).model_dump(exclude_unset=True)
+            Arguments(**objects, **self.model_dump()).model_dump(exclude_unset=True),
         )
 
     async def generate_command(self) -> str:
@@ -172,29 +173,29 @@ class Upload(C2ImplantTemplateModel):
     class Settings:
         command = Command.upload
 
-    async def files(self, db: AsyncSession) -> List[str]:
+    async def files(self, db: AsyncSession) -> list[str]:
         return [self.file_id]
 
 
 class ExecuteAssembly(C2ImplantTemplateModel):
     arguments_str: str = ""
-    file_id: str = Field(json_schema_extra=dict(filetype="exe"))
+    file_id: str = Field(json_schema_extra={"filetype": "exe"})
 
     class Settings:
         command = Command.runassembly
 
-    async def files(self, db: AsyncSession) -> List[str]:
+    async def files(self, db: AsyncSession) -> list[str]:
         return [self.file_id]
 
 
 class ExecuteBof(C2ImplantTemplateModel):
-    file_id: str = Field(json_schema_extra=dict(filetype="bof"))
+    file_id: str = Field(json_schema_extra={"filetype": "bof"})
     arguments_str: str = ""
 
     class Settings:
         command = Command.runbof
 
-    async def files(self, db: AsyncSession) -> List[str]:
+    async def files(self, db: AsyncSession) -> list[str]:
         return [self.file_id]
 
 
@@ -262,24 +263,24 @@ class Exit(C2ImplantTemplateModel):
 
 class DisableEtw(C2ImplantTemplateModel):
     file_id: str = Field(
-        json_schema_extra=dict(filetype="bof"),
+        json_schema_extra={"filetype": "bof"},
         default="fce22bd6-48a5-4449-b29e-4069f92113b5",
     )
 
     class Settings:
         command = Command.disableetw
 
-    async def files(self, db: AsyncSession) -> List[str]:
+    async def files(self, db: AsyncSession) -> list[str]:
         return [self.file_id]
 
 
 class DisableAmsi(C2ImplantTemplateModel):
-    file_id: str = Field(json_schema_extra=dict(filetype="bof"), default="")
+    file_id: str = Field(json_schema_extra={"filetype": "bof"}, default="")
 
     class Settings:
         command = Command.disableamsi
 
-    async def files(self, db: AsyncSession) -> List[str]:
+    async def files(self, db: AsyncSession) -> list[str]:
         if self.file_id:
             return [self.file_id]
         return []
@@ -287,7 +288,7 @@ class DisableAmsi(C2ImplantTemplateModel):
 
 class Unhook(C2ImplantTemplateModel):
     file_id: str = Field(
-        json_schema_extra=dict(filetype="bof"),
+        json_schema_extra={"filetype": "bof"},
         default="663c1e37-77b5-491b-9400-ab36aac88b7d",
     )
     arguments_str: str = "z:ntdll.dll"
@@ -295,7 +296,7 @@ class Unhook(C2ImplantTemplateModel):
     class Settings:
         command = Command.unhook
 
-    async def files(self, db: AsyncSession) -> List[str]:
+    async def files(self, db: AsyncSession) -> list[str]:
         return [self.file_id]
 
 
@@ -307,7 +308,7 @@ class Custom(C2ImplantTemplateModel):
     class Settings:
         command = Command.custom
 
-    async def files(self, db: AsyncSession) -> List[str]:
+    async def files(self, db: AsyncSession) -> list[str]:
         return [self.file_id] if self.file_id else []
 
 
@@ -331,7 +332,7 @@ class MythicAgent(BaseModel):
     task_mapping: list[MythicTaskMapping]
 
 
-LIST: list[Type[schemas.C2ImplantTemplateModel]] = [
+LIST: list[type[schemas.C2ImplantTemplateModel]] = [
     schemas.PS,
     schemas.Shell,
     schemas.LS,
@@ -357,6 +358,4 @@ LIST: list[Type[schemas.C2ImplantTemplateModel]] = [
     schemas.Custom,
 ]
 
-C2_JOB_BASE_MAP: Dict[str, Type[schemas.C2ImplantTemplateModel]] = {
-    entry.Settings.command: entry for entry in LIST
-}
+C2_JOB_BASE_MAP: dict[str, type[schemas.C2ImplantTemplateModel]] = {entry.Settings.command: entry for entry in LIST}

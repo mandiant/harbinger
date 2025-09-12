@@ -1,10 +1,8 @@
 from fastapi import APIRouter, Depends
 from fastapi_pagination import Page
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from harbinger import crud, models, schemas
 from harbinger.config.dependencies import current_active_user, get_db
-from harbinger.config.dependencies import current_active_user
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 
@@ -41,4 +39,4 @@ async def get_process_numbers(
     user: models.User = Depends(current_active_user),
 ):
     result = await crud.get_process_numbers(db, host_id, implant_id)
-    return dict(items=result)
+    return {"items": result}

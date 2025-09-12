@@ -12,10 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from harbinger import models
-
-
 import unittest
+
+from harbinger import models
 
 
 class TestMythicC2(unittest.TestCase):
@@ -23,10 +22,10 @@ class TestMythicC2(unittest.TestCase):
         test_text = "\x00 test test \x00"
         test_text_fixed = test_text.replace("\x00", "")
         test = models.C2Output(response_text=test_text)
-        self.assertEqual(test.response_text, test_text_fixed)
+        assert test.response_text == test_text_fixed
 
         test = models.C2Task()
         test.command_name = test_text
-        self.assertEqual(test.command_name, test_text_fixed)
+        assert test.command_name == test_text_fixed
 
         models.C2Output(response_text=None)

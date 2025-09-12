@@ -1,13 +1,14 @@
-import os
-import sys
-import subprocess
-import tempfile
-import requests
+import configparser
 import datetime
 import json
-import inquirer
-import configparser
+import os
+import subprocess
+import sys
+import tempfile
 from pathlib import Path
+
+import inquirer
+import requests
 
 # --- Debug Logging ---
 DEBUG = os.environ.get("HBR_SHELL_DEBUG") == "1"
@@ -36,11 +37,10 @@ def get_auth_config():
 
 
 def parse_cast_file(path):
-    """
-    Parses an asciinema .cast file and extracts command chunks by detecting
+    """Parses an asciinema .cast file and extracts command chunks by detecting
     the shell prompt's reappearance.
     """
-    with open(path, "r") as f:
+    with open(path) as f:
         lines = f.readlines()
 
     if DEBUG:
@@ -78,7 +78,7 @@ def parse_cast_file(path):
 
     if not prompt_signature:
         log_debug(
-            "Could not determine a prompt signature. Falling back to simple parsing."
+            "Could not determine a prompt signature. Falling back to simple parsing.",
         )
         # This fallback can be implemented if needed, for now we'll proceed.
 
@@ -107,7 +107,7 @@ def parse_cast_file(path):
 
                     # Finalize the current command chunk
                     command_input = "".join(
-                        [e[2] for e in current_command_events if e[1] == "i"]
+                        [e[2] for e in current_command_events if e[1] == "i"],
                     )
                     command_outputs = [
                         e[2] for e in current_command_events if e[1] == "o"
@@ -123,7 +123,7 @@ def parse_cast_file(path):
                                 "start_time": start_time,
                                 "end_time": end_time,
                                 "events": current_command_events,
-                            }
+                            },
                         )
 
                     # Reset for the next command
@@ -145,7 +145,7 @@ def parse_cast_file(path):
                     "start_time": start_time,
                     "end_time": end_time,
                     "events": current_command_events,
-                }
+                },
             )
 
     log_debug(f"Parsing complete. Found {len(commands)} command(s).")
@@ -170,7 +170,7 @@ def synthesize_cast_file(header, command_chunk):
             tmpfile.write(json.dumps([relative_timestamp, event_type, content]) + "\n")
 
         log_debug(
-            f"Synthesized cast file for command '{command_chunk['input'].splitlines()[0].strip()}' at: {tmpfile.name}"
+            f"Synthesized cast file for command '{command_chunk['input'].splitlines()[0].strip()}' at: {tmpfile.name}",
         )
         return tmpfile.name
 
@@ -182,9 +182,7 @@ def setup(subparsers):
 
 
 def run(args):
-    """
-    Main function for the hbr-shell tool.
-    """
+    """Main function for the hbr-shell tool."""
     api_url, cookie = get_auth_config()
 
     if not api_url or not cookie:
@@ -193,7 +191,10 @@ def run(args):
 
     try:
         subprocess.run(
-            ["asciinema", "--version"], capture_output=True, check=True, text=True
+            ["asciinema", "--version"],
+            capture_output=True,
+            check=True,
+            text=True,
         )
     except (subprocess.CalledProcessError, FileNotFoundError):
         print(
@@ -208,7 +209,7 @@ def run(args):
 
     try:
         print(
-            "Starting Harbinger shell recording. Type 'exit' or press Ctrl+D to stop."
+            "Starting Harbinger shell recording. Type 'exit' or press Ctrl+D to stop.",
         )
         title = f"Harbinger Shell Session - {datetime.datetime.now(datetime.timezone.utc).isoformat()}"
         shell = os.environ.get("SHELL", "bash")
@@ -225,8 +226,8 @@ def run(args):
         log_debug(f"Executing command: {' '.join(command)}")
 
         time_started = datetime.datetime.now(datetime.timezone.utc)
-        process = subprocess.run(command)
-        time_completed = datetime.datetime.now(datetime.timezone.utc)
+        process = subprocess.run(command, check=False)
+        datetime.datetime.now(datetime.timezone.utc)
 
         if process.returncode != 0:
             print("Recording exited with an error.", file=sys.stderr)
@@ -259,7 +260,8 @@ def run(args):
                 choices=extended_choices,
             ),
             inquirer.Text(
-                "description", message="Enter a description for this set of actions"
+                "description",
+                message="Enter a description for this set of actions",
             ),
         ]
         answers = inquirer.prompt(questions)
@@ -306,7 +308,7 @@ def run(args):
                 relative_start = command_chunk["start_time"]
                 relative_end = command_chunk["end_time"]
                 absolute_start = time_started + datetime.timedelta(
-                    seconds=relative_start
+                    seconds=relative_start,
                 )
                 absolute_end = time_started + datetime.timedelta(seconds=relative_end)
 

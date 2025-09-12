@@ -12,14 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import argparse
+import datetime
+import json
 import os
 import sys
 import tempfile
-import requests
-import datetime
-import json
+
 import inquirer
-import argparse
+import requests
 
 # --- Debug Logging ---
 DEBUG = os.environ.get("HBR_SHELL_DEBUG") == "1"
@@ -31,11 +32,10 @@ def log_debug(message):
 
 
 def parse_cast_file(path):
-    """
-    Parses an asciinema .cast file and extracts command chunks by detecting
+    """Parses an asciinema .cast file and extracts command chunks by detecting
     the shell prompt's reappearance.
     """
-    with open(path, "r") as f:
+    with open(path) as f:
         lines = f.readlines()
 
     if DEBUG:
@@ -90,7 +90,7 @@ def parse_cast_file(path):
                     log_debug("Detected end of command via prompt.")
 
                     command_input = "".join(
-                        [e[2] for e in current_command_events if e[1] == "i"]
+                        [e[2] for e in current_command_events if e[1] == "i"],
                     )
                     command_outputs = [
                         e[2] for e in current_command_events if e[1] == "o"
@@ -106,7 +106,7 @@ def parse_cast_file(path):
                                 "start_time": start_time,
                                 "end_time": end_time,
                                 "events": current_command_events,
-                            }
+                            },
                         )
 
                     in_command = False
@@ -126,7 +126,7 @@ def parse_cast_file(path):
                     "start_time": start_time,
                     "end_time": end_time,
                     "events": current_command_events,
-                }
+                },
             )
 
     log_debug(f"Parsing complete. Found {len(commands)} command(s).")
@@ -149,17 +149,15 @@ def synthesize_cast_file(header, command_chunk):
             tmpfile.write(json.dumps([relative_timestamp, event_type, content]) + "\n")
 
         log_debug(
-            f"Synthesized cast file for command '{command_chunk['input'].splitlines()[0].strip()}' at: {tmpfile.name}"
+            f"Synthesized cast file for command '{command_chunk['input'].splitlines()[0].strip()}' at: {tmpfile.name}",
         )
         return tmpfile.name
 
 
 def main():
-    """
-    Main function for the hbr-import tool.
-    """
+    """Main function for the hbr-import tool."""
     parser = argparse.ArgumentParser(
-        description="Import an asciinema .cast file into Harbinger."
+        description="Import an asciinema .cast file into Harbinger.",
     )
     parser.add_argument("cast_file", help="Path to the .cast file to import.")
     args = parser.parse_args()
@@ -187,7 +185,8 @@ def main():
 
     # The start time of the session is in the header's timestamp field.
     time_started = datetime.datetime.fromtimestamp(
-        header.get("timestamp", 0), tz=datetime.timezone.utc
+        header.get("timestamp", 0),
+        tz=datetime.timezone.utc,
     )
 
     choices = [
@@ -209,7 +208,8 @@ def main():
             choices=extended_choices,
         ),
         inquirer.Text(
-            "description", message="Enter a description for this set of actions"
+            "description",
+            message="Enter a description for this set of actions",
         ),
     ]
     answers = inquirer.prompt(questions)

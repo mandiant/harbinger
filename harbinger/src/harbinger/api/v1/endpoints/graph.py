@@ -15,16 +15,15 @@
 import logging
 import sys
 from inspect import getdoc
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Response
-from neo4j.exceptions import ServiceUnavailable
-
 from harbinger import models
 from harbinger.config import get_settings
 from harbinger.config.dependencies import current_active_user
-from harbinger.config.dependencies import current_active_user
 from harbinger.graph import crud, schemas
 from harbinger.graph.database import get_async_neo4j_session_context
+from neo4j.exceptions import ServiceUnavailable
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -46,14 +45,21 @@ async def read_graph_users(
         async with get_async_neo4j_session_context() as session:
             user_count = await crud.count_users(session, search=search)
             users = await crud.get_users(
-                session, search, skip=(page - 1) * size, limit=size
+                session,
+                search,
+                skip=(page - 1) * size,
+                limit=size,
             )
-        return dict(
-            items=users, total=user_count, page=page, size=size, pages=user_count / size
-        )
+        return {
+            "items": users,
+            "total": user_count,
+            "page": page,
+            "size": size,
+            "pages": user_count / size,
+        }
     except ServiceUnavailable:
         logger.warning("Unable to connect to Neo4j")
-        return dict(items=[], total=0, page=0, size=0, pages=0)
+        return {"items": [], "total": 0, "page": 0, "size": 0, "pages": 0}
 
 
 @router.get("/groups/", response_model=schemas.GraphGroups, tags=["graph"])
@@ -69,18 +75,21 @@ async def read_graph_groups(
         async with get_async_neo4j_session_context() as session:
             groups_count = await crud.count_groups(session, search=search)
             groups = await crud.get_groups(
-                session, search, skip=(page - 1) * size, limit=size
+                session,
+                search,
+                skip=(page - 1) * size,
+                limit=size,
             )
-        return dict(
-            items=groups,
-            total=groups_count,
-            page=page,
-            size=size,
-            pages=groups_count / size,
-        )
+        return {
+            "items": groups,
+            "total": groups_count,
+            "page": page,
+            "size": size,
+            "pages": groups_count / size,
+        }
     except ServiceUnavailable:
         logger.warning("Unable to connect to Neo4j")
-        return dict(items=[], total=0, page=0, size=0, pages=0)
+        return {"items": [], "total": 0, "page": 0, "size": 0, "pages": 0}
 
 
 @router.get("/computers/", response_model=schemas.GraphComputers, tags=["graph"])
@@ -96,22 +105,27 @@ async def read_graph_computers(
         async with get_async_neo4j_session_context() as session:
             computer_count = await crud.count_computers(session, search=search)
             computers = await crud.get_computers(
-                session, search, skip=(page - 1) * size, limit=size
+                session,
+                search,
+                skip=(page - 1) * size,
+                limit=size,
             )
-        return dict(
-            items=computers,
-            total=computer_count,
-            page=page,
-            size=size,
-            pages=computer_count / size,
-        )
+        return {
+            "items": computers,
+            "total": computer_count,
+            "page": page,
+            "size": size,
+            "pages": computer_count / size,
+        }
     except ServiceUnavailable:
         logger.warning("Unable to connect to Neo4j")
-        return dict(items=[], total=0, page=0, size=0, pages=0)
+        return {"items": [], "total": 0, "page": 0, "size": 0, "pages": 0}
 
 
 @router.get(
-    "/domain_controllers/", response_model=schemas.GraphComputers, tags=["graph"]
+    "/domain_controllers/",
+    response_model=schemas.GraphComputers,
+    tags=["graph"],
 )
 async def read_domain_controllers(
     page: int = 1,
@@ -130,22 +144,22 @@ async def read_domain_controllers(
                 limit=size,
                 search=search,
             )
-        return dict(
-            items=computers,
-            total=computer_count,
-            page=page,
-            size=size,
-            pages=computer_count / size,
-        )
+        return {
+            "items": computers,
+            "total": computer_count,
+            "page": page,
+            "size": size,
+            "pages": computer_count / size,
+        }
     except ServiceUnavailable:
         logger.warning("Unable to connect to Neo4j")
-        return dict(items=[], total=0, page=0, size=0, pages=0)
+        return {"items": [], "total": 0, "page": 0, "size": 0, "pages": 0}
 
 
 @router.post("/mark_owned", response_model=schemas.MarkResult, tags=["graph"])
 async def mark_owned(
     owned: schemas.Mark,
-    user: models.User = Depends(current_active_user),
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     count = 0
     try:
@@ -155,14 +169,13 @@ async def mark_owned(
                     count += 1
     except ServiceUnavailable:
         logger.warning("Unable to connect to Neo4j")
-        pass
-    return dict(count=count)
+    return {"count": count}
 
 
 @router.post("/unmark_owned", response_model=schemas.MarkResult, tags=["graph"])
 async def unmark_owned(
     owned: schemas.Mark,
-    user: models.User = Depends(current_active_user),
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     count = 0
     try:
@@ -172,14 +185,13 @@ async def unmark_owned(
                     count += 1
     except ServiceUnavailable:
         logger.warning("Unable to connect to Neo4j")
-        pass
-    return dict(count=count)
+    return {"count": count}
 
 
 @router.post("/mark_high_value", response_model=schemas.MarkResult, tags=["graph"])
 async def mark_high_value(
     high_value: schemas.Mark,
-    user: models.User = Depends(current_active_user),
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     count = 0
     try:
@@ -189,14 +201,13 @@ async def mark_high_value(
                     count += 1
     except ServiceUnavailable:
         logger.warning("Unable to connect to Neo4j")
-        pass
-    return dict(count=count)
+    return {"count": count}
 
 
 @router.post("/unmark_high_value", response_model=schemas.MarkResult, tags=["graph"])
 async def unmark_high_value(
     high_value: schemas.Mark,
-    user: models.User = Depends(current_active_user),
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     count = 0
     try:
@@ -206,13 +217,12 @@ async def unmark_high_value(
                     count += 1
     except ServiceUnavailable:
         logger.warning("Unable to connect to Neo4j")
-        pass
-    return dict(count=count)
+    return {"count": count}
 
 
 @router.get("/stats/", response_model=schemas.StatisticsItems, tags=["graph"])
 async def get_stats(
-    user: models.User = Depends(current_active_user),
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     try:
         return await crud.get_object_stats()
@@ -223,7 +233,7 @@ async def get_stats(
 
 @router.get("/owned_stats/", response_model=schemas.StatisticsItems, tags=["graph"])
 async def get_owned_stats(
-    user: models.User = Depends(current_active_user),
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     try:
         return await crud.get_owned_stats()
@@ -233,15 +243,17 @@ async def get_owned_stats(
 
 
 @router.get(
-    "/pre-defined-queries/", response_model=schemas.PreDefinedQueries, tags=["graph"]
+    "/pre-defined-queries/",
+    response_model=schemas.PreDefinedQueries,
+    tags=["graph"],
 )
 async def get_pre_defined_queries(
-    user: models.User = Depends(current_active_user),
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     result = []
     for key, value in crud.QUERY_MAP.items():
-        result.append(dict(name=key, icon=value.icon, description=getdoc(value)))
-    return dict(items=result)
+        result.append({"name": key, "icon": value.icon, "description": getdoc(value)})
+    return {"items": result}
 
 
 @router.get(
@@ -250,16 +262,18 @@ async def get_pre_defined_queries(
     tags=["graph"],
 )
 async def get_pre_defined_queries_graph(
-    user: models.User = Depends(current_active_user),
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     result = []
     for key, value in crud.GRAPH_QUERY_MAP.items():
-        result.append(dict(name=key, icon=value.icon, description=getdoc(value)))
-    return dict(items=result)
+        result.append({"name": key, "icon": value.icon, "description": getdoc(value)})
+    return {"items": result}
 
 
 @router.get(
-    "/pre-defined-queries/{query}", response_model=list[schemas.Node], tags=["graph"]
+    "/pre-defined-queries/{query}",
+    response_model=list[schemas.Node],
+    tags=["graph"],
 )
 async def pre_defined_query(
     query: str,
@@ -282,7 +296,7 @@ async def pre_defined_query(
 async def pre_defined_query_graph(
     query: str,
     response: Response,
-    user: models.User = Depends(current_active_user),
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     if query not in crud.GRAPH_QUERY_MAP:
         return Response("Query was not found", status_code=400)
@@ -295,7 +309,7 @@ async def pre_defined_query_graph(
 @router.get("/nodes/{objectid}", response_model=schemas.Node, tags=["graph"])
 async def get_node(
     objectid: str,
-    user: models.User = Depends(current_active_user),
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     async with get_async_neo4j_session_context() as session:
         node = await crud.get_node(session, objectid)

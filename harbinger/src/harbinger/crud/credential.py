@@ -1,16 +1,16 @@
 import uuid
-from typing import Iterable, Optional
+from collections.abc import Iterable
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
-from harbinger import models, schemas
-from harbinger import filters
-from harbinger.database.cache import redis_cache
-from harbinger.database.database import SessionLocal
 from pydantic import UUID4
 from sqlalchemy import Select, desc, exc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import func
+
+from harbinger import filters, models, schemas
+from harbinger.database.cache import redis_cache
+from harbinger.database.database import SessionLocal
 
 from ._common import DEFAULT_CACHE_TTL, create_filter_for_column
 from .label import get_labels_for_q
@@ -56,8 +56,9 @@ async def get_or_create_credential(
     ttl_seconds=DEFAULT_CACHE_TTL,
 )
 async def get_credential(
-    db: AsyncSession, credential_id: str | UUID4
-) -> Optional[models.Credential]:
+    db: AsyncSession,
+    credential_id: str | UUID4,
+) -> models.Credential | None:
     return await db.get(models.Credential, credential_id)
 
 
@@ -77,14 +78,17 @@ async def get_credentials(
 
 
 async def search_credentials(
-    db: AsyncSession, offset: int = 0, limit: int = 10
+    db: AsyncSession,
+    offset: int = 0,
+    limit: int = 10,
 ) -> Iterable[models.Credential]:
     result = await db.execute(select(models.Credential).offset(offset).limit(limit))
     return result.scalars().unique().all()
 
 
 async def get_credentials_paged(
-    db: AsyncSession, filters: filters.CredentialFilter
+    db: AsyncSession,
+    filters: filters.CredentialFilter,
 ) -> Page[models.Credential]:
     q: Select = select(models.Credential)
     q = q.outerjoin(
@@ -92,11 +96,13 @@ async def get_credentials_paged(
         onclause=models.Credential.id == models.LabeledItem.credential_id,
     )
     q = q.outerjoin(
-        models.Label, onclause=models.LabeledItem.label_id == models.Label.id
+        models.Label,
+        onclause=models.LabeledItem.label_id == models.Label.id,
     )
     if filters.domain:
         q = q.select_from(models.Credential).join(
-            models.Domain, onclause=models.Credential.domain_id == models.Domain.id
+            models.Domain,
+            onclause=models.Credential.domain_id == models.Domain.id,
         )
     q = filters.filter(q)
     q = filters.sort(q)
@@ -105,7 +111,8 @@ async def get_credentials_paged(
 
 
 async def create_credential(
-    db: AsyncSession, credential: schemas.CredentialCreate
+    db: AsyncSession,
+    credential: schemas.CredentialCreate,
 ) -> models.Credential:
     credential_dict = credential.model_dump()
     credential_dict.pop("mark_owned", None)
@@ -125,24 +132,31 @@ async def get_credentials_filters(db: AsyncSession, filters: filters.CredentialF
             onclause=models.Credential.id == models.LabeledItem.credential_id,
         )
         .outerjoin(
-            models.Label, onclause=models.LabeledItem.label_id == models.Label.id
+            models.Label,
+            onclause=models.LabeledItem.label_id == models.Label.id,
         )
     )
     q = filters.filter(q)
     if filters.domain:
         q = q.select_from(models.Credential).join(
-            models.Domain, onclause=models.Credential.domain_id == models.Domain.id
+            models.Domain,
+            onclause=models.Credential.domain_id == models.Domain.id,
         )
     lb_entry = await get_labels_for_q(db, q)
     result.extend(lb_entry)
     for field in ["username"]:
         res = await create_filter_for_column(
-            db, q, getattr(models.Credential, field), field, field
+            db,
+            q,
+            getattr(models.Credential, field),
+            field,
+            field,
         )
         result.append(res)
     if not filters.domain:
         q = q.select_from(models.Credential).join(
-            models.Domain, onclause=models.Credential.domain_id == models.Domain.id
+            models.Domain,
+            onclause=models.Credential.domain_id == models.Domain.id,
         )
     q = q.add_columns(models.Domain.long_name)
     q = q.group_by(models.Domain.long_name)
@@ -150,7 +164,7 @@ async def get_credentials_filters(db: AsyncSession, filters: filters.CredentialF
     options: list[schemas.FilterOption] = []
     res = await db.execute(q)
     for entry in res.unique().all():
-        if entry[1] or entry[1] == False:
+        if entry[1] or not entry[1]:
             options.append(schemas.FilterOption(name=str(entry[1]), count=entry[0]))
     result.append(
         schemas.Filter(
@@ -159,6 +173,6 @@ async def get_credentials_filters(db: AsyncSession, filters: filters.CredentialF
             type="options",
             options=options,
             query_name="domain__long_name",
-        )
+        ),
     )
     return result

@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import uuid
-from typing import TYPE_CHECKING
 
 from sqlalchemy import ARRAY, DateTime, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
@@ -23,24 +22,24 @@ from sqlalchemy.sql import func
 from harbinger.database.database import Base
 from harbinger.database.types import mapped_column
 
-if TYPE_CHECKING:
-    from .file import File
-    from .label import Label
-
 
 class C2Job(Base):
     __tablename__ = "c2_jobs"
     id: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
     )
     status: Mapped[str] = mapped_column(String)
     c2_type: Mapped[str] = mapped_column(String)
     c2_task_id: Mapped[UUID] = mapped_column(ForeignKey("c2_tasks.id"), nullable=True)
     c2_server_id: Mapped[UUID] = mapped_column(
-        ForeignKey("c2_servers.id"), nullable=True
+        ForeignKey("c2_servers.id"),
+        nullable=True,
     )
     c2_implant_id: Mapped[UUID] = mapped_column(
-        ForeignKey("c2_implants.id"), nullable=True
+        ForeignKey("c2_implants.id"),
+        nullable=True,
     )
     command: Mapped[str] = mapped_column(String)
     arguments: Mapped[str] = mapped_column(String)
@@ -49,18 +48,26 @@ class C2Job(Base):
     message: Mapped[str] = mapped_column(String)
 
     time_created: Mapped[DateTime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True),
+        server_default=func.now(),
     )
     time_updated: Mapped[DateTime] = mapped_column(
-        DateTime(timezone=True), onupdate=func.now()
+        DateTime(timezone=True),
+        onupdate=func.now(),
     )
     time_started: Mapped[DateTime] = mapped_column(DateTime(timezone=True))
     time_completed: Mapped[DateTime] = mapped_column(DateTime(timezone=True))
     add_labels: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=True)
 
     input_files = relationship(
-        "File", secondary="input_files", lazy="joined", viewonly=True
+        "File",
+        secondary="input_files",
+        lazy="joined",
+        viewonly=True,
     )
     labels = relationship(
-        "Label", secondary="labeled_item", lazy="joined", viewonly=True
+        "Label",
+        secondary="labeled_item",
+        lazy="joined",
+        viewonly=True,
     )

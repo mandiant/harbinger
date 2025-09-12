@@ -15,7 +15,6 @@
 
 from pydantic import BaseModel
 
-
 from .suggestion import SuggestionBaseRequest
 
 

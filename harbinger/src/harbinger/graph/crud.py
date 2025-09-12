@@ -12,14 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from enum import Enum
-from typing import Dict, List, Optional, Type
-from harbinger.database.cache import redis_cache_neo4j_cm_fixed_key
-from neo4j import AsyncSession, graph, Query as Neo4jQuery
-from harbinger import models, schemas
-from dataclasses import dataclass
-from neo4j.exceptions import Neo4jError
 import functools
+from dataclasses import dataclass
+from enum import Enum
+
+from neo4j import AsyncSession, graph
+from neo4j.exceptions import Neo4jError
+
+from harbinger import models, schemas
+from harbinger.database.cache import redis_cache_neo4j_cm_fixed_key
 from harbinger.graph.database import get_async_neo4j_session_context
 
 
@@ -40,7 +41,7 @@ def exception_handler(default):
 @exception_handler(default=0)
 async def count_users(session: AsyncSession, search: str = "") -> int:
     query = "MATCH (n:User) WHERE n.name IS NOT NULL "
-    params: dict = dict()
+    params: dict = {}
     if search:
         query += "AND n.name CONTAINS $search "
         params["search"] = search.upper()
@@ -54,10 +55,13 @@ async def count_users(session: AsyncSession, search: str = "") -> int:
 
 @exception_handler(default=[])
 async def get_users(
-    session: AsyncSession, search: str, skip: int, limit: int
-) -> List[dict]:
+    session: AsyncSession,
+    search: str,
+    skip: int,
+    limit: int,
+) -> list[dict]:
     query = "MATCH (n:User) WHERE n.name IS NOT NULL "
-    params: dict = dict(skip=skip, limit=limit)
+    params: dict = {"skip": skip, "limit": limit}
     if search:
         query += "AND n.name CONTAINS $search "
         params["search"] = search.upper()
@@ -65,7 +69,7 @@ async def get_users(
     result = await session.run(query, parameters=params)
     results = []
     async for entry in result:
-        entry_dict = dict()
+        entry_dict = {}
         for key, value in entry.data().items():
             entry_dict[key.replace("n.", "")] = value
         results.append(entry_dict)
@@ -75,7 +79,7 @@ async def get_users(
 @exception_handler(default=0)
 async def count_groups(session: AsyncSession, search: str = "") -> int:
     query = "MATCH (n:Group) WHERE n.name IS NOT NULL "
-    params = dict()
+    params = {}
     if search:
         query += "AND n.name CONTAINS $search "
         params["search"] = search.upper()
@@ -88,10 +92,13 @@ async def count_groups(session: AsyncSession, search: str = "") -> int:
 
 @exception_handler(default=[])
 async def get_groups(
-    session: AsyncSession, search: str, skip: int, limit: int
-) -> List[dict]:
+    session: AsyncSession,
+    search: str,
+    skip: int,
+    limit: int,
+) -> list[dict]:
     query = "MATCH (n:Group) WHERE n.name IS NOT NULL "
-    params: dict = dict(skip=skip, limit=limit)
+    params: dict = {"skip": skip, "limit": limit}
     if search:
         query += "AND n.name CONTAINS $search "
         params["search"] = search.upper()
@@ -99,7 +106,7 @@ async def get_groups(
     result = await session.run(query, parameters=params)
     results = []
     async for entry in result:
-        entry_dict = dict()
+        entry_dict = {}
         for key, value in entry.data().items():
             entry_dict[key.replace("n.", "")] = value
         results.append(entry_dict)
@@ -109,7 +116,7 @@ async def get_groups(
 @exception_handler(default=0)
 async def count_computers(session: AsyncSession, search: str = "") -> int:
     query = "MATCH (n:Computer) WHERE n.name IS NOT NULL "
-    params = dict()
+    params = {}
     if search:
         query += "AND n.name CONTAINS $search "
         params["search"] = search.upper()
@@ -122,10 +129,13 @@ async def count_computers(session: AsyncSession, search: str = "") -> int:
 
 @exception_handler(default=[])
 async def get_computers(
-    session: AsyncSession, search: str, skip: int, limit: int
-) -> List[dict]:
+    session: AsyncSession,
+    search: str,
+    skip: int,
+    limit: int,
+) -> list[dict]:
     query = "MATCH (n:Computer) WHERE n.name IS NOT NULL "
-    params = dict(skip=skip, limit=limit, search="")
+    params = {"skip": skip, "limit": limit, "search": ""}
     if search:
         query += "AND n.name CONTAINS $search "
         params["search"] = search.upper()
@@ -133,7 +143,7 @@ async def get_computers(
     result = await session.run(query, parameters=params)
     results = []
     async for entry in result:
-        entry_dict = dict()
+        entry_dict = {}
         for key, value in entry.data().items():
             entry_dict[key.replace("n.", "")] = value
         results.append(entry_dict)
@@ -143,7 +153,7 @@ async def get_computers(
 @exception_handler(default=0)
 async def count_domain_controllers(session: AsyncSession, search: str = "") -> int:
     query = "MATCH (g:Group) WHERE g.objectid ENDS WITH '-516' CALL apoc.path.subgraphNodes(g,{relationshipFilter:'<MemberOf', labelFilter: '+Computer', minLevel: 1}) YIELD node AS n "
-    parameters = dict()
+    parameters = {}
     if search:
         query += "WITH n WHERE n.name CONTAINS $search "
         parameters["search"] = search.upper()
@@ -160,8 +170,8 @@ async def get_domain_controllers(
     skip: int,
     limit: int,
     search: str = "",
-) -> List[dict]:
-    parameters: dict = dict(skip=skip, limit=limit)
+) -> list[dict]:
+    parameters: dict = {"skip": skip, "limit": limit}
     query = "MATCH (g:Group) WHERE g.objectid ENDS WITH '-516' CALL apoc.path.subgraphNodes(g,{relationshipFilter:'<MemberOf', labelFilter: '+Computer', minLevel: 1}) YIELD node AS n "
     if search:
         query += "WITH n WHERE n.name CONTAINS $search "
@@ -170,7 +180,7 @@ async def get_domain_controllers(
     result = await session.run(query, parameters=parameters)
     results = []
     async for entry in result:
-        entry_dict = dict()
+        entry_dict = {}
         for key, value in entry.data().items():
             entry_dict[key.replace("n.", "")] = value
         results.append(entry_dict)
@@ -181,9 +191,9 @@ async def get_domain_controllers(
 async def mark_owned(session: AsyncSession, name: str) -> bool:
     try:
         query = "MATCH (n) WHERE n.name=$name SET n.owned=true RETURN n.name"
-        result = await session.run(query, parameters=dict(name=name.upper()))
+        result = await session.run(query, parameters={"name": name.upper()})
         result_value = False
-        async for entry in result:
+        async for _entry in result:
             result_value = True
         return result_value
     except Neo4jError:
@@ -193,9 +203,9 @@ async def mark_owned(session: AsyncSession, name: str) -> bool:
 @exception_handler(default=False)
 async def unmark_owned(session: AsyncSession, name: str) -> bool:
     query = "MATCH (n) WHERE n.name=$name SET n.owned=false RETURN n.name"
-    result = await session.run(query, parameters=dict(name=name.upper()))
+    result = await session.run(query, parameters={"name": name.upper()})
     result_value = False
-    async for entry in result:
+    async for _entry in result:
         result_value = True
     return result_value
 
@@ -203,9 +213,9 @@ async def unmark_owned(session: AsyncSession, name: str) -> bool:
 @exception_handler(default=False)
 async def mark_high_value(session: AsyncSession, name: str) -> bool:
     query = "MATCH (n) WHERE n.name=$name SET n.highvalue=true RETURN n.name"
-    result = await session.run(query, parameters=dict(name=name.upper()))
+    result = await session.run(query, parameters={"name": name.upper()})
     result_value = False
-    async for entry in result:
+    async for _entry in result:
         result_value = True
     return result_value
 
@@ -213,9 +223,9 @@ async def mark_high_value(session: AsyncSession, name: str) -> bool:
 @exception_handler(default=False)
 async def unmark_high_value(session: AsyncSession, name: str) -> bool:
     query = "MATCH (n) WHERE n.name=$name SET n.highvalue=false RETURN n.name"
-    result = await session.run(query, parameters=dict(name=name.upper()))
+    result = await session.run(query, parameters={"name": name.upper()})
     result_value = False
-    async for entry in result:
+    async for _entry in result:
         result_value = True
     return result_value
 
@@ -224,7 +234,8 @@ async def unmark_high_value(session: AsyncSession, name: str) -> bool:
 async def add_session(session: AsyncSession, computer: str, name: str) -> bool:
     query = "MATCH (u:User) WHERE u.name=$name OPTIONAL MATCH (c:Computer) WHERE c.name=$computer MERGE (c)-[:HasSession]->(u) return u"
     await session.run(
-        query, parameters=dict(name=name.upper(), computer=computer.upper())
+        query,
+        parameters={"name": name.upper(), "computer": computer.upper()},
     )
     return True
 
@@ -256,8 +267,8 @@ async def get_object_stats(session: AsyncSession) -> dict:
             query = user_query
         result = await session.run(query)  # type: ignore
         async for graph_entry in result:
-            results.append(dict(key=entry.name, value=graph_entry.get("count")))
-    return dict(items=results)
+            results.append({"key": entry.name, "value": graph_entry.get("count")})
+    return {"items": results}
 
 
 domains_query = "MATCH (d:Domain) RETURN d.name as name"
@@ -279,20 +290,21 @@ async def get_owned_stats(session: AsyncSession) -> dict:
         domains.append(graph_entry["name"])
 
     for domain in domains:
-        resp = await session.run(total_query, parameters=dict(domain=domain))  # type: ignore
+        resp = await session.run(total_query, parameters={"domain": domain})  # type: ignore
         result = await resp.single()
         if result and result["count"]:
-            results.append(dict(key=f"{domain} total servers", value=result["count"]))
+            results.append({"key": f"{domain} total servers", "value": result["count"]})
 
             resp = await session.run(
-                admin_servers_query, parameters=dict(domain=domain)
+                admin_servers_query,
+                parameters={"domain": domain},
             )  # type: ignore
             owned_count = await resp.single()
             if owned_count:
                 results.append(
-                    dict(key=f"{domain} admin servers", value=owned_count["count"])
+                    {"key": f"{domain} admin servers", "value": owned_count["count"]},
                 )
-    return dict(items=results)
+    return {"items": results}
 
 
 class Query:
@@ -402,7 +414,7 @@ class QueryEnum(str, Enum):
     admin_permissions = "admin_permissions"
 
 
-QUERY_MAP: Dict[str, Type[Query]] = {
+QUERY_MAP: dict[str, type[Query]] = {
     QueryEnum.owned_to_groups: OwnedToGroups,
     QueryEnum.owned_to_admin: OwnedToAdmin,
     QueryEnum.all_nodes_to_high_value: AllNodesToHighValue,
@@ -413,15 +425,17 @@ QUERY_MAP: Dict[str, Type[Query]] = {
     QueryEnum.admin_permissions: AdminPermissions,
 }
 
-GRAPH_QUERY_MAP: Dict[str, Type[GraphQuery]] = {
-    GraphQueryEnum.graph_high_value: AllPathsToHighValue
+GRAPH_QUERY_MAP: dict[str, type[GraphQuery]] = {
+    GraphQueryEnum.graph_high_value: AllPathsToHighValue,
 }
 
 
 @exception_handler(default=[])
 async def run_predefined_query(
-    session: AsyncSession, query: str, owned_only: bool = False
-) -> List[dict]:
+    session: AsyncSession,
+    query: str,
+    owned_only: bool = False,
+) -> list[dict]:
     query_obj = QUERY_MAP[query]
     all_results = []
     result = await session.run(query_obj.query)  # type: ignore
@@ -434,11 +448,10 @@ async def run_predefined_query(
         if query_obj.extra_data_key:
             entry_dict["extra"] = entry.get(query_obj.extra_data_key)
         if query_obj.filter_label:
-            if not query_obj.filter_label in inner_item.labels:
+            if query_obj.filter_label not in inner_item.labels:
                 continue
-        if owned_only:
-            if not entry_dict.get("owned", False):
-                continue
+        if owned_only and not entry_dict.get("owned", False):
+            continue
         all_results.append(entry_dict)
     return all_results
 
@@ -468,8 +481,10 @@ async def run_predefined_graph_query(session: AsyncSession, query: str) -> str:
 
 @exception_handler(default=None)
 async def get_node(
-    session: AsyncSession, objectid: str = "", name: str = ""
-) -> Optional[dict]:
+    session: AsyncSession,
+    objectid: str = "",
+    name: str = "",
+) -> dict | None:
     query = ""
     if name:
         query = "MATCH (n {name: $name}) RETURN n"
@@ -477,7 +492,7 @@ async def get_node(
         query = "MATCH (n {objectid: $objectid}) RETURN n"
     else:
         return None
-    result = await session.run(query, parameters=dict(objectid=objectid, name=name))
+    result = await session.run(query, parameters={"objectid": objectid, "name": name})
     async for entry in result:
         inner_item = entry.get("n")
         entry_dict = dict(inner_item)
@@ -495,10 +510,10 @@ def format_credential(cred: models.Credential) -> str:
 
 
 @exception_handler(default=[])
-async def get_adminto_for_name(session: AsyncSession, name: str) -> List[dict]:
+async def get_adminto_for_name(session: AsyncSession, name: str) -> list[dict]:
     query = "MATCH (n:User {name: $name}) CALL apoc.path.subgraphNodes(n, {relationshipFilter: '>MemberOf|>AdminTo', minLevel: 1, labelFilter: '/Computer'}) YIELD node AS u RETURN DISTINCT u;"
     all_results = []
-    result = await session.run(query, parameters=dict(name=name))
+    result = await session.run(query, parameters={"name": name})
     async for entry in result:
         inner_item = entry.get("u")
         entry_dict = dict(inner_item)
@@ -527,10 +542,10 @@ class Graph:
 
 
 @exception_handler(default=[])
-async def get_adminto_graph_for_name(session: AsyncSession, name: str) -> List[Graph]:
+async def get_adminto_graph_for_name(session: AsyncSession, name: str) -> list[Graph]:
     query = "MATCH (n:User {name: $name}) CALL apoc.path.spanningTree(n, {relationshipFilter: '>MemberOf|>AdminTo', minLevel: 1, labelFilter: '/Computer'}) YIELD path RETURN path;"
     all_results = []
-    result = await session.run(query, parameters=dict(name=name))
+    result = await session.run(query, parameters={"name": name})
     async for entry in result:
         inner_item: graph.Path = entry.get("path")
         inner_result = Graph(
@@ -545,11 +560,11 @@ async def get_adminto_graph_for_name(session: AsyncSession, name: str) -> List[G
 
         for element in inner_item.relationships:
             inner_result.relationships.append(
-                dict(
-                    source=element.nodes[0].id,  # type: ignore
-                    target=element.nodes[1].id,  # type: ignore
-                    type=element.type,
-                )
+                {
+                    "source": element.nodes[0].id,  # type: ignore
+                    "target": element.nodes[1].id,  # type: ignore
+                    "type": element.type,
+                },
             )
         all_results.append(inner_result)
     return all_results
@@ -558,9 +573,9 @@ async def get_adminto_graph_for_name(session: AsyncSession, name: str) -> List[G
 @exception_handler(default={})
 async def get_group_membership_for_name(session: AsyncSession, name: str) -> dict:
     query = "MATCH (n:User {name: $name}) CALL apoc.path.spanningTree(n, {relationshipFilter: '>MemberOf', minLevel: 1}) YIELD path RETURN path;"
-    nodes = dict()
+    nodes = {}
     relationsips = []
-    query_result = await session.run(query, parameters=dict(name=name))
+    query_result = await session.run(query, parameters={"name": name})
     async for entry in query_result:
         inner_item: graph.Path = entry.get("path")
 
@@ -569,14 +584,13 @@ async def get_group_membership_for_name(session: AsyncSession, name: str) -> dic
 
         for element in inner_item.relationships:
             relationsips.append(
-                dict(
-                    source=element.nodes[0].id,  # type: ignore
-                    target=element.nodes[1].id,  # type: ignore
-                    type=element.type,
-                )
+                {
+                    "source": element.nodes[0].id,  # type: ignore
+                    "target": element.nodes[1].id,  # type: ignore
+                    "type": element.type,
+                },
             )
-    result = dict(nodes=list(nodes.values()), relationships=relationsips)
-    return result
+    return {"nodes": list(nodes.values()), "relationships": relationsips}
 
 
 kerberoastable_query = """MATCH (n:User)
@@ -588,7 +602,7 @@ RETURN n,groups,count(value) as n2 ORDER by n2 DESC
 """
 
 
-@exception_handler(default=list())
+@exception_handler(default=[])
 async def get_kerberoastable_groups(session: AsyncSession) -> list:
     result = []
 

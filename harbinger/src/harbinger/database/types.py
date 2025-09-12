@@ -12,20 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Optional, Type, TYPE_CHECKING, TypeVar, Union
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from sqlalchemy import Column
-from sqlalchemy.orm import Mapped
-from sqlalchemy.types import TypeEngine
 
 _T = TypeVar("_T")
 
 if TYPE_CHECKING:
+    from sqlalchemy.orm import Mapped
+    from sqlalchemy.types import TypeEngine
 
     class mapped_column(Mapped[_T]):
         def __init__(
             self,
-            __typ: Optional[Union[TypeEngine[_T], Type[TypeEngine[_T]], Any]],
+            __typ: TypeEngine[_T] | type[TypeEngine[_T]] | Any | None,
             *arg,
             **kw,
         ): ...

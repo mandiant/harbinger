@@ -12,15 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import json
+from typing import Any
+
 from pydantic import (
+    AliasChoices,
     BaseModel,
     Field,
-    AliasChoices,
+    FieldValidationInfo,
     RootModel,
     field_validator,
-    FieldValidationInfo,
 )
-from typing import Optional, Any, Union
 
 
 # --- Main Models ---
@@ -31,18 +32,17 @@ class CertificateAuthority(BaseModel):
     certificate_serial_number: str = Field(alias="Certificate Serial Number")
     certificate_validity_start: str = Field(alias="Certificate Validity Start")
     certificate_validity_end: str = Field(alias="Certificate Validity End")
-    web_enrollment: Optional[str] = Field(alias="Web Enrollment", default=None)
+    web_enrollment: str | None = Field(alias="Web Enrollment", default=None)
     user_specified_san: str = Field(alias="User Specified SAN")
     request_disposition: str = Field(alias="Request Disposition")
     enforce_encryption_for_requests: str = Field(
-        alias="Enforce Encryption for Requests"
+        alias="Enforce Encryption for Requests",
     )
 
     @field_validator("web_enrollment", mode="before")
     @classmethod
-    def convert_web_enrollment_dict_to_json_string(cls, v: Any) -> Optional[str]:
-        """
-        If the input 'v' for web_enrollment is a dictionary,
+    def convert_web_enrollment_dict_to_json_string(cls, v: Any) -> str | None:
+        """If the input 'v' for web_enrollment is a dictionary,
         convert it to a JSON string. Otherwise, pass it through
         (Pydantic will then validate if it's a string or None).
         """
@@ -59,8 +59,7 @@ class CertificateAuthorities(RootModel[dict[str, CertificateAuthority]]):
 
 
 class Vulnerabilities(RootModel[dict[str, str]]):
-    """
-    Represents a dictionary where keys are vulnerability names (strings)
+    """Represents a dictionary where keys are vulnerability names (strings)
     and values are descriptions (strings).
     """
 
@@ -69,84 +68,101 @@ class Vulnerabilities(RootModel[dict[str, str]]):
 
 # Placeholder for the Permissions model - its actual structure depends on your JSON
 class EnrollmentPermissions(BaseModel):
-    enrollment_rights: Optional[list[str]] = Field(
-        alias="Enrollment Rights", default=None
+    enrollment_rights: list[str] | None = Field(
+        alias="Enrollment Rights",
+        default=None,
     )
 
 
 class ObjectControlPermissions(BaseModel):
-    owner: Optional[str] = Field(alias="Owner", default=None)
-    full_control_principals: Optional[list[str]] = Field(
-        alias="Full Control Principals", default_factory=list
+    owner: str | None = Field(alias="Owner", default=None)
+    full_control_principals: list[str] | None = Field(
+        alias="Full Control Principals",
+        default_factory=list,
     )
-    write_owner_principals: Optional[list[str]] = Field(
-        alias="Write Owner Principals", default_factory=list
+    write_owner_principals: list[str] | None = Field(
+        alias="Write Owner Principals",
+        default_factory=list,
     )
-    write_dacl_principals: Optional[list[str]] = Field(
-        alias="Write Dacl Principals", default_factory=list
+    write_dacl_principals: list[str] | None = Field(
+        alias="Write Dacl Principals",
+        default_factory=list,
     )
-    write_property_auto_enroll: Optional[list[str]] = Field(
-        alias="Write Property AutoEnroll", default_factory=list
+    write_property_auto_enroll: list[str] | None = Field(
+        alias="Write Property AutoEnroll",
+        default_factory=list,
     )
-    write_property_principals: Optional[list[str]] = Field(
-        alias="Write Property Enroll", default_factory=list
+    write_property_principals: list[str] | None = Field(
+        alias="Write Property Enroll",
+        default_factory=list,
     )
 
 
 class Permissions(BaseModel):
-    enrollment_permissions: Optional[EnrollmentPermissions] = Field(
-        alias="Enrollment Permissions", default=None
+    enrollment_permissions: EnrollmentPermissions | None = Field(
+        alias="Enrollment Permissions",
+        default=None,
     )
-    object_control_permissions: Optional[ObjectControlPermissions] = Field(
-        alias="Object Control Permissions", default=None
+    object_control_permissions: ObjectControlPermissions | None = Field(
+        alias="Object Control Permissions",
+        default=None,
     )
 
 
 class CertificateTemplate(BaseModel):
     template_name: str = Field(alias="Template Name")
     display_name: str = Field(alias="Display Name")
-    certificate_authorities: Optional[list[str]] = Field(
-        alias="Certificate Authorities", default=None
+    certificate_authorities: list[str] | None = Field(
+        alias="Certificate Authorities",
+        default=None,
     )
     enabled: bool = Field(alias="Enabled")
     client_authentication: bool = Field(alias="Client Authentication")
     enrollment_agent: bool = Field(alias="Enrollment Agent")
     any_purpose: bool = Field(alias="Any Purpose")
     enrollee_supplies_subject: bool = Field(alias="Enrollee Supplies Subject")
-    certificate_name_flag: Optional[list[int]] = Field(
-        alias="Certificate Name Flag", default=None
+    certificate_name_flag: list[int] | None = Field(
+        alias="Certificate Name Flag",
+        default=None,
     )
-    enrollment_flag: Optional[list[int]] = Field(alias="Enrollment Flag", default=None)
-    private_key_flag: Optional[list[int]] = Field(
-        alias="Private Key Flag", default=None
+    enrollment_flag: list[int] | None = Field(alias="Enrollment Flag", default=None)
+    private_key_flag: list[int] | None = Field(
+        alias="Private Key Flag",
+        default=None,
     )
-    extended_key_usage: Optional[list[str]] = Field(
-        alias="Extended Key Usage", default=None
+    extended_key_usage: list[str] | None = Field(
+        alias="Extended Key Usage",
+        default=None,
     )
     requires_manager_approval: bool = Field(alias="Requires Manager Approval")
     requires_key_archival: bool = Field(alias="Requires Key Archival")
     authorized_signatures_required: int = Field(alias="Authorized Signatures Required")
-    schema_version: Optional[int] = Field(
-        alias="Schema Version", default=None
+    schema_version: int | None = Field(
+        alias="Schema Version",
+        default=None,
     )  # Made optional for safety
     validity_period: str = Field(alias="Validity Period", default="")
     renewal_period: str = Field(alias="Renewal Period", default="")
     minimum_rsa_key_length: int = Field(alias="Minimum RSA Key Length", default=0)
-    permissions: Optional[Permissions] = Field(alias="Permissions", default=None)
-    vulnerabilities: Optional[Vulnerabilities] = Field(
-        alias="[!] Vulnerabilities", default=None
+    permissions: Permissions | None = Field(alias="Permissions", default=None)
+    vulnerabilities: Vulnerabilities | None = Field(
+        alias="[!] Vulnerabilities",
+        default=None,
     )
-    template_created: Optional[str] = Field(alias="Template Created", default=None)
-    template_last_modified: Optional[str] = Field(
-        alias="Template Last Modified", default=None
+    template_created: str | None = Field(alias="Template Created", default=None)
+    template_last_modified: str | None = Field(
+        alias="Template Last Modified",
+        default=None,
     )
-    ra_application_policies: Optional[list[str]] = Field(
-        alias="RA Application Policies", default=None
+    ra_application_policies: list[str] | None = Field(
+        alias="RA Application Policies",
+        default=None,
     )
-    user_enrollable_principals: Optional[list[str]] = Field(
-        alias="[+] User Enrollable Principals", default=None
+    user_enrollable_principals: list[str] | None = Field(
+        alias="[+] User Enrollable Principals",
+        default=None,
     )
-    remarks: Optional[dict[str, str]] = Field(alias="[*] Remarks", default=None)
+    remarks: dict[str, str] | None = Field(alias="[*] Remarks", default=None)
 
     class Config:
         populate_by_name = True
@@ -158,7 +174,7 @@ class CertificateTemplates(RootModel[dict[str, CertificateTemplate]]):
 
 class CertipyJson(BaseModel):
     certificate_authorities: CertificateAuthorities = Field(
-        alias="Certificate Authorities"
+        alias="Certificate Authorities",
     )
     certificate_templates: CertificateTemplates = Field(alias="Certificate Templates")
 
@@ -168,10 +184,11 @@ class CertipyJson(BaseModel):
     @field_validator("certificate_authorities", "certificate_templates", mode="before")
     @classmethod
     def handle_string_error_for_root_model_dicts(
-        cls, v: Any, info: FieldValidationInfo
+        cls,
+        v: Any,
+        info: FieldValidationInfo,
     ) -> Any:
-        """
-        If the input 'v' for fields expecting RootModel[dict[...]] is a string (error message),
+        """If the input 'v' for fields expecting RootModel[dict[...]] is a string (error message),
         return an empty dictionary to allow parsing of other fields.
         Otherwise, pass it through for normal Pydantic parsing.
         """
@@ -207,21 +224,21 @@ class CertifyCertificateAuthority(BaseModel):
     guid: str = Field(validation_alias=AliasChoices("Guid"))
     flags: str = Field(validation_alias=AliasChoices("Flags"))
     certificates: list[CertifyCertificate] = Field(
-        validation_alias=AliasChoices("Certificates")
+        validation_alias=AliasChoices("Certificates"),
     )
     templates: list[str] = Field(validation_alias=AliasChoices("Templates"))
     editf_attributesubjectaltname2: bool = Field(
-        validation_alias=AliasChoices("EDITF_ATTRIBUTESUBJECTALTNAME2")
+        validation_alias=AliasChoices("EDITF_ATTRIBUTESUBJECTALTNAME2"),
     )
     acl: CertifyAcl = Field(validation_alias=AliasChoices("ACL"))
-    enrollment_agent_restrictions: Optional[Any] = Field(
-        validation_alias=AliasChoices("EnrollmentAgentRestrictions")
+    enrollment_agent_restrictions: Any | None = Field(
+        validation_alias=AliasChoices("EnrollmentAgentRestrictions"),
     )
 
 
 class CertifyOid(BaseModel):
     value: str = Field(validation_alias=AliasChoices("Value"))
-    friendly_name: Optional[Any] = Field(validation_alias=AliasChoices("FriendlyName"))
+    friendly_name: Any | None = Field(validation_alias=AliasChoices("FriendlyName"))
 
 
 class CertifyCertificateTemplate(BaseModel):
@@ -229,36 +246,37 @@ class CertifyCertificateTemplate(BaseModel):
     domain_name: str = Field(validation_alias=AliasChoices("DomainName"))
     display_name: str = Field(validation_alias=AliasChoices("DisplayName"))
     guid: str = Field(validation_alias=AliasChoices("Guid"))
-    schema_version: Optional[Any] = Field(
-        validation_alias=AliasChoices("SchemaVersion")
+    schema_version: Any | None = Field(
+        validation_alias=AliasChoices("SchemaVersion"),
     )
     validity_period: str = Field(validation_alias=AliasChoices("ValidityPeriod"))
     renewal_period: str = Field(validation_alias=AliasChoices("RenewalPeriod"))
     oid: CertifyOid = Field(validation_alias=AliasChoices("Oid"))
     certificate_name_flag: int = Field(
-        validation_alias=AliasChoices("CertificateNameFlag")
+        validation_alias=AliasChoices("CertificateNameFlag"),
     )
     enrollment_flag: int = Field(validation_alias=AliasChoices("EnrollmentFlag"))
     extended_key_usage: list[str] | None = Field(
-        validation_alias=AliasChoices("ExtendedKeyUsage"), default=[]
+        validation_alias=AliasChoices("ExtendedKeyUsage"),
+        default=[],
     )
     authorized_signatures_required: int = Field(
-        validation_alias=AliasChoices("AuthorizedSignatures")
+        validation_alias=AliasChoices("AuthorizedSignatures"),
     )
-    application_policies: Optional[Any] = Field(
-        validation_alias=AliasChoices("ApplicationPolicies")
+    application_policies: Any | None = Field(
+        validation_alias=AliasChoices("ApplicationPolicies"),
     )
-    issuance_policies: Optional[Any] = Field(
-        validation_alias=AliasChoices("IssuancePolicies")
+    issuance_policies: Any | None = Field(
+        validation_alias=AliasChoices("IssuancePolicies"),
     )
-    certificate_application_policies: Optional[Union[list[str], Any]] = Field(
-        validation_alias=AliasChoices("CertificateApplicationPolicies")
+    certificate_application_policies: list[str] | Any | None = Field(
+        validation_alias=AliasChoices("CertificateApplicationPolicies"),
     )
     requires_manager_approval: bool = Field(
-        validation_alias=AliasChoices("RequiresManagerApproval")
+        validation_alias=AliasChoices("RequiresManagerApproval"),
     )
     enrollee_supplies_subject: bool = Field(
-        validation_alias=AliasChoices("EnrolleeSuppliesSubject")
+        validation_alias=AliasChoices("EnrolleeSuppliesSubject"),
     )
     acl: CertifyAcl = Field(validation_alias=AliasChoices("ACL"))
 
@@ -271,9 +289,11 @@ class CertifyMeta(BaseModel):
 
 class CertifyRoot(BaseModel):
     certificate_authorities: list[CertifyCertificateAuthority] | None = Field(
-        validation_alias=AliasChoices("CertificateAuthorities"), default=None
+        validation_alias=AliasChoices("CertificateAuthorities"),
+        default=None,
     )
     certificate_templates: list[CertifyCertificateTemplate] | None = Field(
-        validation_alias=AliasChoices("CertificateTemplates"), default=None
+        validation_alias=AliasChoices("CertificateTemplates"),
+        default=None,
     )
     meta: CertifyMeta = Field(validation_alias=AliasChoices("Meta"))

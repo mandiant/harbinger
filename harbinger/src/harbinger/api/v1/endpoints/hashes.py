@@ -1,25 +1,25 @@
 import io
 import zipfile
+from typing import Annotated
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from fastapi_pagination import Page
-from pydantic import UUID4
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from harbinger import crud, schemas
 from harbinger.config.dependencies import get_db
+from pydantic import UUID4
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 
 
 @router.get("/", response_model=Page[schemas.Hash], tags=["crud", "hashes"])
-async def get_hashes(db: AsyncSession = Depends(get_db)):
+async def get_hashes(db: Annotated[AsyncSession, Depends(get_db)]):
     return await crud.list_hashes_paged(db)
 
 
 @router.get("/export", tags=["crud", "hashes"])
-async def export_hashes(db: AsyncSession = Depends(get_db)):
+async def export_hashes(db: Annotated[AsyncSession, Depends(get_db)]):
     hashes = await crud.list_hashes(db)
     hashes_dict = {}
     for hash in hashes:

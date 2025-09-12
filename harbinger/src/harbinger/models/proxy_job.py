@@ -13,36 +13,32 @@
 # limitations under the License.
 
 import uuid
-from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, relationship
 from sqlalchemy.sql import func
 
-from harbinger.database.database import Base
 from harbinger.database.types import mapped_column
-from .timeline import TimeLine
 
-if TYPE_CHECKING:
-    from .credential import Credential
-    from .proxy import Proxy
-    from .file import File
-    from .label import Label
-    from .socks_server import SocksServer
+from .timeline import TimeLine
 
 
 class ProxyJob(TimeLine):
     __tablename__ = "proxy_jobs"
     id: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
     )
     credential_id: Mapped[UUID] = mapped_column(
-        ForeignKey("credentials.id"), nullable=True
+        ForeignKey("credentials.id"),
+        nullable=True,
     )
     proxy_id: Mapped[UUID] = mapped_column(ForeignKey("proxies.id"), nullable=True)
     socks_server_id: Mapped[UUID] = mapped_column(
-        ForeignKey("socks_servers.id"), nullable=True
+        ForeignKey("socks_servers.id"),
+        nullable=True,
     )
     executor_type: Mapped[str] = mapped_column(String)
     status: Mapped[str] = mapped_column(String)
@@ -52,10 +48,12 @@ class ProxyJob(TimeLine):
     # input_files = mapped_column(ARRAY(String), nullable=True)
     playbook_id: Mapped[UUID] = mapped_column(ForeignKey("playbooks.id"), nullable=True)
     time_created: Mapped[DateTime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True),
+        server_default=func.now(),
     )
     time_updated: Mapped[DateTime] = mapped_column(
-        DateTime(timezone=True), onupdate=func.now()
+        DateTime(timezone=True),
+        onupdate=func.now(),
     )
     time_started: Mapped[DateTime] = mapped_column(DateTime(timezone=True))
     time_completed: Mapped[DateTime] = mapped_column(DateTime(timezone=True))
@@ -79,11 +77,17 @@ class ProxyJob(TimeLine):
         viewonly=True,
     )
     input_files = relationship(
-        "File", secondary="input_files", lazy="joined", viewonly=True
+        "File",
+        secondary="input_files",
+        lazy="joined",
+        viewonly=True,
     )
     files = relationship("File", back_populates="proxy_job", lazy="joined")
     labels = relationship(
-        "Label", secondary="labeled_item", lazy="joined", viewonly=True
+        "Label",
+        secondary="labeled_item",
+        lazy="joined",
+        viewonly=True,
     )
     socks_server = relationship(
         "SocksServer",

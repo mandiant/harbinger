@@ -13,10 +13,11 @@
 # limitations under the License.
 
 import json  # Import json for serialization
+from collections.abc import Awaitable, Callable
+
 from harbinger import schemas
-from harbinger.database.redis_pool import redis
 from harbinger.config import constants
-from typing import Callable, Awaitable
+from harbinger.database.redis_pool import redis
 
 GLOBAL_REDIS_EVENTS_CHANNEL = schemas.Streams.events
 
@@ -29,7 +30,7 @@ async def get_progress_bars() -> list[schemas.ProgressBar]:
             redis_key = f"{constants.PROGRESS_BAR_PREFIX}{bar_id}"
             # Fetch all fields to reconstruct the ProgressBar object
             bar_data = {}
-            for field_name, _ in schemas.ProgressBar.model_fields.items():
+            for field_name in schemas.ProgressBar.model_fields:
                 value = await redis.get(f"{redis_key}.{field_name}")
                 if value is not None:
                     # Attempt to convert to correct type, as redis.get returns string/bytes
@@ -38,9 +39,7 @@ async def get_progress_bars() -> list[schemas.ProgressBar]:
                     elif field_name == "percentage":
                         bar_data[field_name] = float(value)
                     else:  # id, type, description
-                        bar_data[field_name] = (
-                            value.decode("utf-8") if isinstance(value, bytes) else value
-                        )
+                        bar_data[field_name] = value.decode("utf-8") if isinstance(value, bytes) else value
 
             # Ensure all required fields are present with defaults if necessary
             # or handle missing data appropriately.
@@ -49,7 +48,7 @@ async def get_progress_bars() -> list[schemas.ProgressBar]:
                 result.append(progress_bar_obj)
             except Exception as e:
                 print(
-                    f"Warning: Failed to validate ProgressBar from Redis for ID {bar_id}: {e}"
+                    f"Warning: Failed to validate ProgressBar from Redis for ID {bar_id}: {e}",
                 )
                 # Optionally, clean up inconsistent data in Redis here
     return result
@@ -61,23 +60,22 @@ async def create_progress_bar(bar: schemas.ProgressBar) -> None:
 
     # Store fields individually in Redis
     for key, value in data.items():
-        if (
-            value is not None
-        ):  # Ensure None values are not stored directly if not desired
+        if value is not None:  # Ensure None values are not stored directly if not desired
             await redis.set(
-                f"{redis_key}.{key}", str(value)
+                f"{redis_key}.{key}",
+                str(value),
             )  # Convert all to string for Redis SET
 
     await redis.sadd(constants.PROGRESS_BARS_SET_KEY, bar.id)  # type: ignore
 
     # Create the event payload in the expected JSON format
     event_payload = {
-        "channel": f"progress_bars.insert",  # Original channel info
+        "channel": "progress_bars.insert",  # Original channel info
         "table_name": "progress_bars",
         "operation": "insert",
         "before": None,  # No 'before' state for insert
         "after": bar.model_dump(
-            mode="json"
+            mode="json",
         ),  # Convert Pydantic object to JSON-compatible dict
     }
 
@@ -94,7 +92,7 @@ async def delete_progress_bar(bar_id: str) -> None:
     deleted_bar: schemas.ProgressBar | None = None
     existing_data = {}
     redis_key = f"{constants.PROGRESS_BAR_PREFIX}{bar_id}"
-    for field_name, _ in schemas.ProgressBar.model_fields.items():
+    for field_name in schemas.ProgressBar.model_fields:
         value = await redis.get(f"{redis_key}.{field_name}")
         if value is not None:
             if field_name in ["current", "max"]:
@@ -102,29 +100,25 @@ async def delete_progress_bar(bar_id: str) -> None:
             elif field_name == "percentage":
                 existing_data[field_name] = float(value)
             else:
-                existing_data[field_name] = (
-                    value.decode("utf-8") if isinstance(value, bytes) else value
-                )
+                existing_data[field_name] = value.decode("utf-8") if isinstance(value, bytes) else value
     try:
         deleted_bar = schemas.ProgressBar.model_validate(existing_data)
     except Exception:
         # Log if validation fails, but proceed with deletion and event if possible
         print(
-            f"Warning: Could not fully retrieve ProgressBar for 'before' state during deletion for ID {bar_id}"
+            f"Warning: Could not fully retrieve ProgressBar for 'before' state during deletion for ID {bar_id}",
         )
 
     await redis.srem(constants.PROGRESS_BARS_SET_KEY, bar_id)  # type: ignore
-    for key, _ in schemas.ProgressBar.model_fields.items():
+    for key in schemas.ProgressBar.model_fields:
         await redis.delete(f"{redis_key}.{key}")
 
     # Create the event payload
     event_payload = {
-        "channel": f"progress_bars.delete",
+        "channel": "progress_bars.delete",
         "table_name": "progress_bars",
         "operation": "delete",
-        "before": deleted_bar.model_dump(mode="json")
-        if deleted_bar
-        else None,  # Include 'before' state if retrieved
+        "before": deleted_bar.model_dump(mode="json") if deleted_bar else None,  # Include 'before' state if retrieved
         "after": None,  # No 'after' state for delete
     }
 
@@ -141,7 +135,7 @@ async def update_progress_bar(bar_id: str, current: int, percentage: float) -> N
     redis_key = f"{constants.PROGRESS_BAR_PREFIX}{bar_id}"
 
     existing_data = {}
-    for field_name, _ in schemas.ProgressBar.model_fields.items():
+    for field_name in schemas.ProgressBar.model_fields:
         value = await redis.get(f"{redis_key}.{field_name}")
         if value is not None:
             if field_name in ["current", "max"]:
@@ -149,14 +143,12 @@ async def update_progress_bar(bar_id: str, current: int, percentage: float) -> N
             elif field_name == "percentage":
                 existing_data[field_name] = float(value)
             else:
-                existing_data[field_name] = (
-                    value.decode("utf-8") if isinstance(value, bytes) else value
-                )
+                existing_data[field_name] = value.decode("utf-8") if isinstance(value, bytes) else value
     try:
         old_bar = schemas.ProgressBar.model_validate(existing_data)
     except Exception:
         print(
-            f"Warning: Could not fully retrieve old ProgressBar for 'before' state during update for ID {bar_id}"
+            f"Warning: Could not fully retrieve old ProgressBar for 'before' state during update for ID {bar_id}",
         )
 
     # Perform the update in Redis
@@ -165,7 +157,7 @@ async def update_progress_bar(bar_id: str, current: int, percentage: float) -> N
 
     # Re-retrieve 'after' state for the event
     updated_data = {}
-    for field_name, _ in schemas.ProgressBar.model_fields.items():
+    for field_name in schemas.ProgressBar.model_fields:
         value = await redis.get(f"{redis_key}.{field_name}")  # Get updated values
         if value is not None:
             if field_name in ["current", "max"]:
@@ -173,27 +165,21 @@ async def update_progress_bar(bar_id: str, current: int, percentage: float) -> N
             elif field_name == "percentage":
                 updated_data[field_name] = float(value)
             else:
-                updated_data[field_name] = (
-                    value.decode("utf-8") if isinstance(value, bytes) else value
-                )
+                updated_data[field_name] = value.decode("utf-8") if isinstance(value, bytes) else value
     try:
         new_bar = schemas.ProgressBar.model_validate(updated_data)
     except Exception:
         print(
-            f"Warning: Could not fully retrieve new ProgressBar for 'after' state during update for ID {bar_id}"
+            f"Warning: Could not fully retrieve new ProgressBar for 'after' state during update for ID {bar_id}",
         )
 
     # Create the event payload
     event_payload = {
-        "channel": f"progress_bars.update",
+        "channel": "progress_bars.update",
         "table_name": "progress_bars",
         "operation": "update",
-        "before": old_bar.model_dump(mode="json")
-        if old_bar
-        else None,  # Include 'before' state
-        "after": new_bar.model_dump(mode="json")
-        if new_bar
-        else None,  # Include 'after' state
+        "before": old_bar.model_dump(mode="json") if old_bar else None,  # Include 'before' state
+        "after": new_bar.model_dump(mode="json") if new_bar else None,  # Include 'after' state
     }
 
     await redis.publish(
@@ -243,6 +229,8 @@ class ProgressBar:
         # On exit, ensure final state is pushed, then delete
         # It's good practice to send final update to max/100% before deleting
         await update_progress_bar(
-            self.bar_id, self.max, 1.0
+            self.bar_id,
+            self.max,
+            1.0,
         )  # Ensure percentage is 1.0 (100%)
         await delete_progress_bar(self.bar_id)

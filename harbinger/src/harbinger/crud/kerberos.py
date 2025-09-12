@@ -1,20 +1,20 @@
-from typing import Optional, Tuple
-
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
-from harbinger import models, schemas
-from harbinger.database.cache import redis_cache
-from harbinger.database.database import SessionLocal
 from pydantic import UUID4
 from sqlalchemy import exc, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from harbinger import models, schemas
+from harbinger.database.cache import redis_cache
+from harbinger.database.database import SessionLocal
 
 from ._common import DEFAULT_CACHE_TTL
 
 
 async def get_or_create_kerberos(
-    db: AsyncSession, kerberos: schemas.KerberosCreate
-) -> Tuple[bool, models.Kerberos]:
+    db: AsyncSession,
+    kerberos: schemas.KerberosCreate,
+) -> tuple[bool, models.Kerberos]:
     q = (
         select(models.Kerberos)
         .where(models.Kerberos.client == kerberos.client)
@@ -39,7 +39,8 @@ async def get_or_create_kerberos(
 
 
 async def get_kerberos_paged(
-    db: AsyncSession, search: str = ""
+    db: AsyncSession,
+    search: str = "",
 ) -> Page[models.Kerberos]:
     q = select(models.Kerberos)
     if search:
@@ -55,6 +56,7 @@ async def get_kerberos_paged(
     ttl_seconds=DEFAULT_CACHE_TTL,
 )
 async def get_kerberos(
-    db: AsyncSession, kerberos_id: str | UUID4
-) -> Optional[models.Kerberos]:
+    db: AsyncSession,
+    kerberos_id: str | UUID4,
+) -> models.Kerberos | None:
     return await db.get(models.Kerberos, kerberos_id)

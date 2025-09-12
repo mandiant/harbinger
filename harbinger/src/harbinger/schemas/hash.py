@@ -14,12 +14,12 @@
 
 
 from datetime import datetime
-from typing import List
+from typing import TYPE_CHECKING
 
 from pydantic import UUID4, BaseModel, field_validator
 
-
-from .label import Label
+if TYPE_CHECKING:
+    from .label import Label
 
 
 class HashBase(BaseModel):
@@ -41,4 +41,4 @@ class Hash(HashBase):
     id: UUID4
     time_created: datetime
     status: str | None = ""
-    labels: List["Label"] | None = []
+    labels: list["Label"] | None = []

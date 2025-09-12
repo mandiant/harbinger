@@ -12,20 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from harbinger.config import constants
-from temporalio import workflow, common
-from datetime import timedelta
-from graphlib import TopologicalSorter, CycleError
 import asyncio
-import structlog
 import re
+from datetime import timedelta
+from graphlib import CycleError, TopologicalSorter
 
-from harbinger.worker import activities
+import structlog
+from temporalio import common, workflow
+
 from harbinger import schemas
-from harbinger.database import progress_bar
-from harbinger.connectors.socks.workflows import RunSocks, RunWindowsSocks
+from harbinger.config import constants
 from harbinger.connectors.socks import activities as socks_activities
 from harbinger.connectors.socks import schemas as socks_schemas
+from harbinger.connectors.socks.workflows import RunSocks, RunWindowsSocks
+from harbinger.worker import activities
 
 log = structlog.get_logger()
 
@@ -106,7 +106,8 @@ class RunPlaybook(ProgressBarMixin):
             schedule_to_close_timeout=timedelta(seconds=5),
         )
         if not c2_job:
-            raise ValueError(f"Job for job id: {step.c2_job_id} was not found.")
+            msg = f"Job for job id: {step.c2_job_id} was not found."
+            raise ValueError(msg)
 
         implant = await workflow.execute_activity(
             activities.get_c2_implant,
@@ -115,7 +116,8 @@ class RunPlaybook(ProgressBarMixin):
         )
         if not implant:
             # TODO create harbinger exceptions
-            raise ValueError(f"Implant for job id: {step.c2_job_id} was not found.")
+            msg = f"Implant for job id: {step.c2_job_id} was not found."
+            raise ValueError(msg)
 
         if step.delay:
             await workflow.execute_activity(
@@ -195,7 +197,8 @@ class RunPlaybook(ProgressBarMixin):
             schedule_to_close_timeout=timedelta(seconds=5),
         )
         if not job:
-            raise ValueError(f"Implant for job id: {step.c2_job_id} was not found.")
+            msg = f"Implant for job id: {step.c2_job_id} was not found."
+            raise ValueError(msg)
 
         if step.delay:
             await workflow.execute_activity(
@@ -227,7 +230,7 @@ class RunPlaybook(ProgressBarMixin):
         result = await workflow.execute_child_workflow(
             workflow_name,
             job,
-            task_queue=f"socks_jobs",
+            task_queue="socks_jobs",
             retry_policy=common.RetryPolicy(maximum_attempts=1),
         )
 
@@ -237,7 +240,7 @@ class RunPlaybook(ProgressBarMixin):
                 status=result.status,
                 output="\n".join(result.output) if result.output else "",
                 label=step.label,  # type: ignore
-            )
+            ),
         )
 
     async def run_empty_step(
@@ -264,7 +267,7 @@ class RunPlaybook(ProgressBarMixin):
                 id=step.id,
                 label=str(step.label),
                 status=schemas.Status.completed,
-            )
+            ),
         )
 
     @workflow.run
@@ -283,7 +286,7 @@ class RunPlaybook(ProgressBarMixin):
         bar = schemas.ProgressBar(
             type="playbook",
             id=playbook_id,
-            description=f"Running playbook",
+            description="Running playbook",
             max=len(steps),
         )
         await self.create_bar(bar)
@@ -307,7 +310,9 @@ class RunPlaybook(ProgressBarMixin):
             await workflow.execute_activity(
                 activities.update_playbook_status,
                 schemas.ProxyChain(
-                    id=playbook_id, status=schemas.Status.error, steps=0
+                    id=playbook_id,
+                    status=schemas.Status.error,
+                    steps=0,
                 ),
                 schedule_to_close_timeout=timedelta(seconds=120),
             )
@@ -332,12 +337,12 @@ class RunPlaybook(ProgressBarMixin):
                                             activities.get_c2_task_output,
                                             data["id"],
                                             schedule_to_close_timeout=timedelta(
-                                                seconds=120
+                                                seconds=120,
                                             ),
                                         )
                                         if not output:
                                             log.info(
-                                                f"Did not receive output, waiting for {i * 2 + 1} seconds"
+                                                f"Did not receive output, waiting for {i * 2 + 1} seconds",
                                             )
                                             await asyncio.sleep(i * 2 + 1)
                                     if s.regex:
@@ -355,7 +360,7 @@ class RunPlaybook(ProgressBarMixin):
                                     )
                                 except KeyError:
                                     log.warning(
-                                        f"Could not find {s.input_path} in results_dict"
+                                        f"Could not find {s.input_path} in results_dict",
                                     )
                                     continue
                                 except ValueError:
@@ -370,8 +375,10 @@ class RunPlaybook(ProgressBarMixin):
                     except KeyError:
                         result_queue.put_nowait(
                             schemas.WorkflowStepResult(
-                                id="", label=node_label, status=schemas.Status.error
-                            )
+                                id="",
+                                label=node_label,
+                                status=schemas.Status.error,
+                            ),
                         )
                 finished_node = await result_queue.get()
                 ts.done(finished_node.label)
@@ -381,7 +388,9 @@ class RunPlaybook(ProgressBarMixin):
                 await workflow.start_activity(
                     activities.update_playbook_status,
                     schemas.ProxyChain(
-                        id=playbook_id, status=schemas.Status.running, steps=count
+                        id=playbook_id,
+                        status=schemas.Status.running,
+                        steps=count,
                     ),
                     schedule_to_close_timeout=timedelta(seconds=120),
                 )
@@ -401,7 +410,9 @@ class RunPlaybook(ProgressBarMixin):
             await workflow.execute_activity(
                 activities.update_playbook_status,
                 schemas.ProxyChain(
-                    id=playbook_id, status=schemas.Status.error, steps=len(steps)
+                    id=playbook_id,
+                    status=schemas.Status.error,
+                    steps=len(steps),
                 ),
                 schedule_to_close_timeout=timedelta(seconds=120),
             )
@@ -409,7 +420,9 @@ class RunPlaybook(ProgressBarMixin):
             await workflow.execute_activity(
                 activities.update_playbook_status,
                 schemas.ProxyChain(
-                    id=playbook_id, status=schemas.Status.completed, steps=len(steps)
+                    id=playbook_id,
+                    status=schemas.Status.completed,
+                    steps=len(steps),
                 ),
                 schedule_to_close_timeout=timedelta(seconds=120),
             )
@@ -437,7 +450,8 @@ class RunC2Job:
         )
         if not implant:
             # TODO create harbinger exceptions
-            raise ValueError(f"Implant for job id: {job.id} was not found.")
+            msg = f"Implant for job id: {job.id} was not found."
+            raise ValueError(msg)
 
         c2_job = await workflow.execute_activity(
             activities.get_c2_job,
@@ -445,7 +459,8 @@ class RunC2Job:
             schedule_to_close_timeout=timedelta(seconds=5),
         )
         if not c2_job:
-            raise ValueError(f"Job for job id: {job.id} was not found.")
+            msg = f"Job for job id: {job.id} was not found."
+            raise ValueError(msg)
 
         queue = f"{implant.c2_server_id}_jobs"
 
@@ -501,7 +516,9 @@ class ParseFile(ProgressBarMixin):
     async def run(self, file_id: str) -> None:
         log.info(f"Parsing file: {file_id}")
         bar = schemas.ProgressBar(
-            type="file", id=file_id, description=f"Processing file"
+            type="file",
+            id=file_id,
+            description="Processing file",
         )
         await self.create_bar(bar)
         try:
@@ -648,12 +665,11 @@ class UpdateSocksServer:
 class C2ConnectorWorkflow:
     @workflow.run
     async def run(self, c2_server_id: str) -> schemas.C2ServerAll | None:
-        result = await workflow.execute_activity(
+        return await workflow.execute_activity(
             activities.get_server_settings,
             c2_server_id,
             schedule_to_close_timeout=timedelta(hours=1),
         )
-        return result
 
 
 @workflow.defn(sandboxed=False)
@@ -681,7 +697,8 @@ class C2ConnectorDataWorkflow:
 
     @workflow.run
     async def run(
-        self, c2_connector: schemas.C2Connector
+        self,
+        c2_connector: schemas.C2Connector,
     ) -> schemas.C2ServerAll | None:
         await workflow.execute_activity(
             activities.update_c2_server_status,
@@ -916,7 +933,8 @@ class CreateFileSuggestion:
 @workflow.defn(sandboxed=False)
 class PlaybookDetectionRisk:
     async def c2_job_detection_risk(
-        self, req: schemas.C2JobDetectionRiskRequest
+        self,
+        req: schemas.C2JobDetectionRiskRequest,
     ) -> None:
         await workflow.execute_activity(
             activities.c2_job_detection_risk,
@@ -937,7 +955,6 @@ class PlaybookDetectionRisk:
                     additional_prompt=req.additional_prompt,
                     c2_job_id=step.c2_job_id,
                 )
-                # tg.start_soon(self.c2_job_detection_risk, c2_req)
                 await self.c2_job_detection_risk(c2_req)
 
 
@@ -956,8 +973,7 @@ class PrivEscSuggestions:
 class GeneratePlanWorkflow:
     @workflow.run
     async def run(self, name: str, objective: str) -> None:
-        """
-        Workflow to generate a new plan. This is kept as a workflow for durability
+        """Workflow to generate a new plan. This is kept as a workflow for durability
         of the user's initial request.
         """
         await workflow.execute_activity(

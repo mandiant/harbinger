@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import uuid
-from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
@@ -23,31 +22,35 @@ from sqlalchemy.sql import func
 from harbinger.database.database import Base
 from harbinger.database.types import mapped_column
 
-if TYPE_CHECKING:
-    from .label import Label
-
 
 class Highlight(Base):
     __tablename__ = "highlights"
     id: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
     )
     time_created: Mapped[DateTime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True),
+        server_default=func.now(),
     )
     file_id: Mapped[UUID] = mapped_column(ForeignKey("files.id"))
     c2_task_id: Mapped[UUID] = mapped_column(ForeignKey("c2_tasks.id"), nullable=True)
     c2_task_output_id: Mapped[UUID] = mapped_column(
-        ForeignKey("c2_task_output.id"), nullable=True
+        ForeignKey("c2_task_output.id"),
+        nullable=True,
     )
     proxy_job_output_id: Mapped[UUID] = mapped_column(
-        ForeignKey("proxy_job_output.id"), nullable=True
+        ForeignKey("proxy_job_output.id"),
+        nullable=True,
     )
     proxy_job_id: Mapped[UUID] = mapped_column(
-        ForeignKey("proxy_jobs.id"), nullable=True
+        ForeignKey("proxy_jobs.id"),
+        nullable=True,
     )
     parse_result_id: Mapped[UUID] = mapped_column(
-        ForeignKey("parse_results.id"), nullable=True
+        ForeignKey("parse_results.id"),
+        nullable=True,
     )
     rule_id: Mapped[int] = mapped_column(Integer)
     rule_type: Mapped[str] = mapped_column(String)
@@ -57,7 +60,10 @@ class Highlight(Base):
     line: Mapped[int] = mapped_column(Integer)
 
     labels = relationship(
-        "Label", secondary="labeled_item", lazy="joined", viewonly=True
+        "Label",
+        secondary="labeled_item",
+        lazy="joined",
+        viewonly=True,
     )
 
     @validates("rule_type", "hit")

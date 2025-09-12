@@ -1,14 +1,12 @@
-from typing import Optional
-
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
-from harbinger import models, schemas
-from harbinger import filters
 from pydantic import UUID4
 from sqlalchemy import Select, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import func
+
+from harbinger import filters, models, schemas
 
 from ._common import create_filter_for_column
 from .label import (
@@ -22,15 +20,16 @@ from .playbook import add_action_playbook_mapping, delete_action_playbook_mappin
 
 
 async def update_action_status(
-    db: AsyncSession, status: str, playbook_id: str | UUID4
+    db: AsyncSession,
+    status: str,
+    playbook_id: str | UUID4,
 ) -> None:
     q = (
         update(models.Action)
         .values(status=status)
         .where(models.Playbook.id == playbook_id)
         .where(
-            models.Playbook.playbook_template_id
-            == models.ActionPlaybook.playbook_template_id
+            models.Playbook.playbook_template_id == models.ActionPlaybook.playbook_template_id,
         )
         .where(models.Action.id == models.ActionPlaybook.action_id)
     )
@@ -43,7 +42,8 @@ async def update_action_status(
 
 
 async def get_actions_paged(
-    db: AsyncSession, filters: filters.ActionFilter
+    db: AsyncSession,
+    filters: filters.ActionFilter,
 ) -> Page[models.Action]:
     q: Select = select(models.Action)
     q = q.outerjoin(models.Action.labels)
@@ -65,13 +65,17 @@ async def get_action_filters(db: AsyncSession, filters: filters.ActionFilter):
     result.extend(lb_entry)
     for field in ["status"]:
         res = await create_filter_for_column(
-            db, q, getattr(models.Action, field), field, field
+            db,
+            q,
+            getattr(models.Action, field),
+            field,
+            field,
         )
         result.append(res)
     return result
 
 
-async def get_action(db: AsyncSession, id: UUID4) -> Optional[models.Action]:
+async def get_action(db: AsyncSession, id: UUID4) -> models.Action | None:
     return await db.get(models.Action, id)
 
 
@@ -83,12 +87,15 @@ async def create_action(db: AsyncSession, action: schemas.ActionCreate) -> None:
     )
     q = q.on_conflict_do_update(
         models.Action.__table__.primary_key,
-        set_=dict(
-            name=action.name, description=action.description, time_updated=func.now()
-        ),
+        set_={
+            "name": action.name,
+            "description": action.description,
+            "time_updated": func.now(),
+        },
     )
-    result: models.Action = await db.scalars(
-        q.returning(models.Action), execution_options={"populate_existing": True}
+    await db.scalars(
+        q.returning(models.Action),
+        execution_options={"populate_existing": True},
     )
     await db.commit()
     await delete_label_item(db, schemas.LabeledItemDelete(action_id=action.id))
@@ -96,14 +103,18 @@ async def create_action(db: AsyncSession, action: schemas.ActionCreate) -> None:
         label = await get_label_by_name(db, entry)
         if not label:
             label = await create_label(
-                db, schemas.LabelCreate(name=entry, category="Playbooks")
+                db,
+                schemas.LabelCreate(name=entry, category="Playbooks"),
             )
         await create_label_item(
-            db, schemas.LabeledItemCreate(label_id=label.id, action_id=action.id)
+            db,
+            schemas.LabeledItemCreate(label_id=label.id, action_id=action.id),
         )
     await delete_action_playbook_mapping(db, action.id)
     for template_id in action.playbook_template_ids or []:
-        added = await add_action_playbook_mapping(
-            db, action_id=action.id, playbook_template_id=template_id
+        await add_action_playbook_mapping(
+            db,
+            action_id=action.id,
+            playbook_template_id=template_id,
         )
     await db.commit()

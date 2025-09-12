@@ -1,21 +1,22 @@
 import uuid
-from typing import Iterable, Union
+from collections.abc import Iterable
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
-from harbinger import models, schemas
-from harbinger import filters
 from pydantic import UUID4
 from sqlalchemy import Select, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql.expression import func
 
+from harbinger import filters, models, schemas
+
 from ._common import create_filter_for_column
 
 
 async def get_manual_timeline_tasks(
-    db: AsyncSession, processing_status: str
+    db: AsyncSession,
+    processing_status: str,
 ) -> Iterable[models.ManualTimelineTask]:
     q = select(models.ManualTimelineTask)
     q = q.where(models.ManualTimelineTask.processing_status == processing_status)
@@ -25,7 +26,10 @@ async def get_manual_timeline_tasks(
 
 
 async def update_manual_timeline_summary(
-    db, manuel_task_id: str | UUID4, summary: str, status: str
+    db,
+    manuel_task_id: str | UUID4,
+    summary: str,
+    status: str,
 ) -> None:
     q = (
         update(models.ManualTimelineTask)
@@ -37,8 +41,9 @@ async def update_manual_timeline_summary(
 
 
 async def get_timeline_paged(
-    db: AsyncSession, filters: filters.TimeLineFilter
-) -> Page[Union[models.C2Task, models.ProxyJob, models.ManualTimelineTask]]:
+    db: AsyncSession,
+    filters: filters.TimeLineFilter,
+) -> Page[models.C2Task | models.ProxyJob | models.ManualTimelineTask]:
     q: Select = select(models.TimeLine)
     q = filters.filter(q)
     q = filters.sort(q)
@@ -51,15 +56,20 @@ async def get_timeline_filters(db: AsyncSession, filters: filters.TimeLineFilter
     q = filters.filter(q)
     for field in ["status"]:
         res = await create_filter_for_column(
-            db, q, getattr(models.TimeLine, field), field, field
+            db,
+            q,
+            getattr(models.TimeLine, field),
+            field,
+            field,
         )
         result.append(res)
     return result
 
 
 async def get_timeline(
-    db: AsyncSession, status: list[str]
-) -> Iterable[Union[models.C2Task, models.ProxyJob]]:
+    db: AsyncSession,
+    status: list[str],
+) -> Iterable[models.C2Task | models.ProxyJob]:
     q = select(models.TimeLine).options(joinedload("*"))
     if status:
         q = q.where(models.TimeLine.status.in_(status))
@@ -69,7 +79,8 @@ async def get_timeline(
 
 
 async def create_manual_timeline_task(
-    db: AsyncSession, manual_timeline_tasks: schemas.ManualTimelineTaskCreate
+    db: AsyncSession,
+    manual_timeline_tasks: schemas.ManualTimelineTaskCreate,
 ) -> models.ManualTimelineTask:
     result = models.ManualTimelineTask(**manual_timeline_tasks.model_dump())
     db.add(result)

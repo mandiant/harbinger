@@ -6,8 +6,8 @@ Create Date: 2025-08-15 09:35:06.750918
 
 """
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "81979e384557"
@@ -22,17 +22,17 @@ def get_trigger_statements_for_table(table_name):
     # INSERT Trigger
     triggers.append(
         f"CREATE TRIGGER on_{table_name}_insert "
-        f"AFTER INSERT ON {table_name} FOR EACH ROW EXECUTE FUNCTION notify_changes();"
+        f"AFTER INSERT ON {table_name} FOR EACH ROW EXECUTE FUNCTION notify_changes();",
     )
     # UPDATE Trigger
     triggers.append(
         f"CREATE TRIGGER on_{table_name}_update "
-        f"AFTER UPDATE ON {table_name} FOR EACH ROW EXECUTE FUNCTION notify_changes();"
+        f"AFTER UPDATE ON {table_name} FOR EACH ROW EXECUTE FUNCTION notify_changes();",
     )
     # DELETE Trigger
     triggers.append(
         f"CREATE TRIGGER on_{table_name}_delete "
-        f"AFTER DELETE ON {table_name} FOR EACH ROW EXECUTE FUNCTION notify_changes();"
+        f"AFTER DELETE ON {table_name} FOR EACH ROW EXECUTE FUNCTION notify_changes();",
     )
     return triggers
 
@@ -101,11 +101,19 @@ def upgrade() -> None:
         ["id"],
     )
     op.create_foreign_key(
-        "labeled_item_step_fk", "labeled_item", "plan", ["plan_id"], ["id"]
+        "labeled_item_step_fk",
+        "labeled_item",
+        "plan",
+        ["plan_id"],
+        ["id"],
     )
     op.add_column("suggestions", sa.Column("plan_step_id", sa.UUID(), nullable=True))
     op.create_foreign_key(
-        "suggestions_plan_step_fk", "suggestions", "plan_step", ["plan_step_id"], ["id"]
+        "suggestions_plan_step_fk",
+        "suggestions",
+        "plan_step",
+        ["plan_step_id"],
+        ["id"],
     )
     for table_name in TABLE_NAMES:
         trigger_sqls = get_trigger_statements_for_table(table_name)

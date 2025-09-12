@@ -15,14 +15,14 @@
 import os
 import struct
 from binascii import hexlify
-from typing import Optional
 
 import aiofiles
 import structlog
-from harbinger import crud, schemas
-from harbinger.worker.files.parsers import BaseFileParser
 from neo4j import AsyncSession as AsyncNeo4jSession
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from harbinger import crud, schemas
+from harbinger.worker.files.parsers import BaseFileParser
 
 log = structlog.get_logger()
 
@@ -53,10 +53,10 @@ class KeePassParser(BaseFileParser):
                 )
                 log.info(f"Successfully extracted hash from {file.filename}")
         except Exception as e:
-            log.error(f"Failed to parse KeePass file {file.filename}: {e}")
+            log.exception(f"Failed to parse KeePass file {file.filename}: {e}")
         return []
 
-    async def _process_database(self, filename: str) -> Optional[str]:
+    async def _process_database(self, filename: str) -> str | None:
         """Processes the KeePass database file to extract the hash."""
         async with aiofiles.open(filename, "rb") as f:
             data = await f.read()
@@ -69,14 +69,17 @@ class KeePassParser(BaseFileParser):
         try:
             return self.processing_mapping[file_signature](data, database_name)
         except KeyError:
-            log.error("KeePass signature unrecognized")
+            log.exception("KeePass signature unrecognized")
         return None
 
     def _stringify_hex(self, hex_bytes: bytes) -> str:
         return hexlify(hex_bytes).decode("utf-8")
 
     def _process_1x_database(
-        self, data: bytes, database_name: str, max_inline_size: int = 1024
+        self,
+        data: bytes,
+        database_name: str,
+        max_inline_size: int = 1024,
     ) -> str:
         index = 8
         algorithm = -1
@@ -88,7 +91,8 @@ class KeePassParser(BaseFileParser):
         elif enc_flag & 8:
             algorithm = 1  # Twofish
         else:
-            raise ValueError("Unsupported file encryption!")
+            msg = "Unsupported file encryption!"
+            raise ValueError(msg)
 
         key_file_size = struct.unpack("<L", data[index : index + 4])[0]
         index += 4
@@ -120,7 +124,7 @@ class KeePassParser(BaseFileParser):
             data_buffer = hexlify(data[124:])
             end = "*1*%ld*%s" % (datasize, self._stringify_hex(data_buffer))
         else:
-            end = "0*%s" % database_name
+            end = f"0*{database_name}"
 
         return f"$keepass$*1*{key_transform_rounds}*{algorithm}*{final_random_seed}*{transform_random_seed}*{iv_params}*{contents_hash}*{end}"
 

@@ -14,18 +14,13 @@
 
 import asyncio
 import pathlib
-from harbinger import crud
-from harbinger import schemas
-from harbinger.database.database import SessionLocal
-from sqlalchemy.exc import IntegrityError
-import zipfile
-import os.path
+
 import click
-from harbinger.files.client import upload_file
+
 from harbinger.config import get_settings
+from harbinger.database.database import SessionLocal
 from harbinger.database.redis_pool import redis
 from harbinger.worker.files.utils import process_harbinger_yaml
-
 
 settings = get_settings()
 
@@ -35,10 +30,10 @@ async def create_all():
         for directory in ["connectors", "labels", "settings", "playbooks"]:
             base = pathlib.Path(__file__).parent.resolve() / directory
             print(f"Checking {base}")
-            files = [x for x in base.iterdir()]
+            files = list(base.iterdir())
             for file in files:
                 print(f"Processing {file}")
-                with open(file, "r") as f:
+                with open(file) as f:
                     yaml_data = f.read()
                     await process_harbinger_yaml(db, yaml_data)
 

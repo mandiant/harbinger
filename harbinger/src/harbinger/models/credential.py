@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import uuid
-from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
@@ -23,17 +22,13 @@ from sqlalchemy.sql import func
 from harbinger.database.database import Base
 from harbinger.database.types import mapped_column
 
-if TYPE_CHECKING:
-    from .domain import Domain
-    from .kerberos import Kerberos
-    from .password import Password
-    from .label import Label
-
 
 class Credential(Base):
     __tablename__ = "credentials"
     id: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
     )
     domain_id: Mapped[UUID] = mapped_column(ForeignKey("domains.id"))
     username: Mapped[str] = mapped_column(String)
@@ -41,12 +36,16 @@ class Credential(Base):
     kerberos_id: Mapped[UUID] = mapped_column(ForeignKey("kerberos.id"))
     note: Mapped[str] = mapped_column(String)
     time_created: Mapped[DateTime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True),
+        server_default=func.now(),
     )
 
     domain = relationship("Domain", lazy="joined")
     password = relationship("Password", lazy="joined")
     kerberos = relationship("Kerberos", lazy="joined")
     labels = relationship(
-        "Label", secondary="labeled_item", lazy="joined", viewonly=True
+        "Label",
+        secondary="labeled_item",
+        lazy="joined",
+        viewonly=True,
     )

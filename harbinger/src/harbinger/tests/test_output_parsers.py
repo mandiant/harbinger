@@ -13,9 +13,9 @@
 # limitations under the License.
 
 import unittest
-from harbinger.worker.output import OUTPUT_PARSERS, IPConfigParser, EnvParser
-from harbinger import models
 from unittest import mock
+
+from harbinger.worker.output import OUTPUT_PARSERS, EnvParser, IPConfigParser
 
 ipconfig_data = """{6929494D-CB96-4E0C-AE4C-3FB5DF62D6C0}
 	Ethernet
@@ -75,24 +75,24 @@ class TestMythicC2(unittest.IsolatedAsyncioTestCase):
     def test_output_parsers(self):
         for parser in OUTPUT_PARSERS:
             p = parser(mock.AsyncMock)
-            self.assertIsInstance(p.needle, list)
-            self.assertNotEqual(p.needle, [])
+            assert isinstance(p.needle, list)
+            assert p.needle != []
 
     def test_parser_list_unique(self):
-        self.assertEqual(len(OUTPUT_PARSERS), len(set(OUTPUT_PARSERS)))
+        assert len(OUTPUT_PARSERS) == len(set(OUTPUT_PARSERS))
 
     async def test_ipconfig(self):
         p = IPConfigParser(mock.AsyncMock)
         res = await p.match(ipconfig_data)
-        self.assertTrue(res, "IPConfigParser doesn't match on ipconfig output")
+        assert res, "IPConfigParser doesn't match on ipconfig output"
 
         res = await p.match(env_data)
-        self.assertFalse(res, "IPConfigParser does match on env output")
+        assert not res, "IPConfigParser does match on env output"
 
     async def test_env(self):
         p = EnvParser(mock.AsyncMock)
         res = await p.match(env_data)
-        self.assertTrue(res, "EnvParser doesn't match on env output")
+        assert res, "EnvParser doesn't match on env output"
 
         res = await p.match(ipconfig_data)
-        self.assertFalse(res, "EnvParser does match on ipconfig output")
+        assert not res, "EnvParser does match on ipconfig output"

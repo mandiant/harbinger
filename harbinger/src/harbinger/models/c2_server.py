@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import uuid
-from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
@@ -23,19 +22,18 @@ from sqlalchemy.sql import func
 from harbinger.database.database import Base
 from harbinger.database.types import mapped_column
 
-if TYPE_CHECKING:
-    from .label import Label
-    from .c2_server_status import C2ServerStatus
-
 
 class C2Server(Base):
     __tablename__ = "c2_servers"
     id: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
     )
     type: Mapped[str] = mapped_column(String)
     time_created: Mapped[DateTime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True),
+        server_default=func.now(),
     )
     name: Mapped[str] = mapped_column(String)
     hostname: Mapped[str] = mapped_column(String)
@@ -48,6 +46,9 @@ class C2Server(Base):
     token: Mapped[str] = mapped_column(String)
 
     labels = relationship(
-        "Label", secondary="labeled_item", lazy="joined", viewonly=True
+        "Label",
+        secondary="labeled_item",
+        lazy="joined",
+        viewonly=True,
     )
     status = relationship("C2ServerStatus", lazy="joined")

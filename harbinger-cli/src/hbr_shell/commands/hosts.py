@@ -23,6 +23,6 @@ def list_hosts(args):
                     "name": h.get("name"),
                     "domain": h.get("domain"),
                     "os": h.get("os"),
-                }
+                },
             )
         print_output(output_data, headers, args.output)

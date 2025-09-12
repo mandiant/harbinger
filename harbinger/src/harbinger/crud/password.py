@@ -1,14 +1,14 @@
-from typing import Iterable, Optional
+from collections.abc import Iterable
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
-from harbinger import models, schemas
-from harbinger import filters
-from harbinger.database.cache import redis_cache
-from harbinger.database.database import SessionLocal
 from pydantic import UUID4
 from sqlalchemy import Select, exc, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from harbinger import filters, models, schemas
+from harbinger.database.cache import redis_cache
+from harbinger.database.database import SessionLocal
 
 from ._common import DEFAULT_CACHE_TTL
 
@@ -37,7 +37,10 @@ async def get_or_create_password(
         password_db = res.scalars().unique().one()
     except exc.NoResultFound:
         password_db = models.Password(
-            password=password, nt=nt_hash, aes256_key=aes256_key, aes128_key=aes128_key
+            password=password,
+            nt=nt_hash,
+            aes256_key=aes256_key,
+            aes128_key=aes128_key,
         )
         db.add(password_db)
         await db.commit()
@@ -53,13 +56,17 @@ async def get_or_create_password(
     ttl_seconds=DEFAULT_CACHE_TTL,
 )
 async def get_password(
-    db: AsyncSession, password_id: str | UUID4
-) -> Optional[models.Password]:
+    db: AsyncSession,
+    password_id: str | UUID4,
+) -> models.Password | None:
     return await db.get(models.Password, password_id)
 
 
 async def get_passwords(
-    db: AsyncSession, search: str = "", offset: int = 0, limit: int = 10
+    db: AsyncSession,
+    search: str = "",
+    offset: int = 0,
+    limit: int = 10,
 ) -> Iterable[models.Password]:
     q = select(models.Password)
     if search:
@@ -69,7 +76,8 @@ async def get_passwords(
 
 
 async def get_passwords_paged(
-    db: AsyncSession, filters: filters.PasswordFilter
+    db: AsyncSession,
+    filters: filters.PasswordFilter,
 ) -> Page[models.Password]:
     q: Select = select(models.Password)
     q = q.outerjoin(models.Password.labels)

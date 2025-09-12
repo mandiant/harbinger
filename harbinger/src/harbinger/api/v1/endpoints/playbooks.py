@@ -1,6 +1,8 @@
 import asyncio
 import collections
 import json
+from graphlib import CycleError, TopologicalSorter
+from typing import Annotated
 
 import yaml
 from fastapi import (
@@ -14,26 +16,21 @@ from fastapi import (
 from fastapi_filter import FilterDepends
 from fastapi_pagination import Page
 from google.protobuf.json_format import MessageToJson
-from pydantic import UUID4
-from sqlalchemy.ext.asyncio import AsyncSession
-from graphlib import TopologicalSorter, CycleError
-from typing import Tuple
-
-import harbinger.proto.v1.messages_pb2 as messages_pb2
-from harbinger import crud, models, schemas
+from harbinger import crud, filters, models, schemas
 from harbinger.config import constants
 from harbinger.config.dependencies import current_active_user, get_db
 from harbinger.crud import get_user_db
-from harbinger import filters
 from harbinger.database.database import SessionLocal
 from harbinger.database.redis_pool import redis_no_decode as redis
 from harbinger.database.users import (
-    current_active_user,
     get_redis_strategy,
     get_user_manager,
 )
+from harbinger.proto.v1 import messages_pb2
 from harbinger.worker.client import get_client
 from harbinger.worker.workflows import RunPlaybook
+from pydantic import UUID4
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 
@@ -41,7 +38,7 @@ router = APIRouter()
 async def create_graph(
     playbook_id: str | UUID4,
     db: AsyncSession,
-) -> Tuple[str, bool]:
+) -> tuple[str, bool]:
     steps = await crud.get_playbook_steps(db, limit=100000, playbook_id=playbook_id)
 
     graph = ["graph LR"]
@@ -52,9 +49,8 @@ async def create_graph(
         if step.proxy_job_id:
             if job := await crud.get_proxy_job(step.proxy_job_id):
                 label = f"({step.label}: {job.command})"
-        elif step.c2_job_id:
-            if job := await crud.get_c2_job(step.c2_job_id):
-                label = f"({step.label}:{job.command})"
+        elif step.c2_job_id and (job := await crud.get_c2_job(step.c2_job_id)):
+            label = f"({step.label}:{job.command})"
         if step.depends_on:
             depends_on = step.depends_on.split(",")
             for depends in depends_on:
@@ -101,12 +97,14 @@ async def playbook_filters(
 
 
 @router.get(
-    "/{playbook_id}", response_model=schemas.ProxyChainGraph, tags=["chains", "crud"]
+    "/{playbook_id}",
+    response_model=schemas.ProxyChainGraph,
+    tags=["chains", "crud"],
 )
 async def get_chain(
     playbook_id: UUID4,
-    db: AsyncSession = Depends(get_db),
-    user: models.User = Depends(current_active_user),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     chain = await crud.get_playbook(playbook_id)
     if chain:
@@ -118,36 +116,40 @@ async def get_chain(
 @router.post("/", response_model=schemas.ProxyChain, tags=["chains", "crud"])
 async def create_chain(
     chain: schemas.ProxyChainCreate,
-    db: AsyncSession = Depends(get_db),
-    user: models.User = Depends(current_active_user),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     return await crud.create_chain(db, chain)
 
 
 @router.put(
-    "/{playbook_id}", response_model=schemas.ProxyChain, tags=["chains", "crud"]
+    "/{playbook_id}",
+    response_model=schemas.ProxyChain,
+    tags=["chains", "crud"],
 )
 async def update_chain(
     chain: schemas.ProxyChainCreate,
     playbook_id: UUID4,
-    db: AsyncSession = Depends(get_db),
-    user: models.User = Depends(current_active_user),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     return await crud.update_chain(db, playbook_id=playbook_id, chain=chain)
 
 
 @router.post(
-    "/{playbook_id}/start", response_model=schemas.ProxyChain, tags=["chains", "crud"]
+    "/{playbook_id}/start",
+    response_model=schemas.ProxyChain,
+    tags=["chains", "crud"],
 )
 async def start_chain(
     playbook_id: UUID4,
     response: Response,
-    user: models.User = Depends(current_active_user),
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     chain = await crud.get_playbook(playbook_id)
     if chain and chain.status != schemas.Status.created:
         response.status_code = status.HTTP_400_BAD_REQUEST
-        return dict(error="This chain cannot be started, the status is not created.")
+        return {"error": "This chain cannot be started, the status is not created."}
     client = await get_client()
     await client.start_workflow(
         RunPlaybook.run,
@@ -159,18 +161,20 @@ async def start_chain(
 
 
 @router.post(
-    "/{playbook_id}/clone", response_model=schemas.ProxyChain, tags=["chains", "crud"]
+    "/{playbook_id}/clone",
+    response_model=schemas.ProxyChain,
+    tags=["chains", "crud"],
 )
 async def clone_chain(
     playbook_id: UUID4,
     response: Response,
-    db: AsyncSession = Depends(get_db),
-    user: models.User = Depends(current_active_user),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     chain = await crud.get_playbook(playbook_id)
     if not chain:
         response.status_code = status.HTTP_400_BAD_REQUEST
-        return dict(error="Chain could not be found.")
+        return {"error": "Chain could not be found."}
     return await crud.clone_chain(db, chain)
 
 
@@ -182,15 +186,19 @@ async def clone_chain(
 async def create_template_from_chain(
     playbook_id: UUID4,
     response: Response,
-    db: AsyncSession = Depends(get_db),
-    user: models.User = Depends(current_active_user),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     chain = await crud.get_playbook(playbook_id)
     if not chain:
         response.status_code = status.HTTP_400_BAD_REQUEST
-        return dict(error="Chain could not be found.")
+        return {"error": "Chain could not be found."}
     result = collections.OrderedDict(
-        name=chain.playbook_name, icon="new", add_depends_on="no", args=[], steps=""
+        name=chain.playbook_name,
+        icon="new",
+        add_depends_on="no",
+        args=[],
+        steps="",
     )
     steps = await crud.get_playbook_steps(db, 0, 100000, playbook_id)
     steps_yaml = []
@@ -206,14 +214,12 @@ async def create_template_from_chain(
                 step_dict["type"] = schemas.C2Type.c2.value
                 step_dict["name"] = c2_job.command
                 args = json.loads(c2_job.arguments)
-                step_dict["args"] = [
-                    collections.OrderedDict(name=key, value=value)
-                    for key, value in args.items()
-                ]
+                step_dict["args"] = [collections.OrderedDict(name=key, value=value) for key, value in args.items()]
                 step_dict["args"].append(
                     collections.OrderedDict(
-                        name="c2_implant_id", value="{{ c2_implant_id }}"
-                    )
+                        name="c2_implant_id",
+                        value="{{ c2_implant_id }}",
+                    ),
                 )
                 if c2_job.input_files:
                     result["args"].append(
@@ -221,13 +227,13 @@ async def create_template_from_chain(
                             name=f"file_id{input_file_count}",
                             type="str",
                             default=str(c2_job.input_files[0].id),
-                        )
+                        ),
                     )
                     step_dict["args"].append(
                         collections.OrderedDict(
-                            name=f"file_id",
+                            name="file_id",
                             value=f"{{{{ file_id{input_file_count} }}}}",
-                        )
+                        ),
                     )
                     input_file_count += 1
         elif step.proxy_job_id:
@@ -239,7 +245,8 @@ async def create_template_from_chain(
                 step_dict["args"] = args = [
                     collections.OrderedDict(name="command", value=proxy_job.command),
                     collections.OrderedDict(
-                        name="arguments", value=proxy_job.arguments
+                        name="arguments",
+                        value=proxy_job.arguments,
                     ),
                 ]
                 if proxy_job.input_files:
@@ -250,12 +257,12 @@ async def create_template_from_chain(
                                 name=f"file_id{input_file_count}",
                                 type="str",
                                 default=str(file.id),
-                            )
+                            ),
                         )
                         files.append(f"{{{{ file_id{input_file_count} }}}}")
                         input_file_count += 1
                     step_dict["args"].append(
-                        collections.OrderedDict(name=f"input_files", value=files)
+                        collections.OrderedDict(name="input_files", value=files),
                     )
         step_dict["label"] = step.label
         step_dict["depends_on"] = step.depends_on or ""
@@ -267,7 +274,7 @@ async def create_template_from_chain(
                         regex=modifier.regex,
                         input_path=modifier.input_path,
                         output_path=modifier.output_path,
-                    )
+                    ),
                 )
             step_dict["modifiers"] = modifiers
         steps_yaml.append(step_dict)
@@ -275,7 +282,7 @@ async def create_template_from_chain(
         result["args"].append(collections.OrderedDict(name="c2_implant_id", type="str"))
     if add_proxy_server:
         result["args"].append(
-            collections.OrderedDict(name="socks_server_id", type="str")
+            collections.OrderedDict(name="socks_server_id", type="str"),
         )
     result["steps"] = yaml.dump(steps_yaml)
     return schemas.PlaybookTemplateBase(yaml=yaml.dump(result))
@@ -301,8 +308,10 @@ async def websocket_chain_output(playbook_id: str, websocket: WebSocket):
                     msg_pb2.ParseFromString(item["data"])
                     await websocket.send_text(
                         MessageToJson(
-                            msg_pb2, preserving_proto_field_name=True, indent=0
-                        )
+                            msg_pb2,
+                            preserving_proto_field_name=True,
+                            indent=0,
+                        ),
                     )
 
         task = asyncio.create_task(inner())

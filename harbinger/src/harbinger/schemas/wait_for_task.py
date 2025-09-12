@@ -15,7 +15,6 @@
 
 from pydantic import BaseModel
 
-
 from .c2_implant import C2Implant
 from .c2_task import C2Task
 

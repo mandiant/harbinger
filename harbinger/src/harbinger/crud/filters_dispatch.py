@@ -1,6 +1,6 @@
-from harbinger import schemas
-from harbinger import filters
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from harbinger import filters, schemas
 
 from .action import get_action_filters
 from .c2_implant import get_c2_implant_filters
@@ -28,11 +28,10 @@ from .timeline import get_timeline_filters
 
 
 async def get_filters_for_model(
-    db: AsyncSession, model_name: str
+    db: AsyncSession,
+    model_name: str,
 ) -> list[schemas.Filter]:
-    """
-    Returns a list of filters for a given model.
-    """
+    """Returns a list of filters for a given model."""
     filter_map = {
         "action": (get_action_filters, filters.ActionFilter),
         "c2_implant": (get_c2_implant_filters, filters.ImplantFilter),
@@ -74,7 +73,8 @@ async def get_filters_for_model(
         "timeline": (get_timeline_filters, filters.TimeLineFilter),
     }
     if model_name not in filter_map:
-        raise ValueError(f"Unknown model name: {model_name}")
+        msg = f"Unknown model name: {model_name}"
+        raise ValueError(msg)
     filter_func, filter_class = filter_map[model_name]
     filter_instance = filter_class()
     return await filter_func(db, filter_instance)

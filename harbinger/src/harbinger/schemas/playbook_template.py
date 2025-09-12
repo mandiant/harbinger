@@ -15,14 +15,15 @@
 
 import builtins
 import random
-from typing import List, Literal
+from typing import TYPE_CHECKING, Literal
 from uuid import uuid4
 
 from pydantic import UUID4, BaseModel, ConfigDict, Field, create_model
 
-
 from .argument import Argument, TypeEnum
-from .label import Label
+
+if TYPE_CHECKING:
+    from .label import Label
 
 
 class PlaybookTemplateBase(BaseModel):
@@ -44,7 +45,7 @@ class PlaybookTemplateCreate(PlaybookTemplateBase):
 class PlaybookTemplateView(PlaybookTemplateBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4 = Field(default_factory=uuid4)
-    labels: List["Label"] | None = []
+    labels: list["Label"] | None = []
 
 
 class PlaybookTemplate(PlaybookTemplateCreate):
@@ -59,10 +60,7 @@ class PlaybookTemplate(PlaybookTemplateCreate):
             if arg.required:
                 default = ...  # type: ignore
             if default_arguments and arg.name in default_arguments:
-                if (
-                    type(default_arguments[arg.name]) == list
-                    and default_arguments[arg.name]
-                ):
+                if isinstance(default_arguments[arg.name], list) and default_arguments[arg.name]:
                     options = default_arguments[arg.name]
                     arg.type = TypeEnum.options
                     default = options[0]
@@ -93,7 +91,7 @@ def create_random_color():
     r = random.randint(0, 255)
     g = random.randint(0, 255)
     b = random.randint(0, 255)
-    return "#{:02x}{:02x}{:02x}".format(int(r), int(g), int(b))
+    return f"#{int(r):02x}{int(g):02x}{int(b):02x}"
 
 
 class PlaybookTemplateGenerated(BaseModel):

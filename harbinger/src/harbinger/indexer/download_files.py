@@ -15,29 +15,24 @@
 import asyncio
 import os
 import uuid
-from harbinger.worker.workflows import ParseFile
-import humanize
 
 import anyio
+import humanize
 import structlog
 from aiosmb.commons.connection.factory import SMBConnectionFactory
-from aiosmb.commons.connection.target import SMBTarget, SMBConnectionDialect
-from aiosmb.commons.interfaces.directory import SMBDirectory
+from aiosmb.commons.connection.target import SMBConnectionDialect, SMBTarget
 from aiosmb.commons.interfaces.file import SMBFile
 from alive_progress import alive_bar
 from anyio.abc import TaskGroup
 from asyauth.common.credentials import UniCredential
 from asysocks.unicomm.common.proxy import UniProxyTarget
-from harbinger import crud
-from harbinger import schemas
-from harbinger import models
-from harbinger.database.database import SessionLocal
 from temporalio.client import Client
-from harbinger.config import constants
 
-
+from harbinger import crud, models, schemas
+from harbinger.config import constants, get_settings
+from harbinger.database.database import SessionLocal
 from harbinger.files.client import FileUploader
-from harbinger.config import get_settings
+from harbinger.worker.workflows import ParseFile
 
 settings = get_settings()
 
@@ -77,7 +72,7 @@ class Downloader:
 
                     if not file:
                         self.logger.warning(
-                            f"Unable to find the file with id: {file_id}"
+                            f"Unable to find the file with id: {file_id}",
                         )
                         return
 
@@ -145,29 +140,32 @@ class Downloader:
                 limit=max_number,
             )
             total_size = 0
-            entries = [file for file in files]
+            entries = list(files)
             with alive_bar(len(entries), enrich_print=False) as bar:
                 self.bar = bar
                 for entry in entries:
                     total_size += entry.size
                     self.queue.put_nowait(str(entry.id))
                 self.logger.info(
-                    f"Queued {len(entries)} files totalling {humanize.naturalsize(total_size, binary=True)} in size"
+                    f"Queued {len(entries)} files totalling {humanize.naturalsize(total_size, binary=True)} in size",
                 )
                 await self.queue.join()
         self.logger.info("Done!")
         self.tg.cancel_scope.cancel()
 
     async def download_file(
-        self, key: str, file: models.ShareFile | schemas.ShareFile
+        self,
+        key: str,
+        file: models.ShareFile | schemas.ShareFile,
     ) -> bool:
         if not file.unc_path:
-            self.logger.error(f"Unc path not set")
+            self.logger.error("Unc path not set")
             return False
         hostname = file.unc_path.split("\\")[2]
         self.logger.info(f"Downloading {file.name} from {hostname} to {key}")
         target = SMBTarget(
-            hostname=hostname, proxies=[self.proxy] if self.proxy else []
+            hostname=hostname,
+            proxies=[self.proxy] if self.proxy else [],
         )
         if self.smbv3:
             target.update_dialect(SMBConnectionDialect.SMB3)
@@ -180,7 +178,7 @@ class Downloader:
                 self.logger.error(f"Error during downloading file: {err}")
                 return False
         except Exception as e:
-            self.logger.error(f"Error during downloading file: {e}")
+            self.logger.exception(f"Error during downloading file: {e}")
             return False
 
         try:
@@ -200,7 +198,7 @@ class Downloader:
                     await f.upload(data)
 
         except Exception as e:
-            self.logger.error(f"Exception during download of file: {type(e)}")
+            self.logger.exception(f"Exception during download of file: {type(e)}")
             return False
         finally:
             await connection.disconnect()

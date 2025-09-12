@@ -12,17 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import uuid
-import yaml
-from harbinger import crud
-from harbinger import schemas
-from sqlalchemy.exc import IntegrityError
-from harbinger.config import get_settings
-from pydantic import ValidationError
 import collections
-from sqlalchemy.ext.asyncio import AsyncSession
+import contextlib
+import uuid
+
 import structlog
+import yaml
+from pydantic import ValidationError
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 from yaml.scanner import ScannerError
+
+from harbinger import crud, schemas
+from harbinger.config import get_settings
 
 settings = get_settings()
 
@@ -69,7 +71,8 @@ yaml.add_representer(type(None), none_representer)
 
 
 async def process_harbinger_yaml(
-    db: AsyncSession, yaml_data: bytes | str
+    db: AsyncSession,
+    yaml_data: bytes | str,
 ) -> list[schemas.FileConfig] | None:
     try:
         entry = yaml.safe_load(yaml_data)
@@ -94,14 +97,8 @@ async def process_harbinger_yaml(
                         name=argument.name,
                         regex=argument.regex,
                         default=str(argument.default) if argument.default else None,
-                        error=(
-                            argument.error
-                            if argument.error
-                            else "Please fill in this value"
-                        ),
-                        type=(
-                            argument.type if argument.type else argument.default_type()
-                        ),
+                        error=(argument.error if argument.error else "Please fill in this value"),
+                        type=(argument.type if argument.type else argument.default_type()),
                         c2_server_type_id=obj.id,
                     ),
                 )
@@ -138,10 +135,8 @@ async def process_harbinger_yaml(
             ]
             ordered = collections.OrderedDict()
             for k in myorder:
-                try:
+                with contextlib.suppress(KeyError):
                     ordered[k] = dump[k]
-                except KeyError:
-                    pass
 
             playbook.yaml = yaml.dump(ordered)
             await crud.create_playbook_template(db, playbook)

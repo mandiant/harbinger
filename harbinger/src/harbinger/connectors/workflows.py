@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from temporalio import workflow
 from datetime import timedelta
-import structlog
-from harbinger.connectors import activities
 
+import structlog
+from temporalio import workflow
 
 from harbinger import schemas
+from harbinger.connectors import activities
 
 log = structlog.get_logger()
 

@@ -14,7 +14,6 @@
 
 
 import uuid
-from typing import Optional
 
 from fastapi_users import schemas
 
@@ -28,4 +27,4 @@ class UserRead(schemas.BaseUser[uuid.UUID]):
 
 
 class UserUpdate(schemas.BaseUserUpdate):
-    email: Optional[str] = None
+    email: str | None = None

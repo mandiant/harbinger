@@ -15,7 +15,6 @@
 
 from pydantic import BaseModel
 
-
 from .c2_job import C2Type
 from .playbook_step import PlaybookStepModifierBase
 from .step_argument import StepArgument

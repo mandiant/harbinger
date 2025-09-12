@@ -1,17 +1,19 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends
 from fastapi_filter import FilterDepends
 from fastapi_pagination import Page
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from harbinger import crud, models, schemas
+from harbinger import crud, filters, models, schemas
 from harbinger.config.dependencies import current_active_user, get_db
-from harbinger import filters
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 
 
 @router.get(
-    "/", response_model=Page[schemas.C2Implant], tags=["c2", "implants", "crud"]
+    "/",
+    response_model=Page[schemas.C2Implant],
+    tags=["c2", "implants", "crud"],
 )
 async def read_c2_implants(
     implants_filter: filters.ImplantFilter = FilterDepends(filters.ImplantFilter),
@@ -42,6 +44,7 @@ async def c2_implant_filters(
     tags=["c2", "implants", "crud"],
 )
 async def read_c2_implant(
-    implant_id: str, user: models.User = Depends(current_active_user)
+    implant_id: str,
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     return await crud.get_c2_implant(c2_implant_id=implant_id)

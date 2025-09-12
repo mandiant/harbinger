@@ -12,15 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-from temporalio import activity
-from harbinger.config import get_settings
-from harbinger import crud
-from harbinger import schemas
-from harbinger.database.database import SessionLocal
-import structlog
 import aiodocker
-from harbinger.connectors.socks.environment import get_environment, SERVER_ENV
+import structlog
+from temporalio import activity
+
+from harbinger import crud, schemas
+from harbinger.config import get_settings
+from harbinger.connectors.socks.environment import SERVER_ENV, get_environment
+from harbinger.database.database import SessionLocal
 
 settings = get_settings()
 log = structlog.get_logger()
@@ -78,25 +77,26 @@ async def start(
         async with SessionLocal() as session:
             for container in await docker.containers.list(
                 all=True,
-                filters=dict(
-                    label=[
+                filters={
+                    "label": [
                         f"type={server_command.name}",
                         f"c2_server_id={server_command.id}",
-                    ]
-                ),
+                    ],
+                },
             ):
                 await container.start()
                 await crud.update_c2_server_status(
                     session,
                     server_command.c2_server.id,
                     schemas.C2ServerStatus(
-                        status=schemas.Status.starting, name=server_command.name
+                        status=schemas.Status.starting,
+                        name=server_command.name,
                     ),
                 )
                 log.info(f"Completed start command for {server_command.id}")
                 return
         log.warning(
-            f"Was not able to find a correct container for: id: <{server_command.id}> name: <{server_command.name}>"
+            f"Was not able to find a correct container for: id: <{server_command.id}> name: <{server_command.name}>",
         )
     except aiodocker.exceptions.DockerError as e:
         log.warning(f"Unable to access the docker socket: {e}")
@@ -120,25 +120,26 @@ async def stop(
         async with SessionLocal() as session:
             for container in await docker.containers.list(
                 all=True,
-                filters=dict(
-                    label=[
+                filters={
+                    "label": [
                         f"type={server_command.name}",
                         f"c2_server_id={server_command.id}",
-                    ]
-                ),
+                    ],
+                },
             ):
                 await container.stop()
                 await crud.update_c2_server_status(
                     session,
                     server_command.c2_server.id,
                     schemas.C2ServerStatus(
-                        status=schemas.Status.stopping, name=server_command.name
+                        status=schemas.Status.stopping,
+                        name=server_command.name,
                     ),
                 )
                 log.info(f"Completed stop command for {server_command.id}")
                 return
             log.warning(
-                f"Was not able to find a correct container for: id: <{server_command.id}> name: <{server_command.name}>"
+                f"Was not able to find a correct container for: id: <{server_command.id}> name: <{server_command.name}>",
             )
     except aiodocker.exceptions.DockerError as e:
         log.warning(f"Unable to access the docker socket: {e}")
@@ -160,25 +161,26 @@ async def restart(
         async with SessionLocal() as session:
             for container in await docker.containers.list(
                 all=True,
-                filters=dict(
-                    label=[
+                filters={
+                    "label": [
                         f"type={server_command.name}",
                         f"c2_server_id={server_command.id}",
-                    ]
-                ),
+                    ],
+                },
             ):
                 await container.restart()
                 await crud.update_c2_server_status(
                     session,
                     server_command.id,
                     schemas.C2ServerStatus(
-                        status=schemas.Status.restarted, name=server_command.name
+                        status=schemas.Status.restarted,
+                        name=server_command.name,
                     ),
                 )
                 log.info(f"Completed restart command for {server_command.id}")
                 return
         log.warning(
-            f"Was not able to find a correct container for: id: <{server_command.id}> name: <{server_command.name}>"
+            f"Was not able to find a correct container for: id: <{server_command.id}> name: <{server_command.name}>",
         )
     except aiodocker.exceptions.DockerError as e:
         log.warning(f"Unable to access the docker socket: {e}")
@@ -199,12 +201,12 @@ async def delete(
         async with SessionLocal() as session:
             for container in await docker.containers.list(
                 all=True,
-                filters=dict(
-                    label=[
+                filters={
+                    "label": [
                         f"type={server_command.name}",
                         f"c2_server_id={server_command.id}",
-                    ]
-                ),
+                    ],
+                },
             ):
                 await container.stop()
                 await container.delete()
@@ -212,12 +214,13 @@ async def delete(
                     session,
                     server_command.id,
                     schemas.C2ServerStatus(
-                        status=schemas.Status.deleting, name=server_command.name
+                        status=schemas.Status.deleting,
+                        name=server_command.name,
                     ),
                 )
                 return
         log.warning(
-            f"Was not able to find a correct container for: id: <{server_command.id}> name: <{server_command.name}>"
+            f"Was not able to find a correct container for: id: <{server_command.id}> name: <{server_command.name}>",
         )
     except aiodocker.exceptions.DockerError as e:
         log.warning(f"Unable to access the docker socket: {e}")
@@ -246,7 +249,7 @@ async def create_new_c2(
             "AttachStderr": False,
             "Tty": False,
             "OpenStdin": False,
-            "Labels": dict(c2_server_id=c2_server_id, type=connector_type),
+            "Labels": {"c2_server_id": c2_server_id, "type": connector_type},
             "Name": f"harbinger_{name}",
             "HostConfig": {
                 "NetworkMode": "harbinger",
@@ -254,7 +257,7 @@ async def create_new_c2(
             },
             "NetworkMode": "harbinger",
             "Env": environment,
-            "RestartPolicy": dict(Name="unless-stopped"),
+            "RestartPolicy": {"Name": "unless-stopped"},
         }
         if command:
             config["Cmd"] = command
@@ -291,7 +294,7 @@ async def loop():
                     if status.name in data[str(status.c2_server_id)]:
                         state = data[str(status.c2_server_id)][status.name]
                         log.debug(
-                            f"Updating status to: {state} of {status.name} of {status.c2_server_id}"
+                            f"Updating status to: {state} of {status.name} of {status.c2_server_id}",
                         )
                         await crud.update_c2_server_status(
                             db,
@@ -301,12 +304,12 @@ async def loop():
                         await db.commit()
                     else:
                         log.info(
-                            f"Cannot find the container relating to {status.id} deleting entry."
+                            f"Cannot find the container relating to {status.id} deleting entry.",
                         )
                         await crud.delete_c2_server_status(db, status.id)
                 else:
                     log.info(
-                        f"Cannot find the container relating to {status.id} deleting entry."
+                        f"Cannot find the container relating to {status.id} deleting entry.",
                     )
                     await crud.delete_c2_server_status(db, status.id)
     except aiodocker.exceptions.DockerError as e:

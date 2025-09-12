@@ -1,14 +1,14 @@
-from typing import Iterable, Optional, Tuple
+from collections.abc import Iterable
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
-from harbinger import models, schemas
-from harbinger import filters
 from pydantic import UUID4
 from sqlalchemy import Select, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import func
+
+from harbinger import filters, models, schemas
 
 from ._common import create_filter_for_column
 from .label import get_labels_for_q
@@ -29,14 +29,16 @@ async def create_certificate_authority_map(
 
 
 async def get_certificate_authority(
-    db: AsyncSession, id: UUID4
-) -> Optional[models.CertificateAuthority]:
+    db: AsyncSession,
+    id: UUID4,
+) -> models.CertificateAuthority | None:
     return await db.get(models.CertificateAuthority, id)
 
 
 async def create_certificate_authority(
-    db: AsyncSession, certificate_authority: schemas.CertificateAuthorityCreate
-) -> Tuple[bool, models.CertificateAuthority]:
+    db: AsyncSession,
+    certificate_authority: schemas.CertificateAuthorityCreate,
+) -> tuple[bool, models.CertificateAuthority]:
     data = certificate_authority.model_dump()
     q = insert(models.CertificateAuthority).values(**data)
     data["time_updated"] = func.now()
@@ -47,7 +49,7 @@ async def create_certificate_authority(
     )
     await db.commit()
     result = res.unique().one()
-    return (result.time_updated == None, result)
+    return (result.time_updated is None, result)
 
 
 async def get_certificate_authorities(
@@ -68,7 +70,8 @@ async def get_certificate_authorities(
 
 
 async def get_certificate_authorities_paged(
-    db: AsyncSession, filters: filters.CertificateAuthorityFilter
+    db: AsyncSession,
+    filters: filters.CertificateAuthorityFilter,
 ) -> Page[models.CertificateAuthority]:
     q: Select = select(models.CertificateAuthority)
     q = q.outerjoin(models.CertificateAuthority.labels)
@@ -79,7 +82,8 @@ async def get_certificate_authorities_paged(
 
 
 async def get_certificate_authorities_filters(
-    db: AsyncSession, filters: filters.CertificateAuthorityFilter
+    db: AsyncSession,
+    filters: filters.CertificateAuthorityFilter,
 ):
     result: list[schemas.Filter] = []
     q: Select = (
@@ -92,7 +96,11 @@ async def get_certificate_authorities_filters(
     result.extend(lb_entry)
     for field in ["ca_name", "dns_name"]:
         res = await create_filter_for_column(
-            db, q, getattr(models.CertificateAuthority, field), field, field
+            db,
+            q,
+            getattr(models.CertificateAuthority, field),
+            field,
+            field,
         )
         result.append(res)
     return result

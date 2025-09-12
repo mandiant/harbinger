@@ -13,31 +13,35 @@
 # limitations under the License.
 
 from datetime import datetime
-from typing import List
+from typing import TYPE_CHECKING
 
 from pydantic import UUID4, AliasChoices, BaseModel, ConfigDict, Field, field_validator
 
-
-from .label import Label
 from .suggestion import SuggestionBaseRequest
+
+if TYPE_CHECKING:
+    from .label import Label
 
 
 class C2ImplantBase(BaseModel):
     c2_server_id: UUID4 | str
     internal_id: str | None = Field(
-        validation_alias=AliasChoices("c2_uid", "ID", "internal_id"), default=None
+        validation_alias=AliasChoices("c2_uid", "ID", "internal_id"),
+        default=None,
     )
     c2_type: str | None = None
     payload_type: str | None = None
     name: str | None = Field(
-        validation_alias=AliasChoices("name", "Name"), default=None
+        validation_alias=AliasChoices("name", "Name"),
+        default=None,
     )
     hostname: str = Field(
         validation_alias=AliasChoices("computer", "hostname", "host", "Hostname"),
         default="",
     )
     description: str | None = Field(
-        validation_alias=AliasChoices("description", "note"), default=""
+        validation_alias=AliasChoices("description", "note"),
+        default="",
     )
     sleep: int | None = None
     jitter: int | None = None
@@ -48,10 +52,12 @@ class C2ImplantBase(BaseModel):
         default="",
     )
     process: str | None = Field(
-        validation_alias=AliasChoices("process", "process_name", "Filename"), default=""
+        validation_alias=AliasChoices("process", "process_name", "Filename"),
+        default="",
     )
     username: str = Field(
-        validation_alias=AliasChoices("username", "user", "Username"), default=""
+        validation_alias=AliasChoices("username", "user", "Username"),
+        default="",
     )
     ip: str | None = Field(validation_alias=AliasChoices("ip", "host"), default="")
     external_ip: str | None = Field(
@@ -66,6 +72,7 @@ class C2ImplantBase(BaseModel):
     host_id: UUID4 | str | None = None
 
     @field_validator("architecture")
+    @classmethod
     def validate_architecture(cls, value):
         if not value:
             return ""
@@ -74,6 +81,7 @@ class C2ImplantBase(BaseModel):
         return "x32"
 
     @field_validator("os")
+    @classmethod
     def validate_os(cls, value):
         if not value:
             return ""
@@ -86,7 +94,8 @@ class C2ImplantBase(BaseModel):
 
 class C2ImplantCreate(C2ImplantBase):
     internal_id: str | None = Field(
-        validation_alias=AliasChoices("c2_uid", "ID", "internal_id"), default=None
+        validation_alias=AliasChoices("c2_uid", "ID", "internal_id"),
+        default=None,
     )
 
 
@@ -97,7 +106,7 @@ class C2ImplantUpdate(C2ImplantCreate):
 class C2Implant(C2ImplantBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4
-    labels: List["Label"] | None = []
+    labels: list["Label"] | None = []
 
 
 class C2ImplantSuggestionRequest(SuggestionBaseRequest):

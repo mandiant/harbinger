@@ -13,42 +13,47 @@
 # limitations under the License.
 
 import uuid
-from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, relationship
 from sqlalchemy.sql import func
 
-from ..database.database import Base
-from ..database.types import mapped_column
-
-if TYPE_CHECKING:
-    from .playbook_template import PlaybookTemplate
-    from .label import Label
+from harbinger.database.database import Base
+from harbinger.database.types import mapped_column
 
 
 class Action(Base):
     __tablename__ = "actions"
     id: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
     )
     name: Mapped[str] = mapped_column(String)
     description: Mapped[str] = mapped_column(String)
     status: Mapped[str] = mapped_column(String)
 
     time_created: Mapped[DateTime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True),
+        server_default=func.now(),
     )
     time_updated: Mapped[DateTime] = mapped_column(
-        DateTime(timezone=True), onupdate=func.now()
+        DateTime(timezone=True),
+        onupdate=func.now(),
     )
     time_started: Mapped[DateTime] = mapped_column(DateTime(timezone=True))
     time_completed: Mapped[DateTime] = mapped_column(DateTime(timezone=True))
 
     labels = relationship(
-        "Label", secondary="labeled_item", lazy="joined", viewonly=True
+        "Label",
+        secondary="labeled_item",
+        lazy="joined",
+        viewonly=True,
     )
     playbook_templates = relationship(
-        "PlaybookTemplate", secondary="action_playbook", lazy="joined", viewonly=True
+        "PlaybookTemplate",
+        secondary="action_playbook",
+        lazy="joined",
+        viewonly=True,
     )
