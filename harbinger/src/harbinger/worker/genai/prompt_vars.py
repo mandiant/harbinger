@@ -34,7 +34,7 @@ steps: |  # Define the steps using YAML or Jinja2 templating
     name: <step_name>  # (e.g., run, sleep, download)
     args:  # Arguments for the step
         - name: <argument_name>
-        value: <argument_value> 
+        value: <argument_value>
     label: <step_label>  # (optional)
     depends_on: <previous_step_label>  # (optional)
 
@@ -104,7 +104,7 @@ steps: |
     # Delay in seconds
     delay: 10
     # Extra argument specifically for this step.
-    # These arguments will only be used for rendering the command of this step 
+    # These arguments will only be used for rendering the command of this step
     args:
       - name: sleep
         value: 0

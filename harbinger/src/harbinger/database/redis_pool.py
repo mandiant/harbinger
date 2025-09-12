@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from redis import asyncio as aioredis
+
 from harbinger.config import get_settings
 
 settings = get_settings()

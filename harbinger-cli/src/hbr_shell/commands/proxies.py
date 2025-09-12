@@ -32,14 +32,14 @@ def list_proxies(args):
                     "host": p.get("host"),
                     "port": p.get("port"),
                     "status": p.get("status"),
-                }
+                },
             )
         print_output(output_data, headers, args.output)
 
 
 def list_proxy_jobs(args):
     """List proxy jobs."""
-    response = make_api_request("GET", f"/proxy_jobs/")
+    response = make_api_request("GET", "/proxy_jobs/")
     if response:
         jobs_data = response.json()
         jobs = jobs_data.get("items", [])
@@ -53,6 +53,6 @@ def list_proxy_jobs(args):
                     "command": j.get("command"),
                     "status": j.get("status"),
                     "time_created": j.get("time_created"),
-                }
+                },
             )
         print_output(output_data, headers, args.output)

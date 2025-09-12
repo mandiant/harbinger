@@ -17,7 +17,6 @@ from datetime import datetime
 
 from pydantic import UUID4, BaseModel, ConfigDict
 
-
 from .label import Label
 
 

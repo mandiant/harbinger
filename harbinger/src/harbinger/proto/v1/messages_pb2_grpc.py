@@ -6,14 +6,16 @@ import grpc
 from . import messages_pb2 as v1_dot_messages__pb2
 
 
-class HarbingerStub(object):
+class HarbingerStub:
     """Missing associated documentation comment in .proto file."""
 
     def __init__(self, channel):
         """Constructor.
 
         Args:
+        ----
             channel: A grpc.Channel.
+
         """
         self.Ping = channel.unary_unary(
             "/harbinger.go.proto.v1.Harbinger/Ping",
@@ -77,80 +79,92 @@ class HarbingerStub(object):
         )
 
 
-class HarbingerServicer(object):
+class HarbingerServicer:
     """Missing associated documentation comment in .proto file."""
 
     def Ping(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        msg = "Method not implemented!"
+        raise NotImplementedError(msg)
 
     def SaveImplant(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        msg = "Method not implemented!"
+        raise NotImplementedError(msg)
 
     def SaveProxy(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        msg = "Method not implemented!"
+        raise NotImplementedError(msg)
 
     def SaveFile(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        msg = "Method not implemented!"
+        raise NotImplementedError(msg)
 
     def C2TaskStatus(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        msg = "Method not implemented!"
+        raise NotImplementedError(msg)
 
     def GetSettings(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        msg = "Method not implemented!"
+        raise NotImplementedError(msg)
 
     def SaveTask(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        msg = "Method not implemented!"
+        raise NotImplementedError(msg)
 
     def SaveTaskOutput(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        msg = "Method not implemented!"
+        raise NotImplementedError(msg)
 
     def CheckFileExists(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        msg = "Method not implemented!"
+        raise NotImplementedError(msg)
 
     def UploadFile(self, request_iterator, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        msg = "Method not implemented!"
+        raise NotImplementedError(msg)
 
     def DownloadFile(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        msg = "Method not implemented!"
+        raise NotImplementedError(msg)
 
     def SetC2ServerStatus(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        msg = "Method not implemented!"
+        raise NotImplementedError(msg)
 
 
 def add_HarbingerServicer_to_server(servicer, server):
@@ -217,13 +231,14 @@ def add_HarbingerServicer_to_server(servicer, server):
         ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-        "harbinger.go.proto.v1.Harbinger", rpc_method_handlers
+        "harbinger.go.proto.v1.Harbinger",
+        rpc_method_handlers,
     )
     server.add_generic_rpc_handlers((generic_handler,))
 
 
 # This class is part of an EXPERIMENTAL API.
-class Harbinger(object):
+class Harbinger:
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod

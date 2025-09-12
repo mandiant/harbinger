@@ -13,17 +13,15 @@
 # limitations under the License.
 
 import traceback
-import humanize
 
+import humanize
 import structlog
 from aiosmb.commons.connection.factory import SMBConnectionFactory
-from aiosmb.commons.connection.target import SMBTarget, SMBConnectionDialect
-
+from aiosmb.commons.connection.target import SMBConnectionDialect, SMBTarget
 from aiosmb.commons.interfaces.file import SMBFile
 from alive_progress import alive_bar
 from asyauth.common.credentials import UniCredential
 from asysocks.unicomm.common.proxy import UniProxyTarget
-
 
 from harbinger.config import get_settings
 
@@ -43,12 +41,13 @@ class Uploader:
         self.smbv3: bool = smbv3
 
     async def upload_file(self, unc_path: str, data: bytes) -> None:
-        hostname = [entry for entry in unc_path.split("\\") if entry][0]
+        hostname = next(entry for entry in unc_path.split("\\") if entry)
         self.logger.info(
-            f"[{hostname}] Uploading {humanize.naturalsize(len(data))} bytes to {unc_path}"
+            f"[{hostname}] Uploading {humanize.naturalsize(len(data))} bytes to {unc_path}",
         )
         target = SMBTarget(
-            hostname=hostname, proxies=[self.proxy] if self.proxy else []
+            hostname=hostname,
+            proxies=[self.proxy] if self.proxy else [],
         )
         if self.smbv3:
             target.update_dialect(SMBConnectionDialect.SMB3)
@@ -60,12 +59,12 @@ class Uploader:
                 self.logger.error(f"Error during connection: {err}")
                 return
         except Exception as e:
-            self.logger.error(f"Exception during connection: {str(e)}")
+            self.logger.exception(f"Exception during connection: {e!s}")
             return
         try:
             smbfile = SMBFile.from_uncpath(unc_path)
             _, err = await smbfile.open(connection, "w")
-            if err != None:
+            if err is not None:
                 self.logger.error(err)
                 return
             with alive_bar(len(data)) as bar:
@@ -75,7 +74,7 @@ class Uploader:
                     bar(total_writen)
                 await smbfile.close()
         except Exception as e:
-            self.logger.error(f"Exception: {e}")
+            self.logger.exception(f"Exception: {e}")
             traceback.print_exc()
         finally:
             await connection.disconnect()

@@ -1,19 +1,19 @@
-from typing import Optional
-
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
-from harbinger import models, schemas
-from harbinger.database.cache import redis_cache
-from harbinger.database.database import SessionLocal
 from pydantic import UUID4
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from harbinger import models, schemas
+from harbinger.database.cache import redis_cache
+from harbinger.database.database import SessionLocal
 
 from ._common import DEFAULT_CACHE_TTL
 
 
 async def create_parse_result(
-    db: AsyncSession, result: schemas.ParseResultCreate
+    db: AsyncSession,
+    result: schemas.ParseResultCreate,
 ) -> models.ParseResult:
     result_db = models.ParseResult(**result.model_dump())
     db.add(result_db)
@@ -30,8 +30,9 @@ async def create_parse_result(
     ttl_seconds=DEFAULT_CACHE_TTL,
 )
 async def get_parse_result(
-    db: AsyncSession, result_id: UUID4 | str
-) -> Optional[models.ParseResult]:
+    db: AsyncSession,
+    result_id: UUID4 | str,
+) -> models.ParseResult | None:
     return await db.get(models.ParseResult, result_id)
 
 

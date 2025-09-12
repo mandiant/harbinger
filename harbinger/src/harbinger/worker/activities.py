@@ -12,61 +12,56 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from dataclasses import dataclass, field
-from datetime import timedelta, datetime
-import os
-import dpath
-import csv
-from harbinger.config.process import get_process_mapping
-from harbinger.graph.database import get_async_neo4j_session_context
-import pytz
-from temporalio import activity
-from harbinger import crud
-from harbinger.database import progress_bar
-from harbinger import filters
-from harbinger import schemas
-from harbinger import models
-from harbinger.database.database import SessionLocal
-from harbinger.worker.genai import prompts, tools
-import concurrent.futures
-import structlog
-import magic
-import aiofiles
 import asyncio
+import concurrent.futures
+import csv
+import json
+import logging
+import math
+import os
+import tempfile
+import traceback
+import typing as t
 import uuid
-from zipfile import ZipFile, BadZipFile
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 from io import BytesIO
-from pydantic import ValidationError
-from magika import Magika
-from harbinger.files.client import download_file
+from pathlib import Path
+from zipfile import BadZipFile, ZipFile
+
+import aiofiles
+import dpath
+import magic
+import pytz
+import rigging as rg
+import structlog
+import yaml
+from botocore.exceptions import ParamValidationError
 from exiftool import ExifToolHelper
 from exiftool.exceptions import ExifToolExecuteError
-from pathlib import Path
+from magika import Magika
+from PIL import Image, ImageSequence
+from pydantic import UUID4, BaseModel, ValidationError
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import DeclarativeBase
+from tabulate import tabulate
+from temporalio import activity
+
+from harbinger import crud, filters, models, schemas
+from harbinger.config import get_settings
+from harbinger.config.process import get_process_mapping
+from harbinger.database import progress_bar
+from harbinger.database.database import SessionLocal
+from harbinger.enums import LlmStatus, PlanStatus, PlanStepStatus
+from harbinger.files.client import download_file, upload_file
+from harbinger.graph import crud as graph_crud
+from harbinger.graph.database import get_async_neo4j_session_context
 from harbinger.worker.files import parsers
 from harbinger.worker.files.keepass_parser import KeePassParser
-from harbinger.files.client import upload_file, download_file
-from harbinger.config import get_settings
-from sqlalchemy.exc import IntegrityError
-from harbinger.worker.output import OUTPUT_PARSERS, parse_ccache
-from botocore.exceptions import ParamValidationError
-import json
-import tempfile
 from harbinger.worker.files.utils import process_harbinger_yaml
-from sqlalchemy.ext.asyncio import AsyncSession
-from pydantic import UUID4
-from sqlalchemy.orm import DeclarativeBase
-from PIL import Image, ImageSequence
-import math
-from tabulate import tabulate
-import typing as t
-import rigging as rg
-from sqlalchemy.exc import IntegrityError
-from harbinger.graph import crud as graph_crud
-from pydantic import BaseModel
-import traceback
-import yaml
-import logging
-from harbinger.enums import LlmStatus, PlanStatus, PlanStepStatus
+from harbinger.worker.genai import prompts, tools
+from harbinger.worker.output import OUTPUT_PARSERS, parse_ccache
 
 settings = get_settings()
 
@@ -78,20 +73,23 @@ litellm_logger.setLevel(logging.WARNING)
 
 @activity.defn
 async def check_and_finalize_plan_activity(plan_id: str) -> bool:
-    """
-    Checks if all steps in a plan are completed or skipped. If so,
+    """Checks if all steps in a plan are completed or skipped. If so,
     marks the overall plan as COMPLETED.
     """
     async with SessionLocal() as db:
         plan_steps = await crud.get_plan_steps(
-            db, filters=filters.PlanStepFilter(plan_id=plan_id), limit=10000
+            db,
+            filters=filters.PlanStepFilter(plan_id=plan_id),
+            limit=10000,
         )
 
         if not plan_steps:
             # No steps, so the plan can be considered complete.
             log.info("Plan has no steps, marking as completed.", plan_id=plan_id)
             await crud.update_plan(
-                db, plan_id, schemas.PlanUpdate(status=PlanStatus.COMPLETED)
+                db,
+                plan_id,
+                schemas.PlanUpdate(status=PlanStatus.COMPLETED),
             )
             return True
 
@@ -106,7 +104,9 @@ async def check_and_finalize_plan_activity(plan_id: str) -> bool:
             plan_id=plan_id,
         )
         await crud.update_plan(
-            db, plan_id, schemas.PlanUpdate(status=PlanStatus.COMPLETED)
+            db,
+            plan_id,
+            schemas.PlanUpdate(status=PlanStatus.COMPLETED),
         )
         return True
 
@@ -160,7 +160,7 @@ async def get_c2_task_output(c2_task_id: UUID4) -> str:
 
 @activity.defn
 async def get_proxy_job(job_id: str) -> schemas.ProxyJob:
-    async with SessionLocal() as session:
+    async with SessionLocal():
         job = await crud.get_proxy_job(job_id)
         return schemas.ProxyJob.model_validate(job)
 
@@ -169,7 +169,10 @@ async def get_proxy_job(job_id: str) -> schemas.ProxyJob:
 async def update_playbook_status(playbook: schemas.ProxyChain) -> None:
     async with SessionLocal() as session:
         await crud.update_chain_status(
-            session, playbook.status or "", playbook.id, playbook.steps or 0
+            session,
+            playbook.status or "",
+            playbook.id,
+            playbook.steps or 0,
         )
 
 
@@ -186,7 +189,7 @@ async def update_playbook_step_status(step: schemas.ChainStep) -> None:
 
 @activity.defn
 async def update_c2_job(replace: schemas.PlaybookStepModifierEntry) -> None:
-    log.info(f"Update c2 job")
+    log.info("Update c2 job")
     if not replace.c2_job_id:
         log.warning("c2 job id was not set.")
         return
@@ -210,7 +213,9 @@ async def update_c2_job_status(c2_job: schemas.C2Job):
     async with SessionLocal() as db:
         if c2_job.status:
             await crud.update_c2_job_status(
-                db, c2_job_id=c2_job.id, status=c2_job.status
+                db,
+                c2_job_id=c2_job.id,
+                status=c2_job.status,
             )
 
 
@@ -329,24 +334,28 @@ class FileParsing:
         async with aiofiles.tempfile.NamedTemporaryFile() as tf:
             async with aiofiles.open(tf.name, "wb") as f:
                 await f.write(data)
-            magic_mimetype, magika_mimetype, exiftools, filetype, md5, sha1, sha256 = (
-                list(
-                    await asyncio.gather(
-                        loop.run_in_executor(
-                            self.pool, self.file_magic_sync, str(f.name)
-                        ),
-                        loop.run_in_executor(
-                            self.pool, self.file_magika_sync, str(f.name)
-                        ),
-                        loop.run_in_executor(
-                            self.pool, self.file_exiftool_sync, str(f.name)
-                        ),
-                        self.bytes_map(first_20_bytes),
-                        self.generate_hash("md5", str(f.name)),
-                        self.generate_hash("sha1", str(f.name)),
-                        self.generate_hash("sha256", str(f.name)),
-                    )
-                )
+            magic_mimetype, magika_mimetype, exiftools, filetype, md5, sha1, sha256 = list(
+                await asyncio.gather(
+                    loop.run_in_executor(
+                        self.pool,
+                        self.file_magic_sync,
+                        str(f.name),
+                    ),
+                    loop.run_in_executor(
+                        self.pool,
+                        self.file_magika_sync,
+                        str(f.name),
+                    ),
+                    loop.run_in_executor(
+                        self.pool,
+                        self.file_exiftool_sync,
+                        str(f.name),
+                    ),
+                    self.bytes_map(first_20_bytes),
+                    self.generate_hash("md5", str(f.name)),
+                    self.generate_hash("sha1", str(f.name)),
+                    self.generate_hash("sha256", str(f.name)),
+                ),
             )
             file_update = schemas.FileUpdate(
                 magic_mimetype=magic_mimetype,
@@ -360,17 +369,12 @@ class FileParsing:
                 file_update.filetype = file.filetype
             elif filetype:
                 file_update.filetype = filetype  # type: ignore
-            else:
-                if file.filename in FILENAME_MAP:
-                    file_update.filetype = FILENAME_MAP[file.filename]
-                elif file_update.magic_mimetype in MAGIC_MIMETYPE_MAP:
-                    file_update.filetype = MAGIC_MIMETYPE_MAP[
-                        file_update.magic_mimetype
-                    ]
-                elif file_update.magika_mimetype in MAGIKA_MIMETYPE_MAP:
-                    file_update.filetype = MAGIKA_MIMETYPE_MAP[
-                        file_update.magika_mimetype
-                    ]
+            elif file.filename in FILENAME_MAP:
+                file_update.filetype = FILENAME_MAP[file.filename]
+            elif file_update.magic_mimetype in MAGIC_MIMETYPE_MAP:
+                file_update.filetype = MAGIC_MIMETYPE_MAP[file_update.magic_mimetype]
+            elif file_update.magika_mimetype in MAGIKA_MIMETYPE_MAP:
+                file_update.filetype = MAGIKA_MIMETYPE_MAP[file_update.magika_mimetype]
 
             async with SessionLocal() as session:
                 await crud.update_file(session, file.id, file_update)
@@ -400,7 +404,7 @@ class FileParsing:
                         ] and not k.startswith("JSON:"):
                             results.append(f"{k} = {v}")
         except ExifToolExecuteError:
-            log.warning(f"ExifToolExecuteError")
+            log.warning("ExifToolExecuteError")
         return "\n".join(results)
 
     async def generate_hash(self, hash: str, filename: str) -> str:
@@ -433,11 +437,12 @@ class FileParsing:
                             await crud.create_label_item(
                                 session,
                                 schemas.LabeledItemCreate(
-                                    label_id=label, file_id=file.id
+                                    label_id=label,
+                                    file_id=file.id,
                                 ),
                             )
                 except Exception as e:
-                    log.error(f"Exception: {e} while running {Parser}")
+                    log.exception(f"Exception: {e} while running {Parser}")
         return schemas.FileType.text
 
     @activity.defn(name="process_unknown")
@@ -459,11 +464,12 @@ class FileParsing:
                             await crud.create_label_item(
                                 session,
                                 schemas.LabeledItemCreate(
-                                    label_id=label, file_id=file.id
+                                    label_id=label,
+                                    file_id=file.id,
                                 ),
                             )
                 except Exception as e:
-                    log.error(f"Exception: {e} while running {Parser}")
+                    log.exception(f"Exception: {e} while running {Parser}")
                     traceback.print_exc()
 
         return schemas.FileType.empty
@@ -493,7 +499,7 @@ class FileParsing:
         except BadZipFile:
             log.warning("Bad zip file")
         except Exception as e:
-            log.error(f"Exception {e} while parsing zip file")
+            log.exception(f"Exception {e} while parsing zip file")
         return results
 
     @activity.defn(name="process_harbinger_zip")
@@ -503,14 +509,17 @@ class FileParsing:
         files = []
         async with SessionLocal() as db:
             files_in_zip = await loop.run_in_executor(
-                self.pool, self.extract_filenames_from_zip, data
+                self.pool,
+                self.extract_filenames_from_zip,
+                data,
             )
-            harbinger_yaml_files = [
-                file for file in files_in_zip or [] if file.endswith("harbinger.yaml")
-            ]
+            harbinger_yaml_files = [file for file in files_in_zip or [] if file.endswith("harbinger.yaml")]
             for harbinger_yaml in harbinger_yaml_files:
                 result = await loop.run_in_executor(
-                    self.pool, self.extract_file_from_zip, data, harbinger_yaml
+                    self.pool,
+                    self.extract_file_from_zip,
+                    data,
+                    harbinger_yaml,
                 )
                 if result:
                     log.info(f"Processing {harbinger_yaml}")
@@ -519,7 +528,10 @@ class FileParsing:
                             path = os.path.join("harbinger", str(f.id), f.name)
                             try:
                                 file_data = await loop.run_in_executor(
-                                    self.pool, self.extract_file_from_zip, data, f.path
+                                    self.pool,
+                                    self.extract_file_from_zip,
+                                    data,
+                                    f.path,
                                 )
                                 if file_data:
                                     file_db = await crud.add_file(
@@ -535,14 +547,14 @@ class FileParsing:
                                     log.info(f"Created {path}")
                                 else:
                                     log.info(
-                                        f"Unable to extract {f.name} from the zip."
+                                        f"Unable to extract {f.name} from the zip.",
                                     )
                             except IntegrityError:
                                 log.info(f"{f.name} already exists, skipping")
                                 await db.rollback()
                     except ValidationError:
                         log.warning(
-                            f"ValidationError on parsing {harbinger_yaml} file."
+                            f"ValidationError on parsing {harbinger_yaml} file.",
                         )
         return files
 
@@ -561,7 +573,7 @@ class FileParsing:
         except BadZipFile:
             log.warning("Bad zip file")
         except Exception as e:
-            log.error(f"Exception {e} while parsing zip file")
+            log.exception(f"Exception {e} while parsing zip file")
         return b""
 
     def extract_filenames_from_zip(self, data: bytes) -> list[str]:
@@ -575,7 +587,7 @@ class FileParsing:
         except BadZipFile:
             log.warning("Bad zip file")
         except Exception as e:
-            log.error(f"Exception {e} while parsing zip file")
+            log.exception(f"Exception {e} while parsing zip file")
         return result
 
     @activity.defn(name="process_json")
@@ -586,7 +598,7 @@ class FileParsing:
                 await f.write(data)
 
             proc = await asyncio.create_subprocess_exec(
-                f"jq",
+                "jq",
                 "-r",
                 "keys",
                 str(tf.name),
@@ -594,11 +606,10 @@ class FileParsing:
                 stderr=asyncio.subprocess.PIPE,
             )
             stdout, _ = await proc.communicate()
-            if stdout:
-                if res := json.loads(stdout):
-                    for entry in JSON_TYPE_MAP:
-                        if sorted(res) == entry[0]:
-                            return entry[1]
+            if stdout and (res := json.loads(stdout)):
+                for entry in JSON_TYPE_MAP:
+                    if sorted(res) == entry[0]:
+                        return entry[1]
         return schemas.FileType.json
 
     @activity.defn(name="process_certipy_json")
@@ -677,11 +688,12 @@ class FileParsing:
                             await crud.create_label_item(
                                 session,
                                 schemas.LabeledItemCreate(
-                                    label_id=label, file_id=file.id
+                                    label_id=label,
+                                    file_id=file.id,
                                 ),
                             )
                 except Exception as e:
-                    log.error(f"Exception: {e} while running {Parser}")
+                    log.exception(f"Exception: {e} while running {Parser}")
                     traceback.print_exc()
 
     @activity.defn(name="process_ccache")
@@ -695,7 +707,7 @@ class FileParsing:
 async def label_processes(label_process: schemas.LabelProcess) -> None:
     mapping = get_process_mapping()
     log.info(
-        f"Labeling processess of host: {label_process.host_id} of number: {label_process.number}, process_mapping list: {len(mapping)}"
+        f"Labeling processess of host: {label_process.host_id} of number: {label_process.number}, process_mapping list: {len(mapping)}",
     )
     async with SessionLocal() as db:
         processes = list(
@@ -704,7 +716,7 @@ async def label_processes(label_process: schemas.LabelProcess) -> None:
                 host_id=label_process.host_id,
                 number=label_process.number,
                 limit=1000,
-            )
+            ),
         )
         log.info(f"Found {len(processes)} to potentially label")
         labels_added = set()
@@ -729,7 +741,7 @@ async def label_processes(label_process: schemas.LabelProcess) -> None:
             await crud.create_label_item(db, create)
         if count:
             log.info(
-                f"Added labels to {count} processes and {len(labels_added)} to host {label_process.host_id}."
+                f"Added labels to {count} processes and {len(labels_added)} to host {label_process.host_id}.",
             )
 
 
@@ -738,7 +750,10 @@ async def mark_dead() -> None:
     async with SessionLocal() as session:
         ten_min_ago = datetime.now(pytz.utc) - timedelta(minutes=10)
         c2_implants = await crud.get_c2_implants(
-            session, limit=1000, not_labels=["Dead"], last_checkin_before=ten_min_ago
+            session,
+            limit=1000,
+            not_labels=["Dead"],
+            last_checkin_before=ten_min_ago,
         )
         for c2_implant in c2_implants:
             await crud.create_label_item(
@@ -750,7 +765,10 @@ async def mark_dead() -> None:
             )
 
         c2_implants = await crud.get_c2_implants(
-            session, limit=1000, labels=["Dead"], last_checkin_after=ten_min_ago
+            session,
+            limit=1000,
+            labels=["Dead"],
+            last_checkin_after=ten_min_ago,
         )
 
         for c2_implant in c2_implants:
@@ -787,7 +805,10 @@ async def create_timeline(timeline: schemas.CreateTimeline):
 
             async with SessionLocal() as db:
                 skip_commands: list[str] = await crud.get_setting(
-                    db, "timeline", "skipped_commands", []
+                    db,
+                    "timeline",
+                    "skipped_commands",
+                    [],
                 )  # type: ignore
                 include_status: list[str] = await crud.get_setting(
                     db,
@@ -796,16 +817,19 @@ async def create_timeline(timeline: schemas.CreateTimeline):
                     ["completed", schemas.Status.error.value],
                 )  # type: ignore
                 ignore_labels: set[str] = set(
-                    await crud.get_setting(db, "timeline", "ignore_labels", ["Test"])
+                    await crud.get_setting(db, "timeline", "ignore_labels", ["Test"]),
                 )  # type: ignore
                 speed: int = await crud.get_setting(db, "timeline", "speed", 2)  # type: ignore
                 idle_time: int = await crud.get_setting(db, "timeline", "idle_time", 1)  # type: ignore
                 agg_timeout: int = await crud.get_setting(
-                    db, "timeline", "agg_timeout", 30
+                    db,
+                    "timeline",
+                    "agg_timeout",
+                    30,
                 )  # type: ignore
 
                 timeline_tasks = list(
-                    await crud.get_timeline(db, status=include_status)
+                    await crud.get_timeline(db, status=include_status),
                 )
                 count = 0
                 total_tasks = len(timeline_tasks)
@@ -818,7 +842,7 @@ async def create_timeline(timeline: schemas.CreateTimeline):
                         count += 1
                         await bar(1)
                         task: schemas.TimeLine = schemas.TimeLine.model_validate(
-                            db_task
+                            db_task,
                         )
 
                         if task.command_name in skip_commands:
@@ -837,15 +861,13 @@ async def create_timeline(timeline: schemas.CreateTimeline):
 
                         timestamp = ""
                         if task.time_completed:
-                            timestamp = (
-                                task.time_completed
-                                + timedelta(hours=timeline.hour_offset)
-                            ).strftime("%Y-%m-%d %H:%M:%S")
+                            timestamp = (task.time_completed + timedelta(hours=timeline.hour_offset)).strftime(
+                                "%Y-%m-%d %H:%M:%S"
+                            )
                         elif task.time_started:
-                            timestamp = (
-                                task.time_started
-                                + timedelta(hours=timeline.hour_offset)
-                            ).strftime("%Y-%m-%d %H:%M:%S")
+                            timestamp = (task.time_started + timedelta(hours=timeline.hour_offset)).strftime(
+                                "%Y-%m-%d %H:%M:%S"
+                            )
 
                         if task.arguments:
                             command = f"{command} {task.arguments}"
@@ -860,16 +882,16 @@ async def create_timeline(timeline: schemas.CreateTimeline):
                         if timeline.create_screenshots:
                             if task.object_type == "C2Task":
                                 log.info(
-                                    f"[{count + 1}/{total_tasks}] Looking for output of {task.id}"
+                                    f"[{count + 1}/{total_tasks}] Looking for output of {task.id}",
                                 )
                                 output = list(
                                     await crud.get_c2_task_output(
                                         db,
                                         filters.C2OutputFilter(c2_task_id=task.id),
-                                    )
+                                    ),
                                 )
                                 text = [
-                                    '{"version": 2, "width": 160, "height": 46, "timestamp": 0, "env": {"SHELL": "/bin/bash", "TERM": "screen-256color"}}'
+                                    '{"version": 2, "width": 160, "height": 46, "timestamp": 0, "env": {"SHELL": "/bin/bash", "TERM": "screen-256color"}}',
                                 ]
                                 c = 0
                                 for o in output:
@@ -891,17 +913,19 @@ async def create_timeline(timeline: schemas.CreateTimeline):
                                     for file in files:
                                         if file.filetype == "cast":
                                             data = await download_file(
-                                                file.path, file.bucket
+                                                file.path,
+                                                file.bucket,
                                             )
                                             async with aiofiles.open(
-                                                cast_file, "wb"
+                                                cast_file,
+                                                "wb",
                                             ) as f:
                                                 await f.write(data)
                                             cast_exists = True
                                             break
                                 else:
                                     text = [
-                                        '{"version": 2, "width": 160, "height": 46, "timestamp": 0, "env": {"SHELL": "/bin/bash", "TERM": "screen-256color"}}'
+                                        '{"version": 2, "width": 160, "height": 46, "timestamp": 0, "env": {"SHELL": "/bin/bash", "TERM": "screen-256color"}}',
                                     ]
                                     c = 0
                                     if task.output:
@@ -912,7 +936,7 @@ async def create_timeline(timeline: schemas.CreateTimeline):
 
                                         async with aiofiles.open(cast_file, "wb") as f:
                                             await f.write(
-                                                "\n".join(text).encode("utf-8")
+                                                "\n".join(text).encode("utf-8"),
                                             )
                                         cast_exists = len(task.output) > 0
 
@@ -921,13 +945,14 @@ async def create_timeline(timeline: schemas.CreateTimeline):
                                     await crud.get_files(
                                         db,
                                         filters.FileFilter(
-                                            job_id=task.id, search="output.cast"
+                                            job_id=task.id,
+                                            search="output.cast",
                                         ),
-                                    )
+                                    ),
                                 )
                                 if cast_files:
                                     log.info(
-                                        f"[{count + 1}/{total_tasks}] Found the cast file of: {task.id}"
+                                        f"[{count + 1}/{total_tasks}] Found the cast file of: {task.id}",
                                     )
                                     cf: models.File = cast_files[0]
                                     data = await download_file(cf.path, cf.bucket)
@@ -941,7 +966,7 @@ async def create_timeline(timeline: schemas.CreateTimeline):
 
                         if cast_exists and timeline.create_screenshots:
                             log.info(
-                                f"[{count + 1}/{total_tasks}] Creating gif file for {task.id}"
+                                f"[{count + 1}/{total_tasks}] Creating gif file for {task.id}",
                             )
                             gif_file = basedir / "screenshots" / f"output_{count}.gif"
                             proc = await asyncio.create_subprocess_exec(
@@ -973,13 +998,11 @@ async def create_timeline(timeline: schemas.CreateTimeline):
                                 screenshot_count = 0
 
                             log.info(
-                                f"[{count + 1}/{total_tasks}] Extracted {screenshot_count} screenshots."
+                                f"[{count + 1}/{total_tasks}] Extracted {screenshot_count} screenshots.",
                             )
                             if screenshot_count > 0:
                                 screenshot = True
-                                screenshot_path = (
-                                    f"screenshot_{count}_{screenshot_count}.png"
-                                )
+                                screenshot_path = f"screenshot_{count}_{screenshot_count}.png"
 
                         if task.ai_summary:
                             attack_path.append(task.ai_summary)
@@ -992,7 +1015,7 @@ async def create_timeline(timeline: schemas.CreateTimeline):
                                 timestamp,
                                 command[0:400],
                                 task.hostname or "",
-                            ]
+                            ],
                         )
 
                     summary = ""
@@ -1004,13 +1027,16 @@ async def create_timeline(timeline: schemas.CreateTimeline):
                             log.warning(f"Unable to create attack path summary: {e}")
 
                     for file in await crud.get_files(
-                        db, filters.FileFilter(filetype=schemas.FileType.implant_binary)
+                        db,
+                        filters.FileFilter(filetype=schemas.FileType.implant_binary),
                     ):
                         artefacts.append([file.filename, file.md5sum, file.sha1sum])
 
                     output_table = tabulate(results, headers, tablefmt="github")
                     artefact_output = tabulate(
-                        artefacts, artefact_headers, tablefmt="github"
+                        artefacts,
+                        artefact_headers,
+                        tablefmt="github",
                     )
                     with open(basedir / "timeline.md", "w") as f:
                         f.write("# Attack Path\n\n\n")
@@ -1049,7 +1075,11 @@ async def create_timeline(timeline: schemas.CreateTimeline):
 
                     await bar(5)
                     proc = await asyncio.create_subprocess_exec(
-                        "zip", "-r", "data.zip", "data", cwd=path
+                        "zip",
+                        "-r",
+                        "data.zip",
+                        "data",
+                        cwd=path,
                     )
 
                     await proc.wait()
@@ -1074,7 +1104,10 @@ async def create_timeline(timeline: schemas.CreateTimeline):
 
 
 def extract_screenshots(
-    input_file: str, path: str, sequence_number: int = 0, max_number: int = 5
+    input_file: str,
+    path: str,
+    sequence_number: int = 0,
+    max_number: int = 5,
 ) -> int:
     """Extract screenshots from the input gif file."""
     im = Image.open(input_file)
@@ -1095,9 +1128,8 @@ def extract_screenshots(
         frame = seq[im.n_frames - 1]  # type: ignore
         frame.save(os.path.join(path, f"screenshot_{sequence_number}_{count}.png"))
         return count
-    else:
-        im.save(os.path.join(path, f"screenshot_{sequence_number}_1.png"))
-        return 1
+    im.save(os.path.join(path, f"screenshot_{sequence_number}_1.png"))
+    return 1
 
 
 @activity.defn
@@ -1116,11 +1148,12 @@ async def parse_output(req: schemas.TextParse) -> None:
                         await crud.create_label_item(
                             session,
                             schemas.LabeledItemCreate(
-                                label_id=label, c2_task_output_id=req.c2_output_id
+                                label_id=label,
+                                c2_task_output_id=req.c2_output_id,
                             ),
                         )
                 except Exception as e:
-                    log.error(f"Exception: {e} while running {Parser}")
+                    log.exception(f"Exception: {e} while running {Parser}")
                     traceback.print_exc()
 
 
@@ -1152,7 +1185,9 @@ async def save_implant(c2_implant: schemas.C2ImplantCreate) -> schemas.C2Implant
             domain_id = str(domain_obj.id)
         if c2_implant.hostname:
             host_created, host = await crud.get_or_create_host(
-                db, c2_implant.hostname, domain_id
+                db,
+                c2_implant.hostname,
+                domain_id,
             )
             if host_created:
                 log.info(f"Created new host: {host.id}")
@@ -1167,7 +1202,9 @@ async def save_implant(c2_implant: schemas.C2ImplantCreate) -> schemas.C2Implant
 async def save_task(c2_task: schemas.C2TaskCreate) -> schemas.C2Task:
     async with SessionLocal() as db:
         c2_implant = await crud.get_c2_implant_by_internal_id(
-            db, c2_task.internal_implant_id, str(c2_task.c2_server_id)
+            db,
+            c2_task.internal_implant_id,
+            str(c2_task.c2_server_id),
         )
         if c2_implant:
             c2_task.c2_implant_id = c2_implant.id
@@ -1184,20 +1221,24 @@ async def save_task(c2_task: schemas.C2TaskCreate) -> schemas.C2Task:
                 log.info(f"Downloaded filename: {filename}")
                 files = list(
                     await crud.get_share_files(
-                        db, filters.ShareFileFilter(name=filename), limit=10
-                    )
+                        db,
+                        filters.ShareFileFilter(name=filename),
+                        limit=10,
+                    ),
                 )
                 if len(files) == 1:
                     for file in files:
                         await crud.set_share_file_downloaded(db, file.id)
                 files = list(
                     await crud.get_share_files(
-                        db, filters.ShareFileFilter(unc_path=filename), limit=10
-                    )
+                        db,
+                        filters.ShareFileFilter(unc_path=filename),
+                        limit=10,
+                    ),
                 )
                 for file in files:
                     await crud.set_share_file_downloaded(db, file.id)
-            except:
+            except Exception:
                 log.warning("Unable to find the file name that was downloaded.")
 
         return schemas.C2Task.model_validate(c2_task_db)
@@ -1251,7 +1292,8 @@ async def save_task_output(
         if c2_task_output.file_list:
             c2_task_output.file_list.parse()
             await crud.save_parsed_share_file(
-                db, c2_task_output.file_list.to_base_parsed_share_file()
+                db,
+                c2_task_output.file_list.to_base_parsed_share_file(),
             )
             log.info("Processed file output.")
         if created:
@@ -1271,7 +1313,9 @@ async def save_proxy(proxy: schemas.ProxyCreate) -> None:
 async def update_c2_job_c2_task_id(c2_job_mapping: schemas.C2JobTaskMapping) -> None:
     async with SessionLocal() as db:
         await crud.update_c2_job_c2_task_id(
-            db, c2_job_mapping.c2_job_id, c2_job_mapping.c2_task_id
+            db,
+            c2_job_mapping.c2_job_id,
+            c2_job_mapping.c2_task_id,
         )
 
 
@@ -1292,7 +1336,9 @@ async def update_c2_task_status(c2_task_status: schemas.C2TaskStatus) -> None:
             )
             if step:
                 await crud.update_step_status(
-                    session, status=c2_task_status.status, step_id=step.id
+                    session,
+                    status=c2_task_status.status,
+                    step_id=step.id,
                 )
 
 
@@ -1302,7 +1348,9 @@ async def update_c2_server_status(
 ) -> None:
     async with SessionLocal() as session:
         await crud.update_c2_server_status(
-            session, c2_server_status.c2_server_id, c2_server_status.status
+            session,
+            c2_server_status.c2_server_id,
+            c2_server_status.status,
         )
 
 
@@ -1312,7 +1360,9 @@ async def save_file(file: schemas.FileCreate) -> schemas.File:
         c2_task_id = None
         if file.internal_task_id:
             c2_task = await crud.get_c2_task_by_internal_id(
-                session, file.internal_task_id, str(file.c2_server_id)
+                session,
+                file.internal_task_id,
+                str(file.c2_server_id),
             )
             if c2_task:
                 c2_task_id = c2_task.id
@@ -1321,7 +1371,9 @@ async def save_file(file: schemas.FileCreate) -> schemas.File:
         c2_implant_id = None
         if file.internal_implant_id:
             c2_implant = await crud.get_c2_implant_by_internal_id(
-                session, file.internal_implant_id, str(file.c2_server_id)
+                session,
+                file.internal_implant_id,
+                str(file.c2_server_id),
             )
             if c2_implant:
                 c2_implant_id = c2_implant.id
@@ -1348,9 +1400,7 @@ async def save_file(file: schemas.FileCreate) -> schemas.File:
 async def check_file_hash(hash_value: str) -> bool:
     async with SessionLocal() as session:
         result = await crud.get_file_by_hash(session, hash_value)
-        if result:
-            return True
-        return False
+        return bool(result)
 
 
 async def create_labels_for_summary(
@@ -1380,10 +1430,7 @@ async def create_labels_for_summary(
                 manual_timeline_task_id=manual_timeline_id,
             ),
         )
-    if (
-        summary.attack_lifecycle
-        and summary.attack_lifecycle in prompts.attack_phase_label_mapping
-    ):
+    if summary.attack_lifecycle and summary.attack_lifecycle in prompts.attack_phase_label_mapping:
         await crud.create_label_item(
             db,
             schemas.LabeledItemCreate(
@@ -1404,12 +1451,17 @@ async def summarize_c2_tasks():
     async with SessionLocal() as db:
         for status in ["", schemas.Status.error.value]:
             skip_commands: list[str] = await crud.get_setting(
-                db, "timeline", "skipped_commands", []
+                db,
+                "timeline",
+                "skipped_commands",
+                [],
             )  # type: ignore
             tasks = list(
                 await crud.get_c2_tasks(
-                    db, filters.C2TaskFilter(processing_status=status), limit=100000
-                )
+                    db,
+                    filters.C2TaskFilter(processing_status=status),
+                    limit=100000,
+                ),
             )
             async with progress_bar.ProgressBar(
                 bar_id=str(uuid.uuid4()),
@@ -1421,12 +1473,16 @@ async def summarize_c2_tasks():
                     if task.command_name in skip_commands:
                         log.info(f"Skipping {task.id}: {task.command_name}")
                         await crud.update_c2_task_summary(
-                            db, task.id, "", schemas.Status.skipped.value
+                            db,
+                            task.id,
+                            "",
+                            schemas.Status.skipped.value,
                         )
                         continue
 
                     output = await crud.get_c2_task_output(
-                        db, filters.C2OutputFilter(c2_task_id=task.id)
+                        db,
+                        filters.C2OutputFilter(c2_task_id=task.id),
                     )
                     output_str = "".join([o.response_text for o in output])
                     try:
@@ -1436,18 +1492,24 @@ async def summarize_c2_tasks():
                             output_str or "",
                         )
                         log.info(
-                            f"Processed {task.id}: {task.command_name} yielding a summary of length: {len(summary.text)}"
+                            f"Processed {task.id}: {task.command_name} yielding a summary of length: {len(summary.text)}",
                         )
                         await crud.update_c2_task_summary(
-                            db, task.id, summary.text, schemas.Status.completed.value
+                            db,
+                            task.id,
+                            summary.text,
+                            schemas.Status.completed.value,
                         )
                         await create_labels_for_summary(db, summary, c2_task_id=task.id)
                     except Exception as e:
-                        log.error(
-                            f"Exception {e} while processing task, making as error"
+                        log.exception(
+                            f"Exception {e} while processing task, making as error",
                         )
                         await crud.update_c2_task_summary(
-                            db, task.id, "", schemas.Status.error.value
+                            db,
+                            task.id,
+                            "",
+                            schemas.Status.error.value,
                         )
 
 
@@ -1460,12 +1522,17 @@ async def summarize_socks_tasks():
     async with SessionLocal() as db:
         for status in [schemas.Status.empty.value, schemas.Status.error.value]:
             skip_commands: list[str] = await crud.get_setting(
-                db, "timeline", "skipped_commands", []
+                db,
+                "timeline",
+                "skipped_commands",
+                [],
             )  # type: ignore
             tasks = list(
                 await crud.get_proxy_jobs(
-                    db, filters.SocksJobFilter(processing_status=status), limit=100000
-                )
+                    db,
+                    filters.SocksJobFilter(processing_status=status),
+                    limit=100000,
+                ),
             )
             async with progress_bar.ProgressBar(
                 bar_id=str(uuid.uuid4()),
@@ -1477,14 +1544,18 @@ async def summarize_socks_tasks():
                     if task.command in skip_commands:
                         log.info(f"Skipping {task.id}: {task.command}")
                         await crud.update_socks_task_summary(
-                            db, task.id, "", schemas.Status.skipped.value
+                            db,
+                            task.id,
+                            "",
+                            schemas.Status.skipped.value,
                         )
                         continue
                     output = ""
                     cast_files = list(
                         await crud.get_files(
-                            db, filters.FileFilter(job_id=task.id, search="output.cast")
-                        )
+                            db,
+                            filters.FileFilter(job_id=task.id, search="output.cast"),
+                        ),
                     )
                     if cast_files:
                         file = cast_files[0]
@@ -1495,23 +1566,33 @@ async def summarize_socks_tasks():
 
                     try:
                         summary = await prompts.summarize_action(
-                            task.command or "", task.arguments or "", output or ""
+                            task.command or "",
+                            task.arguments or "",
+                            output or "",
                         )
                         log.info(
-                            f"Processed {task.id}: {task.command} yielding a summary of length: {len(summary.text)}"
+                            f"Processed {task.id}: {task.command} yielding a summary of length: {len(summary.text)}",
                         )
                         await crud.update_socks_task_summary(
-                            db, task.id, summary.text, schemas.Status.completed.value
+                            db,
+                            task.id,
+                            summary.text,
+                            schemas.Status.completed.value,
                         )
                         await create_labels_for_summary(
-                            db, summary, socks_task_id=task.id
+                            db,
+                            summary,
+                            socks_task_id=task.id,
                         )
                     except Exception as e:
-                        log.error(
-                            f"Exception {e} while processing task, making as error"
+                        log.exception(
+                            f"Exception {e} while processing task, making as error",
                         )
                         await crud.update_socks_task_summary(
-                            db, task.id, "", schemas.Status.error.value
+                            db,
+                            task.id,
+                            "",
+                            schemas.Status.error.value,
                         )
 
 
@@ -1524,7 +1605,10 @@ async def summarize_manual_tasks():
     async with SessionLocal() as db:
         for status in [schemas.Status.empty.value, schemas.Status.error.value]:
             skip_commands: list[str] = await crud.get_setting(
-                db, "timeline", "skipped_commands", []
+                db,
+                "timeline",
+                "skipped_commands",
+                [],
             )  # type: ignore
             tasks = list(await crud.get_manual_timeline_tasks(db, status))
             async with progress_bar.ProgressBar(
@@ -1537,7 +1621,10 @@ async def summarize_manual_tasks():
                     if task.command_name in skip_commands:
                         log.info(f"Skipping {task.id}: {task.command_name}")
                         await crud.update_manual_timeline_summary(
-                            db, task.id, "", schemas.Status.skipped.value
+                            db,
+                            task.id,
+                            "",
+                            schemas.Status.skipped.value,
                         )
                         continue
                     try:
@@ -1547,25 +1634,34 @@ async def summarize_manual_tasks():
                             task.output or "",
                         )
                         log.info(
-                            f"Processed {task.id}: {task.command_name} yielding a summary of length: {len(summary.text)}"
+                            f"Processed {task.id}: {task.command_name} yielding a summary of length: {len(summary.text)}",
                         )
                         await crud.update_manual_timeline_summary(
-                            db, task.id, summary.text, schemas.Status.completed.value
+                            db,
+                            task.id,
+                            summary.text,
+                            schemas.Status.completed.value,
                         )
                         await create_labels_for_summary(
-                            db, summary, manual_timeline_id=task.id
+                            db,
+                            summary,
+                            manual_timeline_id=task.id,
                         )
                     except Exception as e:
-                        log.error(
-                            f"Exception {e} while processing task, making as error"
+                        log.exception(
+                            f"Exception {e} while processing task, making as error",
                         )
                         await crud.update_manual_timeline_summary(
-                            db, task.id, "", schemas.Status.error.value
+                            db,
+                            task.id,
+                            "",
+                            schemas.Status.error.value,
                         )
 
 
 def sequence_to_string_list(
-    object_list: t.Iterable[DeclarativeBase], object_type: t.Type[BaseModel]
+    object_list: t.Iterable[DeclarativeBase],
+    object_type: type[BaseModel],
 ) -> list[str]:
     result: list[str] = []
     for obj in object_list:
@@ -1574,7 +1670,8 @@ def sequence_to_string_list(
 
 
 def object_to_string(
-    obj: DeclarativeBase | BaseModel, object_type: t.Type[BaseModel]
+    obj: DeclarativeBase | BaseModel,
+    object_type: type[BaseModel],
 ) -> str:
     result = object_type.model_validate(obj)
     return result.model_dump_json(exclude_unset=True, exclude_none=True)
@@ -1601,28 +1698,27 @@ async def save_result(
     if not result.playbook:
         log.info("No result :(")
         return
-    else:
-        log.info(result)
-        if result.playbook.playbook_id == "ffffffff-ffff-ffff-ffff-ffffffffffff":
-            log.info("Stop iteration")
-            return
+    log.info(result)
+    if result.playbook.playbook_id == "ffffffff-ffff-ffff-ffff-ffffffffffff":
+        log.info("Stop iteration")
+        return
 
-        if result.playbook.playbook_id != "ffffffff-ffff-ffff-ffff-ffffffffffff":
-            try:
-                _ = await crud.create_suggestion(
-                    db,
-                    schemas.SuggestionCreate(
-                        name=result.name,
-                        reason=result.reason,
-                        playbook_template_id=result.playbook.playbook_id,
-                        arguments=arguments,
-                        c2_implant_id=c2_implant_id,
-                    ),
-                )
-                await db.commit()
-            except IntegrityError as e:
-                log.warning(f"IntegrityError while creating suggestion: {e}")
-                await db.rollback()
+    if result.playbook.playbook_id != "ffffffff-ffff-ffff-ffff-ffffffffffff":
+        try:
+            _ = await crud.create_suggestion(
+                db,
+                schemas.SuggestionCreate(
+                    name=result.name,
+                    reason=result.reason,
+                    playbook_template_id=result.playbook.playbook_id,
+                    arguments=arguments,
+                    c2_implant_id=c2_implant_id,
+                ),
+            )
+            await db.commit()
+        except IntegrityError as e:
+            log.warning(f"IntegrityError while creating suggestion: {e}")
+            await db.rollback()
 
 
 @activity.defn
@@ -1632,38 +1728,40 @@ async def create_c2_implant_suggestion(req: schemas.C2ImplantSuggestionRequest):
         log.warning("Gemini not enabled, skipping")
         return
 
-    async with SessionLocal() as db:
-        async with progress_bar.ProgressBar(
+    async with (
+        SessionLocal() as db,
+        progress_bar.ProgressBar(
             bar_id=str(uuid.uuid4()),
             max=10,
             description="Creating AI suggestion",
-        ) as bar:
-            data = await load_data_for_ai(db, req, req.c2_implant_id)
+        ) as bar,
+    ):
+        data = await load_data_for_ai(db, req, req.c2_implant_id)
 
-            await bar(1)
+        await bar(1)
 
-            async def log_message(chats: list[rg.Chat]) -> None:
-                for chat in chats:
-                    for message in chat.generated:
-                        log.info(message)
+        async def log_message(chats: list[rg.Chat]) -> None:
+            for chat in chats:
+                for message in chat.generated:
+                    log.info(message)
 
-            pipeline = (
-                prompts.generator.chat([{"role": "system", "content": ""}])
-                .then(validate_playbook_callback(data.playbook_map))
-                .watch(log_message)
-                .using(data.tools)
-            )
-            run = prompts.suggest_action_c2_implant.bind(pipeline)
+        pipeline = (
+            prompts.generator.chat([{"role": "system", "content": ""}])
+            .then(validate_playbook_callback(data.playbook_map))
+            .watch(log_message)
+            .using(data.tools)
+        )
+        run = prompts.suggest_action_c2_implant.bind(pipeline)
 
-            results = await run(
-                additional_prompt=req.additional_prompt,
-                implant_information=data.implant_information,
-            )
-            await bar(4)
-            arguments = dict(c2_implant_id=req.c2_implant_id)
-            for result in results.actions or []:
-                await save_result(db, result, arguments, req.c2_implant_id)
-            await bar(1)
+        results = await run(
+            additional_prompt=req.additional_prompt,
+            implant_information=data.implant_information,
+        )
+        await bar(4)
+        arguments = {"c2_implant_id": req.c2_implant_id}
+        for result in results.actions or []:
+            await save_result(db, result, arguments, req.c2_implant_id)
+        await bar(1)
 
 
 @activity.defn
@@ -1673,49 +1771,57 @@ async def create_domain_suggestion(req: schemas.SuggestionsRequest):
         log.warning("Gemini not enabled, skipping")
         return
 
-    async with SessionLocal() as db:
-        async with progress_bar.ProgressBar(
+    async with (
+        SessionLocal() as db,
+        progress_bar.ProgressBar(
             bar_id=str(uuid.uuid4()),
             max=10,
             description="Creating AI suggestion",
-        ) as bar:
+        ) as bar,
+    ):
 
-            async def log_message(chats: list[rg.Chat]) -> None:
-                for chat in chats:
-                    for message in chat.generated:
-                        log.info(message)
+        async def log_message(chats: list[rg.Chat]) -> None:
+            for chat in chats:
+                for message in chat.generated:
+                    log.info(message)
 
-            data = await load_data_for_ai(db, req, skip_labels=["Dead"])
+        data = await load_data_for_ai(db, req, skip_labels=["Dead"])
 
-            await bar(5)
+        await bar(5)
 
-            edr_detections: str = await crud.get_setting(
-                db, "suggestions", "edr_detections", ""
-            )  # type: ignore
-            domain_checklist: str = await crud.get_setting(
-                db, "suggestions", "domain_checklist", ""
-            )  # type: ignore
+        edr_detections: str = await crud.get_setting(
+            db,
+            "suggestions",
+            "edr_detections",
+            "",
+        )  # type: ignore
+        domain_checklist: str = await crud.get_setting(
+            db,
+            "suggestions",
+            "domain_checklist",
+            "",
+        )  # type: ignore
 
-            pipeline = (
-                prompts.generator.chat([{"role": "system", "content": ""}])
-                .then(validate_playbook_callback(data.playbook_map))
-                .watch(log_message)
-                .using(data.tools)
+        pipeline = (
+            prompts.generator.chat([{"role": "system", "content": ""}])
+            .then(validate_playbook_callback(data.playbook_map))
+            .watch(log_message)
+            .using(data.tools)
+        )
+        run = prompts.suggest_domain_action.bind(pipeline)
+
+        try:
+            results = await run(
+                edr_detections=edr_detections,
+                domain_checklist=domain_checklist,
+                additional_prompt=req.additional_prompt,
             )
-            run = prompts.suggest_domain_action.bind(pipeline)
-
-            try:
-                results = await run(
-                    edr_detections=edr_detections,
-                    domain_checklist=domain_checklist,
-                    additional_prompt=req.additional_prompt,
-                )
-                await bar(4)
-                for result in results.actions or []:
-                    await save_result(db, result, None)
-                await bar(1)
-            except Exception as e:
-                log.warning(f"Exception while creating suggestions: {e}")
+            await bar(4)
+            for result in results.actions or []:
+                await save_result(db, result, None)
+            await bar(1)
+        except Exception as e:
+            log.warning(f"Exception while creating suggestions: {e}")
 
 
 @activity.defn
@@ -1730,56 +1836,61 @@ async def create_file_download_suggestion(req: schemas.SuggestionsRequest):
                 log.info(message)
 
     log.info("Creating ai suggestion for files")
-    async with SessionLocal() as db:
-        async with progress_bar.ProgressBar(
+    async with (
+        SessionLocal() as db,
+        progress_bar.ProgressBar(
             bar_id=str(uuid.uuid4()),
             max=10,
             description="Creating ai suggestion for files",
-        ) as bar:
-            pipeline = (
-                prompts.generator.chat([{"role": "system", "content": ""}])
-                .watch(log_message)
-                .using(
-                    [tools.get_all_c2_implant_info, tools.get_undownloaded_share_files]
-                )
+        ) as bar,
+    ):
+        pipeline = (
+            prompts.generator.chat([{"role": "system", "content": ""}])
+            .watch(log_message)
+            .using(
+                [tools.get_all_c2_implant_info, tools.get_undownloaded_share_files],
             )
-            await bar(1)
-            run = prompts.suggest_file_download_actions.bind(pipeline)
-            interesting_files: str = await crud.get_setting(
-                db, "suggestions", "interesting_files", ""
-            )  # type: ignore
-            suggestions: dict[str, list[prompts.File]] = dict()
-            result = await run(
-                interesting_files=interesting_files,
-            )
-            if result.files and result.c2_implant_id:
-                if not result.c2_implant_id in suggestions:
-                    suggestions[result.c2_implant_id] = []
-                suggestions[result.c2_implant_id].extend(result.files)
+        )
+        await bar(1)
+        run = prompts.suggest_file_download_actions.bind(pipeline)
+        interesting_files: str = await crud.get_setting(
+            db,
+            "suggestions",
+            "interesting_files",
+            "",
+        )  # type: ignore
+        suggestions: dict[str, list[prompts.File]] = {}
+        result = await run(
+            interesting_files=interesting_files,
+        )
+        if result.files and result.c2_implant_id:
+            if result.c2_implant_id not in suggestions:
+                suggestions[result.c2_implant_id] = []
+            suggestions[result.c2_implant_id].extend(result.files)
 
-            for c2_implant_id, files in suggestions.items():
-                file_names: list[str] = []
-                for file in files:
-                    unc_path = file.unc_path
-                    if "\\\\\\\\" in unc_path:
-                        unc_path = unc_path.replace("\\\\", "\\")
-                    file_names.append(unc_path)
+        for c2_implant_id, files in suggestions.items():
+            file_names: list[str] = []
+            for file in files:
+                unc_path = file.unc_path
+                if "\\\\\\\\" in unc_path:
+                    unc_path = unc_path.replace("\\\\", "\\")
+                file_names.append(unc_path)
 
-                _ = await crud.create_suggestion(
-                    db,
-                    schemas.SuggestionCreate(
-                        name=f"Download {len(files)} files",
-                        reason="\n".join(
-                            [f"{file.unc_path}: {file.reason}" for file in files]
-                        ),
-                        playbook_template_id="bc182f94-4f59-498c-abc8-bdf7d1bcb448",
-                        arguments=dict(
-                            target_files="|".join(file_names),
-                            c2_implant_id=c2_implant_id,
-                        ),
+            _ = await crud.create_suggestion(
+                db,
+                schemas.SuggestionCreate(
+                    name=f"Download {len(files)} files",
+                    reason="\n".join(
+                        [f"{file.unc_path}: {file.reason}" for file in files],
                     ),
-                )
-                await db.commit()
+                    playbook_template_id="bc182f94-4f59-498c-abc8-bdf7d1bcb448",
+                    arguments={
+                        "target_files": "|".join(file_names),
+                        "c2_implant_id": c2_implant_id,
+                    },
+                ),
+            )
+            await db.commit()
 
 
 @activity.defn
@@ -1794,50 +1905,52 @@ async def create_dir_ls_suggestion(req: schemas.SuggestionsRequest):
                 log.info(message)
 
     log.info("Creating ai suggestion for dir listing")
-    async with SessionLocal() as db:
-        async with progress_bar.ProgressBar(
+    async with (
+        SessionLocal() as db,
+        progress_bar.ProgressBar(
             bar_id=str(uuid.uuid4()),
             max=10,
             description="Creating ai suggestion for dir listing",
-        ) as bar:
-            pipeline = (
-                prompts.generator.chat([{"role": "system", "content": ""}])
-                .watch(log_message)
-                .using(
-                    [tools.get_all_c2_implant_info, tools.get_unindexed_share_folders]
-                )
+        ) as bar,
+    ):
+        pipeline = (
+            prompts.generator.chat([{"role": "system", "content": ""}])
+            .watch(log_message)
+            .using(
+                [tools.get_all_c2_implant_info, tools.get_unindexed_share_folders],
             )
-            run = prompts.suggest_dir_list_actions.bind(pipeline)
-            suggestions: dict[str, list[prompts.File]] = dict()
-            await bar(1)
-            result = await run()
-            log.info(result)
-            if result.files and result.c2_implant_id:
-                if result.c2_implant_id not in suggestions:
-                    suggestions[result.c2_implant_id] = []
-                suggestions[result.c2_implant_id].extend(result.files)
-            for c2_implant_id, files in suggestions.items():
-                directories: list[str] = []
-                for file in files:
-                    unc_path = file.unc_path
-                    if "\\\\\\\\" in unc_path:
-                        unc_path = unc_path.replace("\\\\", "\\")
-                    directories.append(unc_path)
-                _ = await crud.create_suggestion(
-                    db,
-                    schemas.SuggestionCreate(
-                        name=f"List {len(files)} directories",
-                        reason="\n".join(
-                            [f"{file.unc_path}: {file.reason}" for file in files]
-                        ),
-                        playbook_template_id="b13e64a7-5623-4d69-bb6e-5718b887658c",
-                        arguments=dict(
-                            directories="|".join(directories),
-                            c2_implant_id=c2_implant_id,
-                        ),
+        )
+        run = prompts.suggest_dir_list_actions.bind(pipeline)
+        suggestions: dict[str, list[prompts.File]] = {}
+        await bar(1)
+        result = await run()
+        log.info(result)
+        if result.files and result.c2_implant_id:
+            if result.c2_implant_id not in suggestions:
+                suggestions[result.c2_implant_id] = []
+            suggestions[result.c2_implant_id].extend(result.files)
+        for c2_implant_id, files in suggestions.items():
+            directories: list[str] = []
+            for file in files:
+                unc_path = file.unc_path
+                if "\\\\\\\\" in unc_path:
+                    unc_path = unc_path.replace("\\\\", "\\")
+                directories.append(unc_path)
+            _ = await crud.create_suggestion(
+                db,
+                schemas.SuggestionCreate(
+                    name=f"List {len(files)} directories",
+                    reason="\n".join(
+                        [f"{file.unc_path}: {file.reason}" for file in files],
                     ),
-                )
-                await db.commit()
+                    playbook_template_id="b13e64a7-5623-4d69-bb6e-5718b887658c",
+                    arguments={
+                        "directories": "|".join(directories),
+                        "c2_implant_id": c2_implant_id,
+                    },
+                ),
+            )
+            await db.commit()
 
 
 @activity.defn
@@ -1852,41 +1965,43 @@ async def create_share_list_suggestion(req: schemas.SuggestionsRequest):
                 log.info(message)
 
     log.info("Creating ai suggestion for share listing")
-    async with SessionLocal() as db:
-        async with progress_bar.ProgressBar(
+    async with (
+        SessionLocal() as db,
+        progress_bar.ProgressBar(
             bar_id=str(uuid.uuid4()),
             max=10,
             description="Creating AI suggestion for share listing",
-        ) as bar:
-            pipeline = (
-                prompts.generator.chat([{"role": "system", "content": ""}])
-                .watch(log_message)
-                .using([tools.get_all_c2_implant_info, tools.get_hosts])
-            )
-            run = prompts.suggest_hosts_list_shares.bind(pipeline)
-            await bar(1)
-            result = await run()
-            chunk_size = 50
-            if not result.host_list or not result.c2_implant_id:
-                log.info("No hosts or c2_implants found, skipping")
-                return
-            for i in range(0, len(result.host_list), chunk_size):
-                hosts = result.host_list[i : i + chunk_size]
-                _ = await crud.create_suggestion(
-                    db,
-                    schemas.SuggestionCreate(
-                        name=f"List shares on {len(hosts)} computers",
-                        reason="\n".join(
-                            [f"{host.hostname}: {host.reason}" for host in hosts]
-                        ),
-                        playbook_template_id="52e566d9-99a8-4aee-a0d2-2b591955f798",
-                        arguments=dict(
-                            computers=",".join([host.hostname for host in hosts]),
-                            c2_implant_id=result.c2_implant_id,
-                        ),
+        ) as bar,
+    ):
+        pipeline = (
+            prompts.generator.chat([{"role": "system", "content": ""}])
+            .watch(log_message)
+            .using([tools.get_all_c2_implant_info, tools.get_hosts])
+        )
+        run = prompts.suggest_hosts_list_shares.bind(pipeline)
+        await bar(1)
+        result = await run()
+        chunk_size = 50
+        if not result.host_list or not result.c2_implant_id:
+            log.info("No hosts or c2_implants found, skipping")
+            return
+        for i in range(0, len(result.host_list), chunk_size):
+            hosts = result.host_list[i : i + chunk_size]
+            _ = await crud.create_suggestion(
+                db,
+                schemas.SuggestionCreate(
+                    name=f"List shares on {len(hosts)} computers",
+                    reason="\n".join(
+                        [f"{host.hostname}: {host.reason}" for host in hosts],
                     ),
-                )
-                await db.commit()
+                    playbook_template_id="52e566d9-99a8-4aee-a0d2-2b591955f798",
+                    arguments={
+                        "computers": ",".join([host.hostname for host in hosts]),
+                        "c2_implant_id": result.c2_implant_id,
+                    },
+                ),
+            )
+            await db.commit()
 
 
 @activity.defn
@@ -1901,41 +2016,43 @@ async def create_share_root_list_suggestion(req: schemas.SuggestionsRequest):
                 log.info(message)
 
     log.info("Creating ai suggestion for listing the root of shares")
-    async with SessionLocal() as db:
-        async with progress_bar.ProgressBar(
+    async with (
+        SessionLocal() as db,
+        progress_bar.ProgressBar(
             bar_id=str(uuid.uuid4()),
             max=10,
             description="Creating AI suggestion for listing the root of shares",
-        ) as bar:
-            pipeline = (
-                prompts.generator.chat([{"role": "system", "content": ""}])
-                .watch(log_message)
-                .using([tools.get_network_shares, tools.get_all_c2_implant_info])
-            )
-            run = prompts.suggest_shares_list.bind(pipeline)
-            await bar(1)
-            result = await run()
-            to_list = [share for share in result.share_list or []]
-            if to_list:
-                _ = await crud.create_suggestion(
-                    db,
-                    schemas.SuggestionCreate(
-                        name=f"List the root of {len(to_list)} shares",
-                        reason="\n".join(
-                            [f"{share.share_name}: {share.reason}" for share in to_list]
-                        ),
-                        playbook_template_id="b13e64a7-5623-4d69-bb6e-5718b887658c",
-                        arguments=dict(
-                            directories="|".join(
-                                [share.share_name for share in to_list]
-                            ),
-                            c2_implant_id=result.c2_implant_id,
-                        ),
+        ) as bar,
+    ):
+        pipeline = (
+            prompts.generator.chat([{"role": "system", "content": ""}])
+            .watch(log_message)
+            .using([tools.get_network_shares, tools.get_all_c2_implant_info])
+        )
+        run = prompts.suggest_shares_list.bind(pipeline)
+        await bar(1)
+        result = await run()
+        to_list = list(result.share_list or [])
+        if to_list:
+            _ = await crud.create_suggestion(
+                db,
+                schemas.SuggestionCreate(
+                    name=f"List the root of {len(to_list)} shares",
+                    reason="\n".join(
+                        [f"{share.share_name}: {share.reason}" for share in to_list],
                     ),
-                )
-                await db.commit()
-            else:
-                log.info("No shares of which to list the root.")
+                    playbook_template_id="b13e64a7-5623-4d69-bb6e-5718b887658c",
+                    arguments={
+                        "directories": "|".join(
+                            [share.share_name for share in to_list],
+                        ),
+                        "c2_implant_id": result.c2_implant_id,
+                    },
+                ),
+            )
+            await db.commit()
+        else:
+            log.info("No shares of which to list the root.")
 
 
 RISK_LABEL_MAPPING: dict[int, str] = {
@@ -1958,78 +2075,87 @@ async def c2_job_detection_risk(req: schemas.C2JobDetectionRiskRequest) -> None:
             for message in chat.generated:
                 log.info(message)
 
-    async with SessionLocal() as db:
-        async with progress_bar.ProgressBar(
+    async with (
+        SessionLocal() as db,
+        progress_bar.ProgressBar(
             bar_id=str(uuid.uuid4()),
             max=5,
             description="Checking detections",
-        ) as bar:
-            pipeline = prompts.generator.chat([{"role": "system", "content": ""}])
-            run = prompts.c2_job_detection_risk.bind(pipeline).watch(log_message)
+        ) as bar,
+    ):
+        pipeline = prompts.generator.chat([{"role": "system", "content": ""}])
+        run = prompts.c2_job_detection_risk.bind(pipeline).watch(log_message)
 
-            c2_job = await crud.get_c2_job(req.c2_job_id)
+        c2_job = await crud.get_c2_job(req.c2_job_id)
 
-            if not c2_job:
-                log.warning(f"Unable to find the c2_job for id: {req.c2_job_id}")
-                return
+        if not c2_job:
+            log.warning(f"Unable to find the c2_job for id: {req.c2_job_id}")
+            return
 
-            c2_job_str = object_to_string(c2_job, schemas.C2Job)
+        c2_job_str = object_to_string(c2_job, schemas.C2Job)
 
-            c2_implant = await crud.get_c2_implant(c2_job.c2_implant_id)
+        c2_implant = await crud.get_c2_implant(c2_job.c2_implant_id)
 
-            if not c2_implant:
-                log.warning(
-                    f"Unable to find the implant for id: {c2_job.c2_implant_id}"
-                )
-                return
-
-            await bar(1)
-
-            labels = await crud.recurse_labels_c2_implant(db, c2_implant.id)
-            labels = [l for l in labels if l.category == "EDR" or l.category == "AV"]
-            c2_implant_dict = c2_implant.__dict__
-            c2_implant_dict["labels"] = labels
-            implant_information = dict_to_string(c2_implant_dict)
-            edr_detections: str = await crud.get_setting(
-                db, "suggestions", "edr_detections", ""
-            )  # type: ignore
-
-            await bar(1)
-            result = await run(
-                req.additional_prompt, c2_job_str, edr_detections, implant_information
+        if not c2_implant:
+            log.warning(
+                f"Unable to find the implant for id: {c2_job.c2_implant_id}",
             )
+            return
 
-            await bar(1)
+        await bar(1)
 
-            log.info(f"[{req.c2_job_id}] risk: {result.value}. Reason: {result.reason}")
+        labels = await crud.recurse_labels_c2_implant(db, c2_implant.id)
+        labels = [label for label in labels if label.category == "EDR" or label.category == "AV"]
+        c2_implant_dict = c2_implant.__dict__
+        c2_implant_dict["labels"] = labels
+        implant_information = dict_to_string(c2_implant_dict)
+        edr_detections: str = await crud.get_setting(
+            db,
+            "suggestions",
+            "edr_detections",
+            "",
+        )  # type: ignore
 
-            if result.value not in RISK_LABEL_MAPPING:
-                log.warning(
-                    f"[{req.c2_job_id}] {result.value} not in RISK_LABEL_MAPPING"
-                )
-                return
+        await bar(1)
+        result = await run(
+            req.additional_prompt,
+            c2_job_str,
+            edr_detections,
+            implant_information,
+        )
 
-            label_id = RISK_LABEL_MAPPING[result.value]
+        await bar(1)
+
+        log.info(f"[{req.c2_job_id}] risk: {result.value}. Reason: {result.reason}")
+
+        if result.value not in RISK_LABEL_MAPPING:
+            log.warning(
+                f"[{req.c2_job_id}] {result.value} not in RISK_LABEL_MAPPING",
+            )
+            return
+
+        label_id = RISK_LABEL_MAPPING[result.value]
+        await crud.create_label_item(
+            db,
+            schemas.LabeledItemCreate(
+                label_id=label_id,
+                c2_job_id=req.c2_job_id,
+            ),
+        )
+        await bar(1)
+        if c2_job.playbook_id:
             await crud.create_label_item(
                 db,
                 schemas.LabeledItemCreate(
                     label_id=label_id,
-                    c2_job_id=req.c2_job_id,
+                    playbook_id=c2_job.playbook_id,
                 ),
             )
-            await bar(1)
-            if c2_job.playbook_id:
-                await crud.create_label_item(
-                    db,
-                    schemas.LabeledItemCreate(
-                        label_id=label_id,
-                        playbook_id=c2_job.playbook_id,
-                    ),
-                )
-                await crud.send_update_playbook(
-                    str(c2_job.playbook_id), "updated_chain"
-                )
-            await bar(1)
+            await crud.send_update_playbook(
+                str(c2_job.playbook_id),
+                "updated_chain",
+            )
+        await bar(1)
 
 
 @activity.defn
@@ -2039,55 +2165,55 @@ async def kerberoasting_suggestions(req: schemas.SuggestionsRequest):
             for message in chat.generated:
                 log.info(message)
 
-    async with SessionLocal() as db:
-        async with progress_bar.ProgressBar(
+    async with (
+        SessionLocal() as db,
+        progress_bar.ProgressBar(
             bar_id=str(uuid.uuid4()),
             max=3,
             description="Creating kerberoasting suggestions",
-        ) as bar:
-            async with get_async_neo4j_session_context() as session:
-                kerberoastable_users = await graph_crud.get_kerberoastable_groups(
-                    session
-                )
-                if not kerberoastable_users:
-                    await bar(3)
-                    return
+        ) as bar,
+        get_async_neo4j_session_context() as session,
+    ):
+        kerberoastable_users = await graph_crud.get_kerberoastable_groups(
+            session,
+        )
+        if not kerberoastable_users:
+            await bar(3)
+            return
 
-                await bar(1)
+        await bar(1)
 
-                data = await load_data_for_ai(db, req)
-                await bar(1)
+        data = await load_data_for_ai(db, req)
+        await bar(1)
 
-                pipeline = (
-                    prompts.generator.chat([{"role": "system", "content": ""}])
-                    .then(validate_playbook_callback(data.playbook_map))
-                    .watch(log_message)
-                    .using(data.tools)
-                )
-                run = prompts.kerberoasting.bind(pipeline)
+        pipeline = (
+            prompts.generator.chat([{"role": "system", "content": ""}])
+            .then(validate_playbook_callback(data.playbook_map))
+            .watch(log_message)
+            .using(data.tools)
+        )
+        run = prompts.kerberoasting.bind(pipeline)
 
-                results = await run(
-                    additional_prompt=req.additional_prompt,
-                    kerberoastable_users=[
-                        dict_to_string(user) for user in kerberoastable_users
-                    ],
-                )
+        results = await run(
+            additional_prompt=req.additional_prompt,
+            kerberoastable_users=[dict_to_string(user) for user in kerberoastable_users],
+        )
 
-                for result in results.actions or []:
-                    await save_result(db, result, None)
-                await bar(1)
+        for result in results.actions or []:
+            await save_result(db, result, None)
+        await bar(1)
 
 
 def validate_playbook_callback(
     playbook_map: dict[str, models.PlaybookTemplate],
 ) -> t.Callable[
-    [rg.Chat], t.Coroutine[t.Any, t.Any, rg.PipelineStepContextManager | None]
+    [rg.Chat],
+    t.Coroutine[t.Any, t.Any, rg.PipelineStepContextManager | None],
 ]:
     async def validate_playbook(
         chat: rg.Chat,
     ) -> rg.PipelineStepContextManager | None:
-        """
-        A rigging pipeline step that validates playbook actions and asks the LLM
+        """A rigging pipeline step that validates playbook actions and asks the LLM
         to correct them if errors are found.
 
         This function parses the last message for playbook actions, validates them,
@@ -2095,11 +2221,14 @@ def validate_playbook_callback(
         and triggers another generation round.
 
         Args:
+        ----
             chat: The current chat object in the rigging pipeline.
 
         Returns:
+        -------
             A PipelineStepContextManager to trigger another LLM call if validation fails,
             otherwise None to indicate success and continue the pipeline.
+
         """
         error_messages = []
         try:
@@ -2110,33 +2239,33 @@ def validate_playbook_callback(
                     try:
                         playbook_template = playbook_map[action.playbook.playbook_id]
                         chain = schemas.PlaybookTemplate(
-                            **yaml.safe_load(playbook_template.yaml)
+                            **yaml.safe_load(playbook_template.yaml),
                         )
                         arguments = json.loads(action.playbook.arguments or "{}")
                         # This line performs the actual validation
                         chain.create_model()(**arguments)
                     except ValidationError as e:
                         error_messages.append(
-                            f"Validation Error for playbook '{action.playbook.playbook_id}':\n{e.json()}"
+                            f"Validation Error for playbook '{action.playbook.playbook_id}':\n{e.json()}",
                         )
                     except (json.JSONDecodeError, yaml.YAMLError) as e:
                         error_messages.append(
-                            f"Error processing playbook '{action.playbook.playbook_id}': {e}"
+                            f"Error processing playbook '{action.playbook.playbook_id}': {e}",
                         )
                 # You can add other checks for placeholder IDs or missing playbooks if needed
                 elif not action.playbook or not action.playbook.playbook_id:
                     error_messages.append(
-                        f"Action is missing a playbook or playbook_id: {action}"
+                        f"Action is missing a playbook or playbook_id: {action}",
                     )
                 elif action.playbook.playbook_id not in playbook_map:
                     error_messages.append(
-                        f"Playbook with ID '{action.playbook.playbook_id}' not found."
+                        f"Playbook with ID '{action.playbook.playbook_id}' not found.",
                     )
 
         except ValidationError as e:
             log.warning(f"Major ValidationError during parsing: {e}")
             error_messages.append(
-                f"The overall structure of your response was incorrect: {e.json()}"
+                f"The overall structure of your response was incorrect: {e.json()}",
             )
 
         # --- This is the key change in logic ---
@@ -2184,7 +2313,7 @@ async def load_data_for_ai(
             tools.get_socks_servers_info,
             tools.get_situational_awareness_info,
             tools.list_filters,
-        ]
+        ],
     )
     if c2_implant_id:
         c2_implant = await crud.get_c2_implant(c2_implant_id)
@@ -2204,12 +2333,10 @@ async def load_data_for_ai(
         data.tools.append(tools.get_c2_tasks_executed)
 
     playbook_templates = await crud.get_chain_templates(
-        db, filters=filters.PlaybookTemplateFilter()
+        db,
+        filters=filters.PlaybookTemplateFilter(),
     )
-    data.playbook_map = {
-        str(playbook_template.id): playbook_template
-        for playbook_template in playbook_templates
-    }
+    data.playbook_map = {str(playbook_template.id): playbook_template for playbook_template in playbook_templates}
     if req.playbooks:
         data.tools.append(tools.get_playbooks)
 
@@ -2235,8 +2362,7 @@ async def load_data_for_ai(
 
 @activity.defn
 async def create_plan_activity(objective: str, name: str) -> str:
-    """
-    Activity to generate the initial plan using an LLM. This remains an activity
+    """Activity to generate the initial plan using an LLM. This remains an activity
     as it's a discrete, user-initiated task that benefits from Temporal's durability.
     """
     activity.logger.info(f"Generating plan '{name}' for objective: {objective}")
@@ -2269,7 +2395,7 @@ async def create_plan_activity(objective: str, name: str) -> str:
                 tools.get_network_shares,
                 tools.list_filters,
                 tools.create_suggestion_for_plan_step,
-            ]
+            ],
         )
     )
     run = prompts.generate_testing_plan.bind(pipeline)
@@ -2281,12 +2407,13 @@ async def create_plan_activity(objective: str, name: str) -> str:
 
         for step_data in llm_response.steps:
             step_schema = schemas.PlanStepCreate(
-                plan_id=plan.id, **step_data.model_dump()
+                plan_id=plan.id,
+                **step_data.model_dump(),
             )
             await crud.create_plan_step(db, plan_step=step_schema)
 
         activity.logger.info(
-            f"Successfully created plan {plan.id} with {len(llm_response.steps)} steps."
+            f"Successfully created plan {plan.id} with {len(llm_response.steps)} steps.",
         )
         return str(plan.id)
 

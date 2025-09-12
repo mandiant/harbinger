@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import uuid
-from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     JSON,
@@ -30,27 +29,30 @@ from sqlalchemy.sql import func
 from harbinger.database.database import Base
 from harbinger.database.types import mapped_column
 
-if TYPE_CHECKING:
-    from .label import Label
-
 
 class C2Output(Base):
     __tablename__ = "c2_task_output"
     id: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
     )
     time_created: Mapped[DateTime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True),
+        server_default=func.now(),
     )
     time_updated: Mapped[DateTime] = mapped_column(
-        DateTime(timezone=True), onupdate=func.now()
+        DateTime(timezone=True),
+        onupdate=func.now(),
     )
     c2_implant_id: Mapped[UUID] = mapped_column(
-        ForeignKey("c2_implants.id"), nullable=True
+        ForeignKey("c2_implants.id"),
+        nullable=True,
     )
     c2_task_id: Mapped[UUID] = mapped_column(ForeignKey("c2_tasks.id"), nullable=True)
     c2_server_id: Mapped[UUID] = mapped_column(
-        ForeignKey("c2_servers.id"), nullable=True
+        ForeignKey("c2_servers.id"),
+        nullable=True,
     )
     internal_id: Mapped[str] = mapped_column(String)
     timestamp: Mapped[DateTime] = mapped_column(DateTime(timezone=True))
@@ -60,12 +62,13 @@ class C2Output(Base):
     raw_json: Mapped[dict] = mapped_column(JSON)
 
     labels = relationship(
-        "Label", secondary="labeled_item", lazy="joined", viewonly=True
+        "Label",
+        secondary="labeled_item",
+        lazy="joined",
+        viewonly=True,
     )
 
-    __table_args__ = (
-        UniqueConstraint("c2_server_id", "internal_id", name="c2_output_uc"),
-    )
+    __table_args__ = (UniqueConstraint("c2_server_id", "internal_id", name="c2_output_uc"),)
 
     @validates("response_text", "output_type")
     def remove_nullbytes(self, key, value) -> str | None:

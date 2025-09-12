@@ -26,7 +26,9 @@ from harbinger.database.types import mapped_column
 class SettingCategory(Base):
     __tablename__ = "setting_category"
     id: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
     )
     name: Mapped[str] = mapped_column(String, unique=True)
     description: Mapped[str] = mapped_column(String)

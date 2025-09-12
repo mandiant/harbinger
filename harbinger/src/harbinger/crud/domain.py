@@ -1,17 +1,17 @@
-from typing import Iterable, Optional
+from collections.abc import Iterable
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
-from harbinger import models, schemas
-from harbinger import filters
-from harbinger.database.cache import redis_cache, redis_cache_invalidate
-from harbinger.database.database import SessionLocal
 from pydantic import UUID4
 from sqlalchemy import Select, or_, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import func
+
+from harbinger import filters, models, schemas
+from harbinger.database.cache import redis_cache, redis_cache_invalidate
+from harbinger.database.database import SessionLocal
 
 from ._common import DEFAULT_CACHE_TTL
 from .label import get_labels_for_q
@@ -25,8 +25,9 @@ from .label import get_labels_for_q
     ttl_seconds=DEFAULT_CACHE_TTL,
 )
 async def get_domain(
-    db: AsyncSession, domain_id: str | UUID4
-) -> Optional[models.Domain]:
+    db: AsyncSession,
+    domain_id: str | UUID4,
+) -> models.Domain | None:
     return await db.get(models.Domain, domain_id)
 
 
@@ -37,8 +38,8 @@ async def get_or_create_domain(db: AsyncSession, name: str) -> models.Domain:
             or_(
                 models.Domain.long_name.ilike(name),
                 models.Domain.short_name.ilike(name),
-            )
-        )
+            ),
+        ),
     )
     domain = q.scalars().first()
     if not domain:
@@ -47,15 +48,18 @@ async def get_or_create_domain(db: AsyncSession, name: str) -> models.Domain:
         if "." in name:
             q = q.values(long_name=name)
             q = q.on_conflict_do_update(
-                "domains_long_name_key", set_=dict(long_name=name)
+                "domains_long_name_key",
+                set_={"long_name": name},
             )
         else:
             q = q.values(short_name=name)
             q = q.on_conflict_do_update(
-                "domains_short_name_key", set_=dict(short_name=name)
+                "domains_short_name_key",
+                set_={"short_name": name},
             )
         result = await db.scalars(
-            q.returning(models.Domain), execution_options={"populate_existing": True}
+            q.returning(models.Domain),
+            execution_options={"populate_existing": True},
         )
         await db.commit()
         return result.unique().one()
@@ -63,7 +67,8 @@ async def get_or_create_domain(db: AsyncSession, name: str) -> models.Domain:
 
 
 async def get_domains_paged(
-    db: AsyncSession, filters: filters.DomainFilter
+    db: AsyncSession,
+    filters: filters.DomainFilter,
 ) -> Page[models.Domain]:
     q: Select = select(models.Domain)
     q = q.outerjoin(models.Domain.labels)
@@ -74,7 +79,10 @@ async def get_domains_paged(
 
 
 async def get_domains(
-    db: AsyncSession, filters: filters.DomainFilter, offset: int = 0, limit: int = 10
+    db: AsyncSession,
+    filters: filters.DomainFilter,
+    offset: int = 0,
+    limit: int = 10,
 ) -> Iterable[models.Domain]:
     q: Select = select(models.Domain)
     q = q.outerjoin(models.Domain.labels)
@@ -99,7 +107,8 @@ async def get_domains_filters(db: AsyncSession, filters: filters.DomainFilter):
 
 
 async def create_domain(
-    db: AsyncSession, domain: schemas.DomainCreate
+    db: AsyncSession,
+    domain: schemas.DomainCreate,
 ) -> models.Domain:
     db_domain = models.Domain(**domain.model_dump())
     db.add(db_domain)
@@ -110,8 +119,10 @@ async def create_domain(
 
 @redis_cache_invalidate(key_prefix="domain", key_param_name="domain_id")
 async def update_domain(
-    db: AsyncSession, domain_id: str | UUID4, domain: schemas.DomainCreate
-) -> Optional[models.Domain]:
+    db: AsyncSession,
+    domain_id: str | UUID4,
+    domain: schemas.DomainCreate,
+) -> models.Domain | None:
     domain_db = await db.get(models.Domain, domain_id)
     if domain_db:
         try:
@@ -131,30 +142,24 @@ async def update_domain(
 
 
 async def get_domain_name_from_host(db: AsyncSession, host_id: str | UUID4) -> str:
-    q = (
-        select(models.Domain)
-        .where(models.Host.domain_id == models.Domain.id)
-        .where(models.Host.id == host_id)
-    )
+    q = select(models.Domain).where(models.Host.domain_id == models.Domain.id).where(models.Host.id == host_id)
     result = await db.execute(q)
     domain_db = result.scalars().first()
     if domain_db:
         if domain_db.long_name:
             return domain_db.long_name
-        elif domain_db.short_name:
+        if domain_db.short_name:
             return domain_db.short_name
     return ""
 
 
 async def set_long_name(
-    db: AsyncSession, domain_id: str | UUID4, long_name: str
+    db: AsyncSession,
+    domain_id: str | UUID4,
+    long_name: str,
 ) -> bool:
     try:
-        q = (
-            update(models.Domain)
-            .where(models.Domain.id == domain_id)
-            .values(long_name=long_name)
-        )
+        q = update(models.Domain).where(models.Domain.id == domain_id).values(long_name=long_name)
         await db.execute(q)
         await db.commit()
         return True

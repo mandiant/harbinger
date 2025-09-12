@@ -15,7 +15,6 @@
 
 from pydantic import UUID4, BaseModel
 
-
 from .file import FileType
 
 

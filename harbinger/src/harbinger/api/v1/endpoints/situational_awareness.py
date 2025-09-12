@@ -1,15 +1,12 @@
-from typing import Optional
+from typing import Annotated
 
 from fastapi import APIRouter, Depends
 from fastapi_filter import FilterDepends
 from fastapi_pagination import Page
+from harbinger import crud, filters, models, schemas
+from harbinger.config.dependencies import current_active_user, get_db
 from pydantic import UUID4
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from harbinger import crud, models, schemas
-from harbinger.config.dependencies import current_active_user, get_db
-from harbinger import filters
-from harbinger.config.dependencies import current_active_user
 
 router = APIRouter()
 
@@ -20,10 +17,10 @@ router = APIRouter()
     tags=["situational_awareness", "crud"],
 )
 async def list_situational_awareness(
-    db: AsyncSession = Depends(get_db),
-    user: models.User = Depends(current_active_user),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[models.User, Depends(current_active_user)],
     filters: filters.SituationalAwarenessFilter = FilterDepends(
-        filters.SituationalAwarenessFilter
+        filters.SituationalAwarenessFilter,
     ),
 ):
     return await crud.list_situational_awarenesss_paged(db, filters=filters)
@@ -36,7 +33,7 @@ async def list_situational_awareness(
 )
 async def situational_awarenesss_filters(
     filters: filters.SituationalAwarenessFilter = FilterDepends(
-        filters.SituationalAwarenessFilter
+        filters.SituationalAwarenessFilter,
     ),
     db: AsyncSession = Depends(get_db),
     user: models.User = Depends(current_active_user),
@@ -51,8 +48,8 @@ async def situational_awarenesss_filters(
 )
 async def create_situational_awareness(
     sa: schemas.SituationalAwarenessCreate,
-    db: AsyncSession = Depends(get_db),
-    user: models.User = Depends(current_active_user),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     created, sa_db = await crud.get_or_create_situational_awareness(db, sa=sa)
     return sa_db
@@ -60,14 +57,14 @@ async def create_situational_awareness(
 
 @router.put(
     "/{sa_id}",
-    response_model=Optional[schemas.SituationalAwareness],
+    response_model=schemas.SituationalAwareness | None,
     tags=["situational_awareness", "crud"],
 )
 async def update_situational_awareness(
     sa_id: UUID4,
     sa: schemas.SituationalAwarenessCreate,
-    db: AsyncSession = Depends(get_db),
-    user: models.User = Depends(current_active_user),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     await crud.update_situational_awareness(db, sa_id=sa_id, sa=sa)
     return crud.get_situational_awareness(sa_id=sa_id)
@@ -76,8 +73,8 @@ async def update_situational_awareness(
 @router.delete("/{sa_id}", tags=["situational_awareness", "crud"])
 async def delete_situational_awareness(
     sa_id: UUID4,
-    db: AsyncSession = Depends(get_db),
-    user: models.User = Depends(current_active_user),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     await crud.delete_situational_awareness(db, sa_id=sa_id)
     return "Success"

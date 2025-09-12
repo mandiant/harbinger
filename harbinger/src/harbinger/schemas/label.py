@@ -22,7 +22,7 @@ def create_random_color():
     r = random.randint(0, 255)
     g = random.randint(0, 255)
     b = random.randint(0, 255)
-    return "#{:02x}{:02x}{:02x}".format(int(r), int(g), int(b))
+    return f"#{int(r):02x}{int(g):02x}{int(b):02x}"
 
 
 class LabelBase(BaseModel):
@@ -33,6 +33,7 @@ class LabelBase(BaseModel):
     model_config = ConfigDict(validate_default=True)
 
     @field_validator("color")
+    @classmethod
     def validate_color(cls, value):
         if not value:
             return create_random_color()

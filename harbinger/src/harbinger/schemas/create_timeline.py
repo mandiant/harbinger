@@ -15,7 +15,6 @@
 
 from pydantic import BaseModel
 
-
 from .time_line import TimeLineThemes
 
 

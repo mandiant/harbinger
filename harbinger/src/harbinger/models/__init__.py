@@ -14,6 +14,10 @@
 
 # ruff: noqa: F401
 # mypy: ignore-errors
+import contextlib
+
+from harbinger.database.database import Base
+
 from .action import Action
 from .action_playbook import ActionPlaybook
 from .c2_implant import C2Implant
@@ -68,9 +72,6 @@ from .socks_server import SocksServer
 from .suggestion import Suggestion
 from .timeline import TimeLine
 from .user import User
-from ..database.database import Base
 
-try:
+with contextlib.suppress(AttributeError):
     Base.registry.configure()
-except AttributeError:
-    pass

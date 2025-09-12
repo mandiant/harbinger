@@ -1,21 +1,22 @@
 import uuid
-from typing import Iterable, Optional
+from collections.abc import Iterable
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
-from harbinger import models, schemas
-from harbinger import filters
 from pydantic import UUID4
 from sqlalchemy import Select, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import func
+
+from harbinger import filters, models, schemas
 
 from ._common import create_filter_for_column
 from .label import get_labels_for_q
 
 
 async def get_llm_logs_paged(
-    db: AsyncSession, filters: filters.LlmLogFilter
+    db: AsyncSession,
+    filters: filters.LlmLogFilter,
 ) -> Page[models.LlmLog]:
     q: Select = select(models.LlmLog)
     q = filters.filter(q)
@@ -25,7 +26,10 @@ async def get_llm_logs_paged(
 
 
 async def get_llm_logs(
-    db: AsyncSession, filters: filters.LlmLogFilter, offset: int = 0, limit: int = 10
+    db: AsyncSession,
+    filters: filters.LlmLogFilter,
+    offset: int = 0,
+    limit: int = 10,
 ) -> Iterable[models.LlmLog]:
     q: Select = select(models.LlmLog)
     q = q.outerjoin(models.LlmLog.labels)
@@ -48,19 +52,24 @@ async def get_llm_logs_filters(db: AsyncSession, filters: filters.LlmLogFilter):
     result.extend(lb_entry)
     for field in ["log_type"]:
         res = await create_filter_for_column(
-            db, q, getattr(models.LlmLog, field), field, field
+            db,
+            q,
+            getattr(models.LlmLog, field),
+            field,
+            field,
         )
         result.append(res)
     return result
 
 
-async def get_llm_log(db: AsyncSession, id: UUID4) -> Optional[models.LlmLog]:
+async def get_llm_log(db: AsyncSession, id: UUID4) -> models.LlmLog | None:
     """Retrieves a single LLM log entry by its ID."""
     return await db.get(models.LlmLog, id)
 
 
 async def create_llm_log(
-    db: AsyncSession, llm_log: schemas.LlmLogCreate
+    db: AsyncSession,
+    llm_log: schemas.LlmLogCreate,
 ) -> models.LlmLog:
     """Creates a new LLM log entry in the database with a direct insert."""
     db_log = models.LlmLog(**llm_log.model_dump())
@@ -71,15 +80,19 @@ async def create_llm_log(
 
 
 async def update_llm_log(
-    db: AsyncSession, id: str | uuid.UUID, llm_logs: schemas.LlmLogUpdate
+    db: AsyncSession,
+    id: str | uuid.UUID,
+    llm_logs: schemas.LlmLogUpdate,
 ) -> None:
     q = (
         update(models.LlmLog)
         .where(models.LlmLog.id == id)
         .values(
             **llm_logs.model_dump(
-                exclude_unset=True, exclude_defaults=True, exclude_none=True
-            )
+                exclude_unset=True,
+                exclude_defaults=True,
+                exclude_none=True,
+            ),
         )
     )
     await db.execute(q)

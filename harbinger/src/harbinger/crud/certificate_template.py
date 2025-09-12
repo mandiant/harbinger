@@ -1,15 +1,13 @@
-from typing import Optional, Tuple
-
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
-from harbinger import models, schemas
-from harbinger import filters
 from pydantic import UUID4
 from sqlalchemy import Select, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 from sqlalchemy.sql.expression import func
+
+from harbinger import filters, models, schemas
 
 from ._common import create_filter_for_column
 from .certificate_authority import (
@@ -20,18 +18,22 @@ from .label import get_labels_for_q
 
 
 async def _apply_permission_filter(
-    q: Select, permission_type: str, permission_value: str
+    q: Select,
+    permission_type: str,
+    permission_value: str,
 ) -> Select:
-    """
-    Applies a permission filter to the query using a table alias to prevent conflicts.
+    """Applies a permission filter to the query using a table alias to prevent conflicts.
 
     Args:
+    ----
         q: The current SQLAlchemy Select query.
         permission_type: The type of permission (e.g., "Enroll", "Owner").
         permission_value: The principal associated with the permission.
 
     Returns:
+    -------
         The modified SQLAlchemy Select query with the permission filter applied.
+
     """
     if permission_value:
         permission_alias = aliased(models.CertificateTemplatePermission)
@@ -45,14 +47,12 @@ async def _apply_permission_filter(
 
 
 async def create_certificate_permission_filter(
-    db: AsyncSession, q: Select, permission_type: str
+    db: AsyncSession,
+    q: Select,
+    permission_type: str,
 ) -> schemas.Filter:
-    """
-    Creates a filter option list for a given permission type based on the main query's results.
-    """
-    template_ids_subquery = (
-        q.with_only_columns(models.CertificateTemplate.id).distinct().subquery()
-    )
+    """Creates a filter option list for a given permission type based on the main query's results."""
+    template_ids_subquery = q.with_only_columns(models.CertificateTemplate.id).distinct().subquery()
     permissions_q = (
         select(
             func.count(models.CertificateTemplatePermission.principal).label("count"),
@@ -60,8 +60,8 @@ async def create_certificate_permission_filter(
         )
         .where(
             models.CertificateTemplatePermission.certificate_template_id.in_(
-                select(template_ids_subquery)
-            )
+                select(template_ids_subquery),
+            ),
         )
         .where(models.CertificateTemplatePermission.permission == permission_type)
         .group_by(models.CertificateTemplatePermission.principal)
@@ -71,14 +71,13 @@ async def create_certificate_permission_filter(
     for count, principal in res.all():
         if principal is not None:
             options.append(schemas.FilterOption(name=str(principal), count=count))
-    ft_entry = schemas.Filter(
+    return schemas.Filter(
         name=f"{permission_type.lower()}_permissions",
         icon="",
         type="options",
         options=options,
         query_name=f"{permission_type.lower()}_permissions",
     )
-    return ft_entry
 
 
 async def get_certificate_templates_paged(
@@ -138,7 +137,11 @@ async def get_certificate_templates_filters(
         "requires_manager_approval",
     ]:
         res = await create_filter_for_column(
-            db, q, getattr(models.CertificateTemplate, field), field, field
+            db,
+            q,
+            getattr(models.CertificateTemplate, field),
+            field,
+            field,
         )
         result.append(res)
     permissions = [
@@ -151,21 +154,25 @@ async def get_certificate_templates_filters(
     ]
     for permission_type in permissions:
         permission_filter = await create_certificate_permission_filter(
-            db, q, permission_type
+            db,
+            q,
+            permission_type,
         )
         result.append(permission_filter)
     return result
 
 
 async def get_certificate_template(
-    db: AsyncSession, id: UUID4
-) -> Optional[models.CertificateTemplate]:
+    db: AsyncSession,
+    id: UUID4,
+) -> models.CertificateTemplate | None:
     return await db.get(models.CertificateTemplate, id)
 
 
 async def create_certificate_template(
-    db: AsyncSession, certificate_template: schemas.CertificateTemplateCreate
-) -> Tuple[bool, models.CertificateTemplate]:
+    db: AsyncSession,
+    certificate_template: schemas.CertificateTemplateCreate,
+) -> tuple[bool, models.CertificateTemplate]:
     data = certificate_template.model_dump()
     authorities = data.pop("certificate_authorities")
     template_db = models.CertificateTemplate(**data)
@@ -175,8 +182,11 @@ async def create_certificate_template(
     for authority in authorities or []:
         auth_db = list(
             await get_certificate_authorities(
-                db, filters.CertificateAuthorityFilter(ca_name=authority), 0, 1
-            )
+                db,
+                filters.CertificateAuthorityFilter(ca_name=authority),
+                0,
+                1,
+            ),
         )
         if auth_db:
             await create_certificate_authority_map(db, auth_db[0].id, template_db.id)
@@ -186,12 +196,13 @@ async def create_certificate_template(
 async def create_certificate_template_permissions(
     db: AsyncSession,
     certificate_template_permissions: schemas.CertificateTemplatePermissionCreate,
-) -> Tuple[bool, models.CertificateTemplatePermission]:
+) -> tuple[bool, models.CertificateTemplatePermission]:
     data = certificate_template_permissions.model_dump()
     q = insert(models.CertificateTemplatePermission).values(**data)
     data["time_updated"] = func.now()
     update_stmt = q.on_conflict_do_update(
-        "certificate_template_permissions_uc", set_=data
+        "certificate_template_permissions_uc",
+        set_=data,
     )
     result = await db.scalars(
         update_stmt.returning(models.CertificateTemplatePermission),
@@ -199,4 +210,4 @@ async def create_certificate_template_permissions(
     )
     await db.commit()
     result = result.unique().one()
-    return (result.time_updated == None, result)
+    return (result.time_updated is None, result)

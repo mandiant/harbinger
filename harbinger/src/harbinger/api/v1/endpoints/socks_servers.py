@@ -1,13 +1,12 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends
 from fastapi_filter import FilterDepends
 from fastapi_pagination import Page
+from harbinger import crud, filters, models, schemas
+from harbinger.config.dependencies import current_active_user, get_db
 from pydantic import UUID4
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from harbinger import crud, models, schemas
-from harbinger.config.dependencies import current_active_user, get_db
-from harbinger import filters
-from harbinger.config.dependencies import current_active_user
 
 router = APIRouter()
 
@@ -32,7 +31,8 @@ async def socks_server_filters(
 
 @router.get("/{server_id}", response_model=schemas.SocksServer, tags=["socks", "crud"])
 async def get_socks_server(
-    server_id: UUID4, user: models.User = Depends(current_active_user)
+    server_id: UUID4,
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     return await crud.get_socks_server(server_id)
 
@@ -40,7 +40,7 @@ async def get_socks_server(
 @router.post("/", response_model=schemas.SocksServer, tags=["socks", "crud"])
 async def create_socks_server(
     server: schemas.SocksServerCreate,
-    db: AsyncSession = Depends(get_db),
-    user: models.User = Depends(current_active_user),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     return await crud.create_socks_server(db, server)

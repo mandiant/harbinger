@@ -1,15 +1,15 @@
-from typing import Iterable, Tuple
+from collections.abc import Iterable
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
-from harbinger import models, schemas
-from harbinger import filters
-from harbinger.database.cache import redis_cache
-from harbinger.database.database import SessionLocal
 from pydantic import UUID4
 from sqlalchemy import Select, exc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import func
+
+from harbinger import filters, models, schemas
+from harbinger.database.cache import redis_cache
+from harbinger.database.database import SessionLocal
 
 from ._common import DEFAULT_CACHE_TTL, create_filter_for_column
 from .label import get_labels_for_q
@@ -38,7 +38,11 @@ async def get_proxy_filters(db: AsyncSession, filters: filters.ProxyFilter):
     result.extend(lb_entry)
     for field in ["host", "type", "status", "remote_hostname"]:
         res = await create_filter_for_column(
-            db, q, getattr(models.Proxy, field), field, field
+            db,
+            q,
+            getattr(models.Proxy, field),
+            field,
+            field,
         )
         result.append(res)
     return result
@@ -53,8 +57,9 @@ async def create_proxy(db: AsyncSession, proxy: schemas.ProxyCreate) -> models.P
 
 
 async def update_or_create_proxy(
-    db: AsyncSession, proxy: schemas.ProxyCreate
-) -> Tuple[bool, models.Proxy]:
+    db: AsyncSession,
+    proxy: schemas.ProxyCreate,
+) -> tuple[bool, models.Proxy]:
     q = (
         select(models.Proxy)
         .where(models.Proxy.type == proxy.type.value)
@@ -86,7 +91,8 @@ async def update_or_create_proxy(
 
 
 async def get_proxies_paged(
-    db: AsyncSession, filters: filters.ProxyFilter
+    db: AsyncSession,
+    filters: filters.ProxyFilter,
 ) -> Page[models.Proxy]:
     q: Select = select(models.Proxy)
     q = q.outerjoin(models.Proxy.labels)
@@ -97,7 +103,10 @@ async def get_proxies_paged(
 
 
 async def get_proxies(
-    db: AsyncSession, filters: filters.ProxyFilter, offset: int = 0, limit: int = 10
+    db: AsyncSession,
+    filters: filters.ProxyFilter,
+    offset: int = 0,
+    limit: int = 10,
 ) -> Iterable[models.Proxy]:
     q: Select = select(models.Proxy)
     q = q.outerjoin(models.Proxy.labels)

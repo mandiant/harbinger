@@ -26,7 +26,9 @@ from harbinger.database.types import mapped_column
 class C2ServerArguments(Base):
     __tablename__ = "c2_server_arguments"
     id: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
     )
     name: Mapped[str] = mapped_column(String)
     regex: Mapped[str] = mapped_column(String)
@@ -34,12 +36,15 @@ class C2ServerArguments(Base):
     default: Mapped[str] = mapped_column(String)
     type: Mapped[str] = mapped_column(String)
     c2_server_type_id: Mapped[UUID] = mapped_column(
-        ForeignKey("c2_server_types.id"), nullable=False
+        ForeignKey("c2_server_types.id"),
+        nullable=False,
     )
 
     time_created: Mapped[DateTime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True),
+        server_default=func.now(),
     )
     time_updated: Mapped[DateTime] = mapped_column(
-        DateTime(timezone=True), onupdate=func.now()
+        DateTime(timezone=True),
+        onupdate=func.now(),
     )

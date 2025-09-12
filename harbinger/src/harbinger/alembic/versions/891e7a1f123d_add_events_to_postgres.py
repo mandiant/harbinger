@@ -7,42 +7,42 @@ Create Date: 2025-06-26 06:33:51.157226
 """
 
 from alembic import op
+
 from harbinger.models import (
-    Domain,
-    Password,
-    Kerberos,
-    Credential,
-    Proxy,
-    InputFile,
+    Action,
+    C2Implant,
+    C2Job,
+    C2Server,
+    C2ServerArguments,
+    C2ServerStatus,
+    C2ServerType,
+    CertificateAuthority,
+    CertificateTemplate,
     Component,
-    ProxyJob,
+    Credential,
+    Domain,
     File,
+    Hash,
+    Highlight,
+    Host,
+    InputFile,
+    Kerberos,
+    Label,
+    LabeledItem,
+    ParseResult,
+    Password,
     Playbook,
     PlaybookStep,
     PlaybookStepModifier,
-    C2Job,
-    Host,
     Process,
-    Label,
-    LabeledItem,
-    C2Server,
-    C2ServerStatus,
-    C2Implant,
-    SituationalAwareness,
+    Proxy,
+    ProxyJob,
     Share,
     ShareFile,
-    Highlight,
-    Hash,
-    ParseResult,
+    SituationalAwareness,
     SocksServer,
-    Action,
-    CertificateAuthority,
-    CertificateTemplate,
-    C2ServerType,
-    C2ServerArguments,
     Suggestion,
 )
-
 
 # revision identifiers, used by Alembic.
 revision = "891e7a1f123d"
@@ -85,17 +85,17 @@ def get_trigger_statements_for_table(table_name):
     # INSERT Trigger
     triggers.append(
         f"CREATE TRIGGER on_{table_name}_insert "
-        f"AFTER INSERT ON {table_name} FOR EACH ROW EXECUTE FUNCTION notify_changes();"
+        f"AFTER INSERT ON {table_name} FOR EACH ROW EXECUTE FUNCTION notify_changes();",
     )
     # UPDATE Trigger
     triggers.append(
         f"CREATE TRIGGER on_{table_name}_update "
-        f"AFTER UPDATE ON {table_name} FOR EACH ROW EXECUTE FUNCTION notify_changes();"
+        f"AFTER UPDATE ON {table_name} FOR EACH ROW EXECUTE FUNCTION notify_changes();",
     )
     # DELETE Trigger
     triggers.append(
         f"CREATE TRIGGER on_{table_name}_delete "
-        f"AFTER DELETE ON {table_name} FOR EACH ROW EXECUTE FUNCTION notify_changes();"
+        f"AFTER DELETE ON {table_name} FOR EACH ROW EXECUTE FUNCTION notify_changes();",
     )
     return triggers
 

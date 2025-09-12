@@ -5,7 +5,8 @@ def setup(subparsers):
     """Setup the playbooks command."""
     parser = subparsers.add_parser("playbooks", help="Manage playbooks")
     playbooks_subparsers = parser.add_subparsers(
-        dest="playbooks_command", required=True
+        dest="playbooks_command",
+        required=True,
     )
 
     # List command
@@ -29,6 +30,6 @@ def list_playbooks(args):
                     "name": p.get("playbook_name"),
                     "description": p.get("description"),
                     "status": p.get("status"),
-                }
+                },
             )
         print_output(output_data, headers, args.output)

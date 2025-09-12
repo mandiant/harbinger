@@ -1,19 +1,21 @@
-from typing import Iterable, List, Optional
+from collections.abc import Iterable
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
-from harbinger import models, schemas
 from pydantic import UUID4
 from sqlalchemy import and_, delete, desc, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import func
+
+from harbinger import models, schemas
 
 from ._common import send_label_events
 
 
 async def get_labels_paged(db: AsyncSession) -> Page[models.Label]:
     return await paginate(
-        db, select(models.Label).order_by(models.Label.time_created.desc())
+        db,
+        select(models.Label).order_by(models.Label.time_created.desc()),
     )
 
 
@@ -24,7 +26,8 @@ async def get_labels_grouped(db: AsyncSession) -> list[schemas.LabelView]:
     for entry in result.scalars().all():
         if entry.category not in result_dict:
             result_dict[entry.category] = schemas.LabelView(
-                category=entry.category, labels=[]
+                category=entry.category,
+                labels=[],
             )
         result_dict[entry.category].labels.append(entry)
     return list(result_dict.values())
@@ -35,7 +38,7 @@ async def get_labeled_items_list(
     host_id: str | None = None,
     c2_implant_id: str | None = None,
     retrieve_parents: bool = False,
-) -> List[str]:
+) -> list[str]:
     q = select(models.Label.name)
     q = q.where(models.LabeledItem.label_id == models.Label.id)
     filters = []
@@ -46,7 +49,7 @@ async def get_labeled_items_list(
                 and_(
                     models.Host.id == host_id,
                     models.LabeledItem.domain_id == models.Host.domain_id,
-                )
+                ),
             )
     if c2_implant_id:
         filters.append(models.LabeledItem.c2_implant_id == c2_implant_id)
@@ -55,14 +58,14 @@ async def get_labeled_items_list(
                 and_(
                     models.C2Implant.id == c2_implant_id,
                     models.LabeledItem.host_id == models.C2Implant.host_id,
-                )
+                ),
             )
             filters.append(
                 and_(
                     models.C2Implant.id == c2_implant_id,
                     models.C2Implant.host_id == models.Host.id,
                     models.LabeledItem.domain_id == models.Host.domain_id,
-                )
+                ),
             )
     if filters:
         q = q.where(or_(*filters))
@@ -80,7 +83,7 @@ async def create_label(db: AsyncSession, label: schemas.LabelCreate) -> models.L
     return db_label
 
 
-async def get_label_by_name(db: AsyncSession, name: str) -> Optional[models.Label]:
+async def get_label_by_name(db: AsyncSession, name: str) -> models.Label | None:
     q = select(models.Label)
     q = q.where(models.Label.name == name)
     result = await db.execute(q)
@@ -88,7 +91,8 @@ async def get_label_by_name(db: AsyncSession, name: str) -> Optional[models.Labe
 
 
 async def create_label_item(
-    db: AsyncSession, label: schemas.LabeledItemCreate
+    db: AsyncSession,
+    label: schemas.LabeledItemCreate,
 ) -> models.LabeledItem:
     db_label = models.LabeledItem(**label.model_dump())
     db.add(db_label)
@@ -122,7 +126,7 @@ async def recurse_labels(db: AsyncSession, timeline_id: str | UUID4) -> Iterable
         or_(
             models.LabeledItem.c2_task_id == timeline_id,
             models.LabeledItem.proxy_job_id == timeline_id,
-        )
+        ),
     )
     resp = await db.execute(q)
     result = list(resp.scalars().unique().all())
@@ -151,7 +155,8 @@ async def recurse_labels(db: AsyncSession, timeline_id: str | UUID4) -> Iterable
 
 
 async def get_label_names(
-    db: AsyncSession, label_ids: list[str]
+    db: AsyncSession,
+    label_ids: list[str],
 ) -> dict[str, models.Label]:
     q = select(models.Label).where(models.Label.id.in_(label_ids))
     labels = {}
@@ -169,7 +174,8 @@ async def get_labels_for_q(db: AsyncSession, q) -> list[schemas.Filter]:
     labels_list = list(labels.unique().all())
     label_options: list[schemas.FilterOption] = []
     label_names = await get_label_names(
-        db, [str(entry[1]) for entry in labels_list if entry[1]]
+        db,
+        [str(entry[1]) for entry in labels_list if entry[1]],
     )
     for entry in labels_list:
         if entry[1]:
@@ -177,8 +183,10 @@ async def get_labels_for_q(db: AsyncSession, q) -> list[schemas.Filter]:
             if label:
                 label_options.append(
                     schemas.FilterOption(
-                        name=label.name, count=entry[0], color=label.color
-                    )
+                        name=label.name,
+                        count=entry[0],
+                        color=label.color,
+                    ),
                 )
     lb_entry = schemas.Filter(
         name="labels",

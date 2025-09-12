@@ -14,14 +14,15 @@
 
 from datetime import datetime
 from enum import Enum
-from typing import List
+from typing import TYPE_CHECKING
 
 from pydantic import UUID4, BaseModel, ConfigDict
 
-
 from .file import File
-from .label import Label
 from .suggestion import SuggestionBaseRequest
+
+if TYPE_CHECKING:
+    from .label import Label
 
 
 class C2Type(str, Enum):
@@ -54,8 +55,8 @@ class C2Job(C2JobBase):
     time_updated: datetime | None = None
     time_started: datetime | None = None
     time_completed: datetime | None = None
-    labels: List["Label"] | None = None
-    input_files: List[File] | None = None
+    labels: list["Label"] | None = None
+    input_files: list[File] | None = None
 
 
 class C2JobDetectionRiskRequest(SuggestionBaseRequest):

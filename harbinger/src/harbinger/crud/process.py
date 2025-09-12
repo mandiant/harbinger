@@ -1,18 +1,19 @@
 import re
 import uuid
-from typing import Any, Iterable
+from collections.abc import Iterable
+from typing import Any
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
-from harbinger import models, schemas
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import func
 
+from harbinger import models, schemas
+
 
 async def _process_dynamic_argument_ids(db: AsyncSession, arguments: dict[str, Any]):
-    """
-    Helper function to dynamically process arguments ending with '_id<number>'
+    """Helper function to dynamically process arguments ending with '_id<number>'
     and replace them with the corresponding model instance, preserving the number.
     """
     model_mappings = {
@@ -42,7 +43,8 @@ async def get_highest_process_number(db: AsyncSession, host_id: str | uuid.UUID)
 
 
 async def create_process(
-    db: AsyncSession, process: schemas.ProcessCreate
+    db: AsyncSession,
+    process: schemas.ProcessCreate,
 ) -> models.Process:
     process_db = models.Process(**process.model_dump())
     db.add(process_db)
@@ -52,7 +54,9 @@ async def create_process(
 
 
 async def get_process_numbers(
-    db: AsyncSession, host_id: str = "", c2_implant_id: str = ""
+    db: AsyncSession,
+    host_id: str = "",
+    c2_implant_id: str = "",
 ) -> Iterable[int]:
     q = select(models.Process.number)
     if host_id:

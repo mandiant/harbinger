@@ -1,6 +1,5 @@
 import argparse
 import os
-
 import re
 
 
@@ -175,33 +174,34 @@ async def create_{model_name_snake}(
     print(f"   - {paths['filter']}")
     print("\n5. Add the new modules to their respective __init__.py files:")
     print(
-        f"   - In harbinger/src/harbinger/models/__init__.py: from .{model_name_snake} import {model_name_camel}"
+        f"   - In harbinger/src/harbinger/models/__init__.py: from .{model_name_snake} import {model_name_camel}",
     )
     print(
-        f"   - In harbinger/src/harbinger/schemas/__init__.py: from .{model_name_snake} import {model_name_camel}, {model_name_camel}Create, {model_name_camel}Update, {model_name_camel}Created"
+        f"   - In harbinger/src/harbinger/schemas/__init__.py: from .{model_name_snake} import {model_name_camel}, {model_name_camel}Create, {model_name_camel}Update, {model_name_camel}Created",
     )
     print(
-        f"   - In harbinger/src/harbinger/crud/__init__.py: from .{model_name_snake} import get_{plural_snake}_paged, get_{model_name_snake}, create_{model_name_snake}"
+        f"   - In harbinger/src/harbinger/crud/__init__.py: from .{model_name_snake} import get_{plural_snake}_paged, get_{model_name_snake}, create_{model_name_snake}",
     )
     print(
-        f"   - In harbinger/src/harbinger/filters/__init__.py: from .{model_name_snake} import {model_name_camel}Filter"
+        f"   - In harbinger/src/harbinger/filters/__init__.py: from .{model_name_snake} import {model_name_camel}Filter",
     )
     print("\n6. Add the new router to the main application:")
     print("   - In harbinger/src/harbinger/config/app.py:")
     print(
-        f"     - Add the import: from harbinger.api.v1.endpoints import {plural_snake}"
+        f"     - Add the import: from harbinger.api.v1.endpoints import {plural_snake}",
     )
     print(
-        f"     - Include the router: app.include_router({plural_snake}.router, prefix='/{plural_snake}', tags=['{plural_snake}'])"
+        f"     - Include the router: app.include_router({plural_snake}.router, prefix='/{plural_snake}', tags=['{plural_snake}'])",
     )
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Generate boilerplate files for a new Harbinger model."
+        description="Generate boilerplate files for a new Harbinger model.",
     )
     parser.add_argument(
-        "model_name", help="The name of the model in CamelCase (e.g., NewFeature)."
+        "model_name",
+        help="The name of the model in CamelCase (e.g., NewFeature).",
     )
     args = parser.parse_args()
 

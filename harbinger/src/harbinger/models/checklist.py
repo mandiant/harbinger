@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import uuid
-from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
@@ -23,39 +22,50 @@ from sqlalchemy.sql import func
 from harbinger.database.database import Base
 from harbinger.database.types import mapped_column
 
-if TYPE_CHECKING:
-    from .label import Label
-
 
 class Checklist(Base):
     __tablename__ = "checklist"
     id: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
     )
     domain_id: Mapped[UUID] = mapped_column(ForeignKey("domains.id"), nullable=True)
     c2_implant_id: Mapped[UUID] = mapped_column(
-        ForeignKey("c2_implants.id"), nullable=True
+        ForeignKey("c2_implants.id"),
+        nullable=True,
     )
     phase: Mapped[str] = mapped_column(String)
     name: Mapped[str] = mapped_column(String)
     status: Mapped[str] = mapped_column(String)
 
     time_created: Mapped[DateTime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True),
+        server_default=func.now(),
     )
     time_updated: Mapped[DateTime] = mapped_column(
-        DateTime(timezone=True), onupdate=func.now()
+        DateTime(timezone=True),
+        onupdate=func.now(),
     )
 
     labels = relationship(
-        "Label", secondary="labeled_item", lazy="joined", viewonly=True
+        "Label",
+        secondary="labeled_item",
+        lazy="joined",
+        viewonly=True,
     )
 
     __table_args__ = (
         UniqueConstraint(
-            "domain_id", "phase", "name", name="checklist_domain_phase_name"
+            "domain_id",
+            "phase",
+            "name",
+            name="checklist_domain_phase_name",
         ),
         UniqueConstraint(
-            "c2_implant_id", "phase", "name", name="checklist_implant_phase_name"
+            "c2_implant_id",
+            "phase",
+            "name",
+            name="checklist_implant_phase_name",
         ),
     )

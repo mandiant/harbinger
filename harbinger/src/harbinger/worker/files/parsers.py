@@ -12,31 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import asyncio
+import gzip
 import json
 import os.path
 import tempfile
+import uuid
 from abc import ABC, abstractmethod
 from asyncio import create_subprocess_exec
+from pathlib import Path
 
 import aiofiles
+import structlog
+from neo4j import AsyncSession as AsyncNeo4jSession
+from pydantic import UUID4, TypeAdapter, ValidationError
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from harbinger import crud, schemas
 from harbinger.config import get_settings
-from harbinger import crud
-from harbinger import schemas
-from harbinger import models
 from harbinger.files.client import download_file, upload_file
 from harbinger.graph import crud as graph_crud
+from harbinger.worker.files.schemas import CertifyRoot, CertipyJson
 from harbinger.worker.utils import merge_db_neo4j_host
-
-from neo4j import AsyncSession as AsyncNeo4jSession
-from sqlalchemy.ext.asyncio import AsyncSession
-import asyncio
-import uuid
-import structlog
-import gzip
-from harbinger.worker.files.schemas import CertipyJson, CertifyRoot
-from pydantic import TypeAdapter, UUID4, ValidationError
-from pathlib import Path
 
 log = structlog.get_logger()
 
@@ -66,7 +62,10 @@ class BaseFileParser(ABC):
         return []
 
     async def base_parse(
-        self, db: AsyncSession, graph_db: AsyncNeo4jSession, file: schemas.File
+        self,
+        db: AsyncSession,
+        graph_db: AsyncNeo4jSession,
+        file: schemas.File,
     ) -> list[schemas.File]:
         with tempfile.TemporaryDirectory() as tmpdirname:
             path = os.path.join(tmpdirname, file.filename)
@@ -105,10 +104,14 @@ class PyPyKatzParser(BaseFileParser):
                                 if cred["NThash"]:
                                     nt = cred["NThash"]
                                     password = await crud.get_or_create_password(
-                                        db, nt_hash=nt
+                                        db,
+                                        nt_hash=nt,
                                     )
                                     cred = await crud.get_or_create_credential(
-                                        db, username, domain_id, password.id
+                                        db,
+                                        username,
+                                        domain_id,
+                                        password.id,
                                     )
                                     log.info(f"Added Credential with id: {cred.id}")
                                     name = f"{cred.username}@{cred.domain.long_name}".upper()
@@ -120,16 +123,14 @@ class PyPyKatzParser(BaseFileParser):
                             for kerb in value["kerberos_creds"]:
                                 if "domainname" in kerb:
                                     long_name = kerb["domainname"]
-                                    if (
-                                        long_name
-                                        and long_name != domain
-                                        and not domain_obj.long_name
-                                    ):
+                                    if long_name and long_name != domain and not domain_obj.long_name:
                                         log.info(
-                                            f"Setting long name of domain_id: {domain_id}"
+                                            f"Setting long name of domain_id: {domain_id}",
                                         )
                                         await crud.set_long_name(
-                                            db, str(domain_id), long_name
+                                            db,
+                                            str(domain_id),
+                                            long_name,
                                         )
 
                         if value["credman_creds"]:
@@ -141,13 +142,17 @@ class PyPyKatzParser(BaseFileParser):
                                     username = domainname.split(":")[-1]
                                 if username and password and username != "teams":
                                     password = await crud.get_or_create_password(
-                                        db, password=password
+                                        db,
+                                        password=password,
                                     )
                                     cred = await crud.get_or_create_credential(
-                                        db, username, None, password.id
+                                        db,
+                                        username,
+                                        None,
+                                        password.id,
                                     )
 
-        log.info(f"Completed pypykatz!")
+        log.info("Completed pypykatz!")
         return []
 
 
@@ -163,9 +168,15 @@ class LsassParser(BaseFileParser):
         log.info(f"Using pypykatz to read {tmpfilename}")
         output_json = f"{tmpfilename}.json"
         proc = await create_subprocess_exec(
-            "pypykatz", "lsa", "minidump", tmpfilename, "--json", "-o", output_json
+            "pypykatz",
+            "lsa",
+            "minidump",
+            tmpfilename,
+            "--json",
+            "-o",
+            output_json,
         )
-        code = await proc.wait()
+        await proc.wait()
         log.info(f"written output to {output_json}")
 
         async with aiofiles.open(output_json, "rb") as f:
@@ -213,7 +224,11 @@ class ADSnapshotParser(BaseFileParser):
         log.info(f"Using convertsnapshot to read {tmpfilename}")
         output_name = "bloodhound.tar.gz"
         proc = await create_subprocess_exec(
-            "convertsnapshot", "-o", output_name, tmpfilename, cwd=tmpdirname
+            "convertsnapshot",
+            "-o",
+            output_name,
+            tmpfilename,
+            cwd=tmpdirname,
         )
         code = await proc.wait()
         if code != 0:
@@ -276,46 +291,35 @@ class SecretsDumpParser(BaseFileParser):
             if count == 6:
                 username, _, lm, nt, *remainder = line.split(":")
 
-            if domain.upper() not in FILTERED_DOMAINS:
-                if (
-                    username
-                    and "dpapi" not in username
-                    and username != "NL$KM"
-                    and (
-                        password
-                        or nt
-                        or (
-                            key
-                            and algo
-                            in ["aes128-cts-hmac-sha1-96", "aes256-cts-hmac-sha1-96"]
-                        )
-                    )
-                ):
-                    domain_obj = await crud.get_or_create_domain(db, domain)
-                    password = await crud.get_or_create_password(
-                        db=db,
-                        password=password,
-                        nt_hash=nt,
-                        aes128_key=key if algo == "aes128-cts-hmac-sha1-96" else "",
-                        aes256_key=key if algo == "aes256-cts-hmac-sha1-96" else "",
-                    )
-                    cred = await crud.get_or_create_credential(
-                        db,
-                        username=username,
-                        domain_id=domain_obj.id,
-                        password_id=password.id,
-                    )
-                    name = ""
-                    if cred.domain and cred.domain.long_name:
-                        if username.endswith("$"):
-                            name = (
-                                f"{cred.username[:-1]}.{cred.domain.long_name}".upper()
-                            )
-                        else:
-                            name = f"{cred.username}@{cred.domain.long_name}".upper()
-                        marked = await graph_crud.mark_owned(graph_db, name)
-                        if marked:
-                            log.info(f"Marked {name} as owned in neo4j.")
+            if domain.upper() not in FILTERED_DOMAINS and (
+                username
+                and "dpapi" not in username
+                and username != "NL$KM"
+                and (password or nt or (key and algo in ["aes128-cts-hmac-sha1-96", "aes256-cts-hmac-sha1-96"]))
+            ):
+                domain_obj = await crud.get_or_create_domain(db, domain)
+                password = await crud.get_or_create_password(
+                    db=db,
+                    password=password,
+                    nt_hash=nt,
+                    aes128_key=key if algo == "aes128-cts-hmac-sha1-96" else "",
+                    aes256_key=key if algo == "aes256-cts-hmac-sha1-96" else "",
+                )
+                cred = await crud.get_or_create_credential(
+                    db,
+                    username=username,
+                    domain_id=domain_obj.id,
+                    password_id=password.id,
+                )
+                name = ""
+                if cred.domain and cred.domain.long_name:
+                    if username.endswith("$"):
+                        name = f"{cred.username[:-1]}.{cred.domain.long_name}".upper()
+                    else:
+                        name = f"{cred.username}@{cred.domain.long_name}".upper()
+                    marked = await graph_crud.mark_owned(graph_db, name)
+                    if marked:
+                        log.info(f"Marked {name} as owned in neo4j.")
         log.info(f"Completed {tmpfilename}")
         return []
 
@@ -386,7 +390,7 @@ class Dir2JsonParser(BaseFileParser):
             log.info(f"Created file with id: {file_db.id}")
         except ValueError:
             log.warning("Unable to correctly parse dir2json file.")
-        log.info(f"Done.")
+        log.info("Done.")
         return []
 
 
@@ -406,7 +410,7 @@ class CertipyJsonParser(BaseFileParser):
         try:
             certipy = CertipyJson.model_validate_json(data)
         except ValidationError as e:
-            log.error(f"Failed to validate main Certipy JSON: {e.errors()}")
+            log.exception(f"Failed to validate main Certipy JSON: {e.errors()}")
             return []  # Cannot proceed
 
         # --- Certificate Authorities Processing ---
@@ -414,46 +418,46 @@ class CertipyJsonParser(BaseFileParser):
             for ca_value in certipy.certificate_authorities.root.values():
                 try:
                     ca_create_schema = schemas.CertificateAuthorityCreate(
-                        **ca_value.model_dump()
+                        **ca_value.model_dump(),
                     )
                     created, ca_res = await crud.create_certificate_authority(
-                        db, ca_create_schema
+                        db,
+                        ca_create_schema,
                     )
                     if created:
                         log.info(
-                            f"Created authority: {ca_res.id} for CA: {ca_value.ca_name}"
+                            f"Created authority: {ca_res.id} for CA: {ca_value.ca_name}",
                         )
                 except Exception as e_ca:
-                    log.error(
-                        f"Error processing CA '{getattr(ca_value, 'ca_name', 'Unknown')}': {e_ca}"
+                    log.exception(
+                        f"Error processing CA '{getattr(ca_value, 'ca_name', 'Unknown')}': {e_ca}",
                     )
 
         # --- Certificate Templates Processing ---
         if certipy.certificate_templates and certipy.certificate_templates.root:
             # Corrected iteration for templates
-            for template_value in (
-                certipy.certificate_templates.root.values()
-            ):  # 'template_value' is CertificateTemplate instance
+            for (
+                template_value
+            ) in certipy.certificate_templates.root.values():  # 'template_value' is CertificateTemplate instance
                 try:
                     template_create_schema = schemas.CertificateTemplateCreate(
-                        **template_value.model_dump()
+                        **template_value.model_dump(),
                     )
                     created, template_db_obj = await crud.create_certificate_template(
-                        db, template_create_schema
+                        db,
+                        template_create_schema,
                     )
 
                     if created:
                         log.info(
-                            f"Created template: {template_db_obj.id} for Template: {template_value.template_name}"
+                            f"Created template: {template_db_obj.id} for Template: {template_value.template_name}",
                         )
                         permissions_counter = 0
 
                         # Safely access and process permissions
                         if template_value.permissions:
                             # --- Enrollment Rights ---
-                            enroll_perms = (
-                                template_value.permissions.enrollment_permissions
-                            )
+                            enroll_perms = template_value.permissions.enrollment_permissions
                             enrollment_rights_list = []
                             if enroll_perms and enroll_perms.enrollment_rights:
                                 enrollment_rights_list = enroll_perms.enrollment_rights
@@ -538,10 +542,7 @@ class CertipyJsonParser(BaseFileParser):
                                 # Write Property Principals
                                 # Safely access 'write_property_principals'.
                                 # Ensure this field exists in your ObjectControlPermissions Pydantic model as Optional[List[str]].
-                                write_property_principals_list = (
-                                    getattr(ocp, "write_property_principals", None)
-                                    or []
-                                )
+                                write_property_principals_list = getattr(ocp, "write_property_principals", None) or []
                                 for principal in write_property_principals_list:
                                     await crud.create_certificate_template_permissions(
                                         db,
@@ -559,15 +560,12 @@ class CertipyJsonParser(BaseFileParser):
 
                         # --- Vulnerabilities ---
                         if (
-                            template_value.vulnerabilities
-                            and template_value.vulnerabilities.root
+                            template_value.vulnerabilities and template_value.vulnerabilities.root
                         ):  # Safely access .root
-                            for (
-                                name,
-                                vuln_description,
-                            ) in template_value.vulnerabilities.root.items():
+                            for name in template_value.vulnerabilities.root:
                                 label = await crud.get_label_by_name(
-                                    db, name
+                                    db,
+                                    name,
                                 )  # Use 'name' (vulnerability key like ESC1) as label name
                                 if not label:
                                     label = await crud.create_label(
@@ -588,17 +586,19 @@ class CertipyJsonParser(BaseFileParser):
                         # --- End of Vulnerabilities ---
 
                         log.info(
-                            f"Processed {permissions_counter} permissions for template: {template_db_obj.id}"
+                            f"Processed {permissions_counter} permissions for template: {template_db_obj.id}",
                         )
                     # else: (handle if template not created)
                     #    log.warning(f"Template {template_value.template_name} not created. Skipping permissions and vulnerabilities.")
 
                 except Exception as e_template:
                     template_name_for_log = getattr(
-                        template_value, "template_name", "Unknown Template"
+                        template_value,
+                        "template_name",
+                        "Unknown Template",
                     )
-                    log.error(
-                        f"Error processing template '{template_name_for_log}': {e_template}"
+                    log.exception(
+                        f"Error processing template '{template_name_for_log}': {e_template}",
                     )
 
         return []  # Original return
@@ -620,14 +620,11 @@ class CertifyJsonParser(BaseFileParser):
         ta = TypeAdapter(list[CertifyRoot])
         stuff = ta.validate_json(data)
 
-        template_id_map: dict[str, UUID4] = dict()
-        template_authority_map: dict[str, UUID4] = dict()
-        authority_template_map: dict[str, list[str]] = dict()
+        template_id_map: dict[str, UUID4] = {}
+        template_authority_map: dict[str, UUID4] = {}
+        authority_template_map: dict[str, list[str]] = {}
         for entry in stuff:
-            if (
-                entry.meta.type == "certificateauthorities"
-                and entry.certificate_authorities
-            ):
+            if entry.meta.type == "certificateauthorities" and entry.certificate_authorities:
                 for authority in entry.certificate_authorities:
                     authority_template_map[authority.ca_name] = authority.templates
                     resp = schemas.CertificateAuthorityCreate(**authority.model_dump())
@@ -635,16 +632,14 @@ class CertifyJsonParser(BaseFileParser):
                     template_authority_map[authority.ca_name] = auth_db.id
                     if created:
                         log.info(f"Created authority with id: {auth_db.id}")
-            elif (
-                entry.meta.type == "certificatetemplates"
-                and entry.certificate_templates
-            ):
+            elif entry.meta.type == "certificatetemplates" and entry.certificate_templates:
                 for template in entry.certificate_templates:
                     cert_template = schemas.CertificateTemplateCreate(
-                        **template.model_dump()
+                        **template.model_dump(),
                     )
                     created, templ_db = await crud.create_certificate_template(
-                        db, cert_template
+                        db,
+                        cert_template,
                     )
                     template_id_map[template.template_name] = templ_db.id
                     if created:
@@ -681,7 +676,9 @@ class CertifyJsonParser(BaseFileParser):
         for ca, templates in authority_template_map.items():
             for template in templates:
                 await crud.create_certificate_authority_map(
-                    db, template_authority_map[ca], template_id_map[template]
+                    db,
+                    template_authority_map[ca],
+                    template_id_map[template],
                 )
 
         return []

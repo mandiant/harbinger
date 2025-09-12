@@ -1,16 +1,16 @@
 import argparse
-import sys
+
 from .commands import (
-    login,
-    shell,
-    files,
     c2,
-    playbooks,
-    proxies,
-    domains,
     credentials,
+    domains,
+    files,
     hosts,
     labels,
+    login,
+    playbooks,
+    proxies,
+    shell,
 )
 
 

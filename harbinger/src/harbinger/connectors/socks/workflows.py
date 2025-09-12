@@ -12,14 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from temporalio import workflow
 from datetime import timedelta
+
 import structlog
-from harbinger.connectors.socks import activities
-from harbinger.connectors.socks import schemas as socks_schemas
+from temporalio import workflow
+
 from harbinger import schemas
 from harbinger.config import constants
-
+from harbinger.connectors.socks import activities
+from harbinger.connectors.socks import schemas as socks_schemas
 
 log = structlog.get_logger()
 
@@ -101,7 +102,7 @@ class RunWindowsSocks:
     @workflow.run
     async def run(self, socks_task: schemas.ProxyJob) -> socks_schemas.SocksTaskResult:
         log.info(f"Running socks task: {socks_task.id}")
-        log.info(f"Updating status to running")
+        log.info("Updating status to running")
         await workflow.execute_activity(
             activities.update_proxy_job_status,
             schemas.ProxyJob(

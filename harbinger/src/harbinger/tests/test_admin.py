@@ -12,36 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from harbinger import models
-from harbinger.config import admin
+import unittest
 
+from sqladmin.models import ModelViewMeta
 from sqlalchemy.orm.decl_api import DeclarativeMeta
 
-import unittest
-from sqladmin.models import ModelViewMeta
+from harbinger import models
+from harbinger.config import admin
 
 
 class TestAdminModels(unittest.IsolatedAsyncioTestCase):
     def test_admin_models(self):
-        database_objects = dict(
-            [
-                (name, cls)
-                for name, cls in models.__dict__.items()
-                if type(cls) == DeclarativeMeta
-            ]
-        )
+        database_objects = {name: cls for name, cls in models.__dict__.items() if type(cls) == DeclarativeMeta}
 
-        admin_models = dict(
-            [
-                (name, cls)
-                for name, cls in admin.__dict__.items()
-                if type(cls) == ModelViewMeta and name != "ModelView"
-            ]
-        )
+        admin_models = {
+            name: cls for name, cls in admin.__dict__.items() if type(cls) == ModelViewMeta and name != "ModelView"
+        }
         for name, value in admin_models.items():
-            self.assertNotEqual(getattr(value, "name"), "", f"name of {name} is unset")
-            self.assertIn(
-                getattr(value, "name"),
-                database_objects,
-                f"{name} is missing from the database objects",
-            )
+            assert value.name != "", f"name of {name} is unset"
+            assert value.name in database_objects, f"{name} is missing from the database objects"

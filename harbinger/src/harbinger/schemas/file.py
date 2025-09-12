@@ -14,12 +14,12 @@
 
 
 from enum import Enum
-from typing import List
+from typing import TYPE_CHECKING
 
 from pydantic import UUID4, BaseModel, ConfigDict
 
-
-from .label import Label
+if TYPE_CHECKING:
+    from .label import Label
 
 
 class FileType(str, Enum):
@@ -69,7 +69,7 @@ class FileType(str, Enum):
 
 
 class FileTypes(BaseModel):
-    types: List[FileType]
+    types: list[FileType]
 
 
 class FileBase(BaseModel):
@@ -110,4 +110,4 @@ class File(FileBase):
     c2_implant_id: str | UUID4 | None = None
     manual_timeline_task_id: str | UUID4 | None = None
 
-    labels: List["Label"] | None = None
+    labels: list["Label"] | None = None

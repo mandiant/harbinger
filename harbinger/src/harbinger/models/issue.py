@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import uuid
-from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
@@ -23,14 +22,13 @@ from sqlalchemy.sql import func
 from harbinger.database.database import Base
 from harbinger.database.types import mapped_column
 
-if TYPE_CHECKING:
-    from .label import Label
-
 
 class Issue(Base):
     __tablename__ = "issues"
     id: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
     )
     name: Mapped[str] = mapped_column(String, unique=True)
     description: Mapped[str] = mapped_column(String)
@@ -39,12 +37,17 @@ class Issue(Base):
     label_id: Mapped[UUID] = mapped_column(ForeignKey("labels.id"))
 
     time_created: Mapped[DateTime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True),
+        server_default=func.now(),
     )
     time_updated: Mapped[DateTime] = mapped_column(
-        DateTime(timezone=True), onupdate=func.now()
+        DateTime(timezone=True),
+        onupdate=func.now(),
     )
 
     labels = relationship(
-        "Label", secondary="labeled_item", lazy="joined", viewonly=True
+        "Label",
+        secondary="labeled_item",
+        lazy="joined",
+        viewonly=True,
     )

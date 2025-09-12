@@ -15,7 +15,6 @@
 
 from pydantic import BaseModel
 
-
 from .statistics import Statistics
 
 

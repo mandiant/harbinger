@@ -20,9 +20,8 @@ Create Date: 2025-03-06 08:16:14.836212
 
 """
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "eac63cedd02c"
@@ -728,10 +727,16 @@ def upgrade() -> None:
         ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint(
-            "c2_implant_id", "phase", "name", name="checklist_implant_phase_name"
+            "c2_implant_id",
+            "phase",
+            "name",
+            name="checklist_implant_phase_name",
         ),
         sa.UniqueConstraint(
-            "domain_id", "phase", "name", name="checklist_domain_phase_name"
+            "domain_id",
+            "phase",
+            "name",
+            name="checklist_domain_phase_name",
         ),
     )
     op.create_table(

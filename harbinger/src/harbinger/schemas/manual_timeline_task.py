@@ -14,12 +14,12 @@
 
 
 from datetime import datetime
-from typing import List
+from typing import TYPE_CHECKING
 
 from pydantic import UUID4, BaseModel, ConfigDict, field_validator
 
-
-from .label import Label
+if TYPE_CHECKING:
+    from .label import Label
 
 
 class ManualTimelineTaskBase(BaseModel):
@@ -36,6 +36,7 @@ class ManualTimelineTaskBase(BaseModel):
     processing_status: str | None = ""
 
     @field_validator("processing_status")
+    @classmethod
     def set_processing_status(cls, processing_status):
         return processing_status or ""
 
@@ -53,4 +54,4 @@ class ManualTimelineTask(ManualTimelineTaskBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4 | str
 
-    labels: List["Label"] | None = None
+    labels: list["Label"] | None = None

@@ -13,16 +13,16 @@
 # limitations under the License.
 
 import os
-from typing import List
+from enum import Enum
 
+from pydantic import Field, ValidationInfo, field_validator
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from harbinger import crud
 from harbinger.config import get_settings
+from harbinger.files.client import upload_file
 from harbinger.job_templates.proxy.base import JobTemplateModel
 from harbinger.job_templates.schemas import env
-from pydantic import Field, field_validator, ValidationInfo
-from harbinger import crud
-from enum import Enum
-from sqlalchemy.ext.asyncio import AsyncSession
-from harbinger.files.client import upload_file
 
 settings = get_settings()
 
@@ -52,7 +52,7 @@ class UploadFile(JobTemplateModel):
     share: str = "C$"
     path: str = "Windows/temp"
 
-    async def files(self, db: AsyncSession) -> List[str]:
+    async def files(self, db: AsyncSession) -> list[str]:
         template = env.get_template("upload_file.jinja2")
         objects = await self.resolve_objects(db)
         result = await template.render_async(**self.model_dump(), **objects)
@@ -80,7 +80,7 @@ class UploadFile(JobTemplateModel):
     async def resolve_objects(self, db: AsyncSession) -> dict:
         cred = await crud.get_credential(credential_id=self.credential_id)
         file = await crud.get_file(self.file_id)
-        return dict(credential=cred, file=file)
+        return {"credential": cred, "file": file}
 
 
 class CredJobTemplateModel(JobTemplateModel):
@@ -89,7 +89,7 @@ class CredJobTemplateModel(JobTemplateModel):
 
     async def resolve_objects(self, db: AsyncSession) -> dict:
         cred = await crud.get_credential(credential_id=self.credential_id)
-        return dict(credential=cred)
+        return {"credential": cred}
 
 
 class DownloadFile(CredJobTemplateModel):
@@ -102,7 +102,7 @@ class DownloadFile(CredJobTemplateModel):
         command = "smbclient.py"
         template = "smbclient.py.jinja2"
 
-    async def files(self, db: AsyncSession) -> List[str]:
+    async def files(self, db: AsyncSession) -> list[str]:
         template = env.get_template("download_file.jinja2")
         objects = await self.resolve_objects(db)
         result = await template.render_async(**self.dict(), **objects)
@@ -213,7 +213,8 @@ class PyWhisker(CredJobTemplateModel):
 class ListProcesses(CredJobTemplateModel):
     target_computer: str | None = Field(title="Computer to list processes")
     load_owners: bool = Field(
-        title="Retrieve the owners of the processes?", default=False
+        title="Retrieve the owners of the processes?",
+        default=False,
     )
 
     class Settings:
@@ -230,7 +231,7 @@ class Custom(JobTemplateModel):
         command_str = "{{ command }}"
         template_str = "{{ arguments }}"
 
-    async def files(self, db: AsyncSession) -> List[str]:
+    async def files(self, db: AsyncSession) -> list[str]:
         result = []
         for file in self.input_files or []:
             if await crud.get_file(file):

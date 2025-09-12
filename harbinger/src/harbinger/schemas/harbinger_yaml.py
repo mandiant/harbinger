@@ -12,24 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List
+
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
 
-
-from .action import ActionCreate
 from .c2_server import C2ServerCreate, C2ServerTypeYaml
 from .file_config import FileConfig
 from .label import LabelCreate
-from .playbook_template import PlaybookTemplateCreate
-from .setting import SettingCategoryCreate
+
+if TYPE_CHECKING:
+    from .action import ActionCreate
+    from .playbook_template import PlaybookTemplateCreate
+    from .setting import SettingCategoryCreate
 
 
 class HarbingerYaml(BaseModel):
-    files: List[FileConfig] | None = None
-    c2_server_types: List[C2ServerTypeYaml] | None = None
-    labels: List[LabelCreate] | None = None
-    actions: List["ActionCreate"] | None = None
-    setting_categories: List["SettingCategoryCreate"] | None = None
-    playbooks: List["PlaybookTemplateCreate"] | None = None
-    c2_servers: List["C2ServerCreate"] | None = None
+    files: list[FileConfig] | None = None
+    c2_server_types: list[C2ServerTypeYaml] | None = None
+    labels: list[LabelCreate] | None = None
+    actions: list["ActionCreate"] | None = None
+    setting_categories: list["SettingCategoryCreate"] | None = None
+    playbooks: list["PlaybookTemplateCreate"] | None = None
+    c2_servers: list["C2ServerCreate"] | None = None

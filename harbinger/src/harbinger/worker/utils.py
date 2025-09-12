@@ -12,22 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from harbinger.config import get_settings
-from harbinger import crud
-from harbinger import schemas
-from harbinger.graph import crud as graph_crud
-from harbinger.graph.database import get_async_neo4j_session_context
-from sqlalchemy.ext.asyncio import AsyncSession
 import asyncio
-from typing import Awaitable, Callable, Optional
-from anyio.abc import TaskGroup
+import contextlib
+from collections.abc import Awaitable, Callable
 
 import structlog
-from harbinger import models
-import harbinger.proto.v1.messages_pb2 as messages_pb2
-from redis import Redis
-from redis import ResponseError
+from anyio.abc import TaskGroup
+from redis import Redis, ResponseError
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from harbinger import crud, models, schemas
+from harbinger.config import get_settings
+from harbinger.graph import crud as graph_crud
+from harbinger.graph.database import get_async_neo4j_session_context
+from harbinger.proto.v1 import messages_pb2
 
 settings = get_settings()
 
@@ -35,23 +33,23 @@ log = structlog.get_logger()
 
 
 async def create_event_group(redis: Redis, gname: str) -> None:
-    try:
+    with contextlib.suppress(ResponseError):
         await redis.xgroup_create(
-            name=schemas.Streams.events, groupname=gname, id=0, mkstream=True
+            name=schemas.Streams.events,
+            groupname=gname,
+            id=0,
+            mkstream=True,
         )
-    except ResponseError as e:
-        pass
 
 
 async def read_events(
     redis: Redis,
     groupname: str,
     cb: Callable[[messages_pb2.Event], Awaitable[None]],
-    taskgroup: Optional[TaskGroup] = None,
+    taskgroup: TaskGroup | None = None,
     cname: str = settings.hostname,
 ):
-    """
-    Read the events stream and call the cb function for every message.
+    """Read the events stream and call the cb function for every message.
 
     groupname: group name, is used by redis to determine which events are already received, group will be created.
     cb: callback function that will take a single Event protobuf message as argument.

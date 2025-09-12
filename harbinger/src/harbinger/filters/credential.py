@@ -1,9 +1,11 @@
 from fastapi_filter import FilterDepends, with_prefix
 from fastapi_filter.contrib.sqlalchemy import Filter
-from harbinger import models
 from pydantic import UUID4
-from .label import LabelFilter
+
+from harbinger import models
+
 from .domain import DomainFilter
+from .label import LabelFilter
 
 
 class CredentialFilter(Filter):

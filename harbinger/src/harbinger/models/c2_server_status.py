@@ -25,10 +25,13 @@ from harbinger.database.types import mapped_column
 class C2ServerStatus(Base):
     __tablename__ = "c2_server_status"
     id: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
     )
     c2_server_id: Mapped[UUID] = mapped_column(
-        ForeignKey("c2_servers.id"), nullable=True
+        ForeignKey("c2_servers.id"),
+        nullable=True,
     )
     name: Mapped[str] = mapped_column(String)
     status: Mapped[str] = mapped_column(String)

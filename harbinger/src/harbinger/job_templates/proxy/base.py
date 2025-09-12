@@ -13,9 +13,9 @@
 # limitations under the License.
 
 from pydantic import UUID4
-from harbinger.job_templates.schemas import BaseTemplateModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from harbinger.job_templates.schemas import env
+
+from harbinger.job_templates.schemas import BaseTemplateModel, env
 
 
 class JobTemplateModel(BaseTemplateModel):
@@ -39,7 +39,7 @@ class JobTemplateModel(BaseTemplateModel):
         if hasattr(self.Settings, "command_str"):
             template = env.from_string(self.Settings.command_str)
             return await template.render_async(**self.model_dump())
-        elif hasattr(self.Settings, "command"):
+        if hasattr(self.Settings, "command"):
             return self.Settings.command
         return ""
 

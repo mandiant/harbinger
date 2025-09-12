@@ -1,15 +1,12 @@
-from typing import Optional
+from typing import Annotated
 
 from fastapi import APIRouter, Depends
 from fastapi_filter import FilterDepends
 from fastapi_pagination import Page
+from harbinger import crud, filters, models, schemas
+from harbinger.config.dependencies import current_active_user, get_db
 from pydantic import UUID4
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from harbinger import crud, models, schemas
-from harbinger.config.dependencies import current_active_user, get_db
-from harbinger import filters
-from harbinger.config.dependencies import current_active_user
 
 router = APIRouter()
 
@@ -24,7 +21,9 @@ async def list_highlights(
 
 
 @router.get(
-    "/filters", response_model=list[schemas.Filter], tags=["highlights", "crud"]
+    "/filters",
+    response_model=list[schemas.Filter],
+    tags=["highlights", "crud"],
 )
 async def highlights_filters(
     filters: filters.HighlightFilter = FilterDepends(filters.HighlightFilter),
@@ -35,7 +34,9 @@ async def highlights_filters(
 
 
 @router.get(
-    "/{id}", response_model=Optional[schemas.Highlight], tags=["crud", "highlights"]
+    "/{id}",
+    response_model=schemas.Highlight | None,
+    tags=["crud", "highlights"],
 )
-async def get_highlight(id: UUID4, user: models.User = Depends(current_active_user)):
+async def get_highlight(id: UUID4, user: Annotated[models.User, Depends(current_active_user)]):
     return await crud.get_highlight(id)

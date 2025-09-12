@@ -13,14 +13,15 @@
 # limitations under the License.
 
 from temporalio.client import Client
-from harbinger.config.converter import pydantic_data_converter
+
 from harbinger.config import get_settings
+from harbinger.config.converter import pydantic_data_converter
 
 settings = get_settings()
 
 
 async def get_client() -> Client:
-    client = await Client.connect(
-        settings.temporal_host, data_converter=pydantic_data_converter
+    return await Client.connect(
+        settings.temporal_host,
+        data_converter=pydantic_data_converter,
     )
-    return client

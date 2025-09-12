@@ -25,9 +25,12 @@ from harbinger.database.types import mapped_column
 class ActionPlaybook(Base):
     __tablename__ = "action_playbook"
     id: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
     )
     action_id: Mapped[UUID] = mapped_column(ForeignKey("actions.id"), nullable=False)
     playbook_template_id: Mapped[UUID] = mapped_column(
-        ForeignKey("playbook_templates.id"), nullable=False
+        ForeignKey("playbook_templates.id"),
+        nullable=False,
     )

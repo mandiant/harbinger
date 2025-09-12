@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import uuid
-from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
@@ -23,19 +22,18 @@ from sqlalchemy.sql import func
 from harbinger.database.database import Base
 from harbinger.database.types import mapped_column
 
-if TYPE_CHECKING:
-    from .plan import Plan
-    from .suggestion import Suggestion
-    from .label import Label
-
 
 class PlanStep(Base):
     __tablename__ = "plan_step"
     id: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
     )
     plan_id: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("plan.id"), nullable=False
+        UUID(as_uuid=True),
+        ForeignKey("plan.id"),
+        nullable=False,
     )
     description: Mapped[str] = mapped_column(String, nullable=False)
     status: Mapped[str] = mapped_column(String, default="pending")
@@ -43,15 +41,20 @@ class PlanStep(Base):
     order: Mapped[int] = mapped_column(Integer, nullable=False)
     notes: Mapped[str] = mapped_column(String, nullable=True)
     time_created: Mapped[DateTime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True),
+        server_default=func.now(),
     )
     time_updated: Mapped[DateTime] = mapped_column(
-        DateTime(timezone=True), onupdate=func.now()
+        DateTime(timezone=True),
+        onupdate=func.now(),
     )
     plan = relationship("Plan", back_populates="steps")
     suggestions = relationship("Suggestion", back_populates="plan_step")
     labels = relationship(
-        "Label", secondary="labeled_item", lazy="joined", viewonly=True
+        "Label",
+        secondary="labeled_item",
+        lazy="joined",
+        viewonly=True,
     )
 
     __table_args__ = (UniqueConstraint("plan_id", "order", name="plan_id_order_uc"),)

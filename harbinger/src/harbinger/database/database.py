@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from harbinger.config import get_settings
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from collections.abc import AsyncGenerator
+
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import declarative_base
-from typing import AsyncGenerator
+
+from harbinger.config import get_settings
 
 settings = get_settings()
 

@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import uuid
-from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     BigInteger,
@@ -31,18 +30,18 @@ from sqlalchemy.sql import func
 from harbinger.database.database import Base
 from harbinger.database.types import mapped_column
 
-if TYPE_CHECKING:
-    from .label import Label
-
 
 class ShareFile(Base):
     __tablename__ = "share_files"
     __table_args__ = (UniqueConstraint("unc_path", name="share_files_unc_path"),)
     id: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
     )
     time_created: Mapped[DateTime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True),
+        server_default=func.now(),
     )
     type: Mapped[str] = mapped_column(String)
     file_id: Mapped[UUID] = mapped_column(ForeignKey("files.id"), nullable=True)
@@ -60,7 +59,10 @@ class ShareFile(Base):
     indexed: Mapped[bool] = mapped_column(Boolean, default=False)
 
     labels = relationship(
-        "Label", secondary="labeled_item", lazy="joined", viewonly=True
+        "Label",
+        secondary="labeled_item",
+        lazy="joined",
+        viewonly=True,
     )
 
     @validates("unc_path", "name")

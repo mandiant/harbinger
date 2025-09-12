@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import uuid
-from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     Boolean,
@@ -29,18 +28,14 @@ from sqlalchemy.sql import func
 from harbinger.database.database import Base
 from harbinger.database.types import mapped_column
 
-if TYPE_CHECKING:
-    from .domain import Domain
-    from .label import Label
-
 
 class Host(Base):
     __tablename__ = "hosts"
-    __table_args__ = (
-        UniqueConstraint("domain_id", "name", name="domain_host_name_uc"),
-    )
+    __table_args__ = (UniqueConstraint("domain_id", "name", name="domain_host_name_uc"),)
     id: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
     )
     domain_id: Mapped[UUID] = mapped_column(ForeignKey("domains.id"), nullable=True)
     name: Mapped[str] = mapped_column(String)
@@ -50,9 +45,13 @@ class Host(Base):
     fqdn: Mapped[str] = mapped_column(String, unique=True)
 
     time_created: Mapped[DateTime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True),
+        server_default=func.now(),
     )
     labels = relationship(
-        "Label", secondary="labeled_item", lazy="joined", viewonly=True
+        "Label",
+        secondary="labeled_item",
+        lazy="joined",
+        viewonly=True,
     )
     domain_obj = relationship("Domain", lazy="joined")

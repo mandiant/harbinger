@@ -2,7 +2,6 @@ import asyncio
 import logging
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-
 from harbinger.crud import get_user_db
 from harbinger.database.database import SessionLocal
 from harbinger.database.redis_pool import redis_no_decode as redis
@@ -32,7 +31,7 @@ async def websocket_events(websocket: WebSocket):
         return
     await websocket.accept()
     logging.info(
-        f"WebSocket client authenticated and accepted for user with token: {token}"
+        f"WebSocket client authenticated and accepted for user with token: {token}",
     )
     pubsub = redis.pubsub()
     try:
@@ -49,7 +48,7 @@ async def websocket_events(websocket: WebSocket):
             except asyncio.CancelledError:
                 logging.info("Redis listener task cancelled.")
             except Exception as e:
-                logging.error(f"Error in Redis listener task: {e}")
+                logging.exception(f"Error in Redis listener task: {e}")
             finally:
                 logging.info("Unsubscribing from Redis Pub/Sub.")
                 await pubsub.unsubscribe(REDIS_PUBSUB_CHANNEL)
@@ -61,13 +60,14 @@ async def websocket_events(websocket: WebSocket):
         except WebSocketDisconnect:
             logging.info("WebSocket disconnected.")
         except Exception as e:
-            logging.error(f"Error in WebSocket receive loop: {e}")
+            logging.exception(f"Error in WebSocket receive loop: {e}")
         finally:
             listener_task.cancel()
             await listener_task
             logging.info("WebSocket connection closed.")
     except Exception as e:
-        logging.error(f"Error setting up Redis Pub/Sub for WebSocket: {e}")
+        logging.exception(f"Error setting up Redis Pub/Sub for WebSocket: {e}")
         await websocket.close(
-            code=1011, reason="Internal server error with event system"
+            code=1011,
+            reason="Internal server error with event system",
         )

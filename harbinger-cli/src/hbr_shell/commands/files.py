@@ -1,4 +1,5 @@
 import os
+
 from ..utils import make_api_request, print_output
 
 
@@ -15,7 +16,9 @@ def setup(subparsers):
     upload_parser = files_subparsers.add_parser("upload", help="Upload a file")
     upload_parser.add_argument("file_path", help="Path to the file to upload")
     upload_parser.add_argument(
-        "--file-type", default="text", help="The type of the file"
+        "--file-type",
+        default="text",
+        help="The type of the file",
     )
     upload_parser.set_defaults(func=upload_file)
 
@@ -43,7 +46,7 @@ def list_files(args):
                     "filename": f.get("filename"),
                     "file_type": f.get("filetype"),
                     "time_created": f.get("time_created"),
-                }
+                },
             )
         print_output(output_data, headers, args.output)
 
@@ -66,10 +69,12 @@ def upload_file(args):
                 "filename": file_data.get("filename"),
                 "file_type": file_data.get("filetype"),
                 "time_created": file_data.get("time_created"),
-            }
+            },
         ]
         print_output(
-            output_data, ["ID", "Filename", "File Type", "Time Created"], args.output
+            output_data,
+            ["ID", "Filename", "File Type", "Time Created"],
+            args.output,
         )
 
 

@@ -13,25 +13,26 @@
 # limitations under the License.
 
 import asyncio
+import logging
+import signal
 import uuid
+from collections.abc import AsyncIterable
+
+import anyio
+import click
+import grpc
+import structlog
+from google.protobuf.json_format import MessageToDict
+from pydantic import ValidationError
+from temporalio.client import Client
+
 from harbinger import schemas
+from harbinger.config import constants, get_settings
+from harbinger.database.redis_pool import redis
+from harbinger.files.client import FileUploader, download_file
+from harbinger.proto.v1 import messages_pb2, messages_pb2_grpc
 from harbinger.worker import activities, workflows
 from harbinger.worker.client import get_client
-from harbinger.database.redis_pool import redis
-import anyio
-import structlog
-import signal
-from harbinger.config import constants
-from harbinger.proto.v1 import messages_pb2_grpc, messages_pb2
-from temporalio.client import Client
-import grpc
-from google.protobuf.json_format import MessageToDict
-import logging
-import click
-from pydantic import ValidationError
-from typing import AsyncIterable
-from harbinger.files.client import FileUploader, download_file
-from harbinger.config import get_settings
 
 settings = get_settings()
 
@@ -64,7 +65,7 @@ class Harbinger(messages_pb2_grpc.HarbingerServicer):
                 try:
                     await activities.save_implant(c2_implant)
                 except Exception as e:
-                    log.error(f"Error saving implant: {e}")
+                    log.exception(f"Error saving implant: {e}")
                     log.info(c2_implant)
                 self.implant_queue.task_done()
 
@@ -74,7 +75,7 @@ class Harbinger(messages_pb2_grpc.HarbingerServicer):
                 try:
                     await activities.save_task(c2_task)
                 except Exception as e:
-                    log.error(f"Error saving task: {e}")
+                    log.exception(f"Error saving task: {e}")
                     log.info(c2_task)
                 self.task_queue.task_done()
 
@@ -107,7 +108,7 @@ class Harbinger(messages_pb2_grpc.HarbingerServicer):
                                 task_queue=constants.FILE_PROCESSING_TASK_QUEUE,
                             )
                 except Exception as e:
-                    log.error(f"Error saving output: {e}")
+                    log.exception(f"Error saving output: {e}")
                     # log.info(c2_task_output)
                 self.task_output_queue.task_done()
 
@@ -117,7 +118,7 @@ class Harbinger(messages_pb2_grpc.HarbingerServicer):
                 try:
                     await activities.save_proxy(proxy)
                 except Exception as e:
-                    log.error(f"Error saving task: {e}")
+                    log.exception(f"Error saving task: {e}")
                     log.info(proxy)
                 self.proxy_queue.task_done()
 
@@ -127,7 +128,7 @@ class Harbinger(messages_pb2_grpc.HarbingerServicer):
                 try:
                     await activities.update_c2_task_status(c2_task_status)
                 except Exception as e:
-                    log.error(f"Error updating c2_task_status: {e}")
+                    log.exception(f"Error updating c2_task_status: {e}")
                     log.info(c2_task_status)
                 self.task_status_queue.task_done()
 
@@ -144,22 +145,26 @@ class Harbinger(messages_pb2_grpc.HarbingerServicer):
                             task_queue=constants.FILE_PROCESSING_TASK_QUEUE,
                         )
                 except Exception as e:
-                    log.error(f"Error saving file: {e}")
+                    log.exception(f"Error saving file: {e}")
                     log.info(file)
                 self.file_queue.task_done()
             await asyncio.sleep(1)
 
     async def Ping(
-        self, request: messages_pb2.PingRequest, context: grpc.aio.ServicerContext
+        self,
+        request: messages_pb2.PingRequest,
+        context: grpc.aio.ServicerContext,
     ) -> messages_pb2.PingResponse:
         return messages_pb2.PingResponse(message=f"Pong {request.message}")
 
     async def SaveImplant(
-        self, request: messages_pb2.ImplantRequest, context: grpc.aio.ServicerContext
+        self,
+        request: messages_pb2.ImplantRequest,
+        context: grpc.aio.ServicerContext,
     ) -> messages_pb2.ImplantResponse:
         try:
             implant = schemas.C2ImplantCreate(
-                **MessageToDict(request, preserving_proto_field_name=True)
+                **MessageToDict(request, preserving_proto_field_name=True),
             )
             self.implant_queue.put_nowait(implant)
         except ValidationError as e:
@@ -167,11 +172,13 @@ class Harbinger(messages_pb2_grpc.HarbingerServicer):
         return messages_pb2.ImplantResponse()
 
     async def SaveProxy(
-        self, request: messages_pb2.ProxyRequest, context: grpc.aio.ServicerContext
+        self,
+        request: messages_pb2.ProxyRequest,
+        context: grpc.aio.ServicerContext,
     ) -> messages_pb2.ProxyResponse:
         try:
             proxy = schemas.ProxyCreate(
-                **MessageToDict(request, preserving_proto_field_name=True)
+                **MessageToDict(request, preserving_proto_field_name=True),
             )
             self.proxy_queue.put_nowait(proxy)
         except ValidationError:
@@ -180,7 +187,9 @@ class Harbinger(messages_pb2_grpc.HarbingerServicer):
         return messages_pb2.ProxyResponse()
 
     async def SaveFile(
-        self, request: messages_pb2.FileRequest, context: grpc.aio.ServicerContext
+        self,
+        request: messages_pb2.FileRequest,
+        context: grpc.aio.ServicerContext,
     ) -> messages_pb2.FileResponse:
         try:
             bucket = request.bucket
@@ -210,7 +219,7 @@ class Harbinger(messages_pb2_grpc.HarbingerServicer):
     ) -> messages_pb2.C2TaskStatusResponse:
         try:
             task_status = schemas.C2TaskStatus(
-                **MessageToDict(request, preserving_proto_field_name=True)
+                **MessageToDict(request, preserving_proto_field_name=True),
             )
             self.task_status_queue.put_nowait(task_status)
         except ValidationError:
@@ -219,7 +228,9 @@ class Harbinger(messages_pb2_grpc.HarbingerServicer):
         return messages_pb2.C2TaskStatusResponse()
 
     async def GetSettings(
-        self, request: messages_pb2.SettingsRequest, context: grpc.aio.ServicerContext
+        self,
+        request: messages_pb2.SettingsRequest,
+        context: grpc.aio.ServicerContext,
     ) -> messages_pb2.SettingsResponse:
         try:
             data = await activities.get_server_settings(request.c2_server_id)
@@ -231,11 +242,13 @@ class Harbinger(messages_pb2_grpc.HarbingerServicer):
         return messages_pb2.SettingsResponse()
 
     async def SaveTask(
-        self, request: messages_pb2.TaskRequest, context: grpc.aio.ServicerContext
+        self,
+        request: messages_pb2.TaskRequest,
+        context: grpc.aio.ServicerContext,
     ) -> messages_pb2.TaskResponse:
         try:
             task = schemas.C2TaskCreate(
-                **MessageToDict(request, preserving_proto_field_name=True)
+                **MessageToDict(request, preserving_proto_field_name=True),
             )
             self.task_queue.put_nowait(task)
         except ValidationError:
@@ -244,11 +257,13 @@ class Harbinger(messages_pb2_grpc.HarbingerServicer):
         return messages_pb2.TaskResponse()
 
     async def SaveTaskOutput(
-        self, request: messages_pb2.TaskOutputRequest, context: grpc.aio.ServicerContext
+        self,
+        request: messages_pb2.TaskOutputRequest,
+        context: grpc.aio.ServicerContext,
     ) -> messages_pb2.TaskOutputResponse:
         try:
             task_output = schemas.C2OutputCreate(
-                **MessageToDict(request, preserving_proto_field_name=True)
+                **MessageToDict(request, preserving_proto_field_name=True),
             )
             self.task_output_queue.put_nowait(task_output)
         except ValidationError as e:
@@ -256,7 +271,9 @@ class Harbinger(messages_pb2_grpc.HarbingerServicer):
         return messages_pb2.TaskOutputResponse()
 
     async def CheckFileExists(
-        self, request: messages_pb2.FileExistsRequest, context: grpc.aio.ServicerContext
+        self,
+        request: messages_pb2.FileExistsRequest,
+        context: grpc.aio.ServicerContext,
     ) -> messages_pb2.FileExistsResponse:
         found = False
         if request.sha1:
@@ -286,11 +303,13 @@ class Harbinger(messages_pb2_grpc.HarbingerServicer):
         context: grpc.aio.ServicerContext,
     ) -> AsyncIterable[messages_pb2.DownloadFileResponse]:
         if not request.file_id:
-            raise RuntimeError("No file_id provided")
+            msg = "No file_id provided"
+            raise RuntimeError(msg)
 
         file_db = await activities.get_file(request.file_id)
         if not file_db:
-            raise RuntimeError("File not found")
+            msg = "File not found"
+            raise RuntimeError(msg)
 
         data = await download_file(file_db.path, file_db.bucket)
         for i in range(0, len(data), 1024 * 1024):
@@ -309,7 +328,7 @@ class Harbinger(messages_pb2_grpc.HarbingerServicer):
                         status=request.status,
                         name=request.name,
                     ),
-                )
+                ),
             )
         except ValidationError:
             log.warning(f"Validation error while parsing: {request}")
@@ -322,7 +341,7 @@ async def main(debug: bool = False):
 
     structlog.configure(
         wrapper_class=structlog.make_filtering_bound_logger(
-            logging.DEBUG if debug else logging.INFO
+            logging.DEBUG if debug else logging.INFO,
         ),
     )
 

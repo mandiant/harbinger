@@ -1,9 +1,10 @@
 import configparser
 import json
-import requests
 from pathlib import Path
-from tabulate import tabulate
+
+import requests
 import urllib3
+from tabulate import tabulate
 
 urllib3.disable_warnings()
 
@@ -37,7 +38,11 @@ def make_api_request(method, endpoint, **kwargs):
 
     try:
         response = requests.request(
-            method, url, cookies=cookies, verify=False, **kwargs
+            method,
+            url,
+            cookies=cookies,
+            verify=False,
+            **kwargs,
         )
         response.raise_for_status()
         return response
@@ -57,6 +62,6 @@ def print_output(data, headers, output_format="table"):
         table_data = []
         for item in data:
             table_data.append(
-                [item.get(header.lower().replace(" ", "_")) for header in headers]
+                [item.get(header.lower().replace(" ", "_")) for header in headers],
             )
         print(tabulate(table_data, headers=headers))

@@ -22,6 +22,6 @@ def list_domains(args):
                     "id": d.get("id"),
                     "short_name": d.get("short_name"),
                     "long_name": d.get("long_name"),
-                }
+                },
             )
         print_output(output_data, headers, args.output)

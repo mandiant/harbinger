@@ -14,7 +14,6 @@
 
 import ntpath
 from datetime import datetime, timedelta
-from typing import List
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -49,7 +48,8 @@ class BaseParsedShareFile(BaseModel):
         self.parents = []
         if not self.name.startswith("\\"):
             if not hostname:
-                raise ValueError("Cannot parse the file without hostname")
+                msg = "Cannot parse the file without hostname"
+                raise ValueError(msg)
             host = hostname
             if domain:
                 host = f"{host}.{domain}"
@@ -83,7 +83,7 @@ class BaseParsedShareFile(BaseModel):
                     unc_path=self.share_unc_path,
                     indexed=len(parts) == 0 and indexer,
                     depth=0,
-                )
+                ),
             )
             depth += 1
 
@@ -95,7 +95,7 @@ class BaseParsedShareFile(BaseModel):
                     unc_path=ntpath.join(self.share_unc_path, *parts[0:depth]),
                     depth=depth,
                     indexed=False,
-                )
+                ),
             )
             depth += 1
 
@@ -159,9 +159,9 @@ class FileList(BaseModel):
     size: int = 0
     last_accessed: datetime | None = None
     last_modified: datetime | None = None
-    files: List["ShareFileCreate"] | None = None
+    files: list["ShareFileCreate"] | None = None
 
-    parents: List["ShareFileCreate"] | None = None
+    parents: list["ShareFileCreate"] | None = None
 
     def to_base_parsed_share_file(self) -> "BaseParsedShareFile":
         result = BaseParsedShareFile(
@@ -187,7 +187,7 @@ class FileList(BaseModel):
                     type="dir",
                     unc_path=parent.unc_path or "",
                     depth=parent.depth or 0,
-                )
+                ),
             )
 
         for file in self.files or []:
@@ -198,7 +198,7 @@ class FileList(BaseModel):
                     type=file.type or "",
                     unc_path=file.unc_path or "",
                     depth=file.depth or 0,
-                )
+                ),
             )
         return result
 
@@ -208,7 +208,8 @@ class FileList(BaseModel):
         if not self.name.startswith("\\"):
             # print("not self.name.startswith('\\')")
             if not self.host:
-                raise ValueError("Cannot parse the file without hostname")
+                msg = "Cannot parse the file without hostname"
+                raise ValueError(msg)
             share = ""
             if self.parent_path:
                 if self.parent_path.startswith("\\"):
@@ -255,7 +256,7 @@ class FileList(BaseModel):
                     unc_path=self.share_unc_path,
                     indexed=len(parts) == 0 and indexer,
                     depth=0,
-                )
+                ),
             )
             depth += 1
 
@@ -267,7 +268,7 @@ class FileList(BaseModel):
                     unc_path=ntpath.join(self.share_unc_path, *parts[0:depth]),
                     depth=depth,
                     indexed=False,
-                )
+                ),
             )
             depth += 1
 

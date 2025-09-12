@@ -12,33 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import asyncio
-from temporalio import activity
-from harbinger import crud
-from harbinger import schemas
-import harbinger.proto.v1.messages_pb2 as messages_pb2
-from harbinger.connectors.socks import schemas as socks_schemas
-from harbinger.database.database import SessionLocal
-import aiodocker
-import shlex
-from aiodocker.volumes import DockerVolume
-import structlog
-from harbinger.database.redis_pool import redis
-from harbinger.config import get_settings
-from harbinger.connectors.socks.environment import (
-    get_environment,
-    get_environment_dict,
-    TMATE_KEYS,
-    SERVER_ENV,
-)
-from aiodocker.containers import DockerContainer
-import tarfile
 import io
-import uuid
 import os
-from harbinger.files.client import FileUploader, download_file
+import shlex
+import tarfile
+import uuid
 from base64 import b64decode
 
+import aiodocker
+import structlog
+from aiodocker.containers import DockerContainer
+from temporalio import activity
+
+from harbinger import crud, schemas
+from harbinger.config import get_settings
+from harbinger.connectors.socks import schemas as socks_schemas
+from harbinger.connectors.socks.environment import (
+    TMATE_KEYS,
+    get_environment,
+    get_environment_dict,
+)
+from harbinger.database.database import SessionLocal
+from harbinger.database.redis_pool import redis
+from harbinger.files.client import FileUploader, download_file
+from harbinger.proto.v1 import messages_pb2
 
 settings = get_settings()
 
@@ -59,7 +56,10 @@ async def update_proxy_job_status(status: schemas.ProxyJob) -> None:
     log.info(f"Setting status for {status.id} to {status.status}")
     async with SessionLocal() as session:
         await crud.update_proxy_job_status(
-            session, status.status, status.id, exit_code=status.exit_code or 0
+            session,
+            status.status,
+            status.id,
+            exit_code=status.exit_code or 0,
         )
         step = await crud.get_chain_step_by_proxy_job_id(
             session,
@@ -67,7 +67,9 @@ async def update_proxy_job_status(status: schemas.ProxyJob) -> None:
         )
         if step:
             await crud.update_step_status(
-                session, status=status.status or "", step_id=step.id
+                session,
+                status=status.status or "",
+                step_id=step.id,
             )
 
 
@@ -105,7 +107,10 @@ async def save_files(files: socks_schemas.Files) -> None:
 
 
 async def upload_bytes(
-    container: DockerContainer, data: bytes, filename: str, location: str
+    container: DockerContainer,
+    data: bytes,
+    filename: str,
+    location: str,
 ):
     fh = io.BytesIO()
     dp = io.BytesIO(initial_bytes=data)
@@ -142,7 +147,8 @@ async def run_proxy_job(
 ) -> socks_schemas.SocksTaskResult:
     output: list[str] = []
     result = socks_schemas.SocksTaskResult(
-        id=socks_task.id, status=schemas.Status.created
+        id=socks_task.id,
+        status=schemas.Status.created,
     )
     docker = aiodocker.Docker()
     try:
@@ -159,7 +165,7 @@ async def run_proxy_job(
         command = []
         if socks_task.tmate:
             command.extend(
-                ["/usr/bin/tmate", "-F", "new-session", "-x", "160", "-y", "48"]
+                ["/usr/bin/tmate", "-F", "new-session", "-x", "160", "-y", "48"],
             )
         if socks_task.proxychains:
             command.append("proxychains")
@@ -172,7 +178,7 @@ async def run_proxy_job(
 
         log.info(f"Command for {socks_task.id}: {command}")
         config = {
-            "Image": f"harbinger_proxy:latest",
+            "Image": "harbinger_proxy:latest",
             "Cmd": ["tail", "-f", "/dev/null"],
             "AttachStdin": False,
             "AttachStdout": True,
@@ -198,7 +204,7 @@ async def run_proxy_job(
                 await upload_bytes(container, tmate_config, ".tmate.conf", "/home/user")
             except KeyError:
                 log.warning(
-                    "Unable to generate TMATE_CONFIG, unset keys in environment."
+                    "Unable to generate TMATE_CONFIG, unset keys in environment.",
                 )
 
         ignore_files = []
@@ -209,7 +215,7 @@ async def run_proxy_job(
 
         if socks_task.proxy:
             proxy_config = PROXYCHAINS_CONFIG.format(
-                PROXY_CONFIG=socks_task.proxy.to_str()
+                PROXY_CONFIG=socks_task.proxy.to_str(),
             ).encode("utf-8")
             await upload_bytes(container, proxy_config, "proxychains4.conf", "/etc")
 
@@ -255,7 +261,8 @@ async def run_proxy_job(
                     filename = os.path.basename(entry.name)
                     path = os.path.join("harbinger", f"{file_id}_{filename}")
                     async with FileUploader(
-                        path, settings.minio_default_bucket
+                        path,
+                        settings.minio_default_bucket,
                     ) as uploader:
                         await uploader.upload(file_data.read())
                     result.files.append(
@@ -264,7 +271,7 @@ async def run_proxy_job(
                             filename=filename,
                             path=path,
                             bucket=settings.minio_default_bucket,
-                        )
+                        ),
                     )
         try:
             await container.kill()

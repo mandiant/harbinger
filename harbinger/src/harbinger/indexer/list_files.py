@@ -12,21 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import anyio
 import asyncio
 import traceback
-import structlog
 
+import anyio
+import structlog
 from aiosmb.commons.connection.factory import SMBConnectionFactory
+from aiosmb.commons.connection.target import SMBConnectionDialect, SMBTarget
 from aiosmb.commons.interfaces.directory import SMBDirectory
-from harbinger.database.database import SessionLocal
-from harbinger import crud
-from harbinger import schemas
-from asyauth.common.credentials import UniCredential
-from aiosmb.commons.connection.target import SMBTarget, SMBConnectionDialect
-from asysocks.unicomm.common.proxy import UniProxyTarget
 from alive_progress import alive_bar
 from anyio.abc import TaskGroup
+from asyauth.common.credentials import UniCredential
+from asysocks.unicomm.common.proxy import UniProxyTarget
+
+from harbinger import crud, schemas
+from harbinger.database.database import SessionLocal
 
 
 class ShareEnum:
@@ -74,9 +74,8 @@ class ShareEnum:
             self.tg.start_soon(self.root_worker, f"worker-{i}")
 
         async with SessionLocal() as session:
-            entries = [
-                entry
-                for entry in await crud.indexer_list_shares(
+            entries = list(
+                await crud.indexer_list_shares(
                     session,
                     max_shares=max_number,
                     not_label_ids=[
@@ -84,29 +83,32 @@ class ShareEnum:
                         "851853d0-e540-4185-b46e-cf2e0cc63aa8",
                     ],
                 )
-            ]
+            )
 
             with alive_bar(len(entries), enrich_print=False) as bar:
                 self.bar = bar
                 for entry in entries:
                     self.queue.put_nowait(str(entry.id))
                 self.logger.info(
-                    f"Enumerating the root shares of {len(entries)} shares"
+                    f"Enumerating the root shares of {len(entries)} shares",
                 )
                 await self.queue.join()
 
         self.tg.cancel_scope.cancel()
 
     async def run(
-        self, depth: int, workers: int = 5, max_number: int = 0, search: str = ""
+        self,
+        depth: int,
+        workers: int = 5,
+        max_number: int = 0,
+        search: str = "",
     ):
         for i in range(workers):
             self.tg.start_soon(self.worker, f"worker-{i}", depth)
 
         async with SessionLocal() as session:
-            entries = [
-                entry
-                for entry in await crud.indexer_list_shares_filtered(
+            entries = list(
+                await crud.indexer_list_shares_filtered(
                     session,
                     max_shares=max_number,
                     not_label_ids=[
@@ -117,7 +119,7 @@ class ShareEnum:
                     depth=depth,
                     search=search,
                 )
-            ]
+            )
 
             with alive_bar(len(entries), enrich_print=False) as bar:
                 self.bar = bar
@@ -135,22 +137,26 @@ class ShareEnum:
             if not share:
                 return 0
 
-            files = [
-                file
-                for file in await crud.list_share_files(
-                    session, share_id, depth, type="dir", indexed=False
+            files = list(
+                await crud.list_share_files(
+                    session,
+                    share_id,
+                    depth,
+                    type="dir",
+                    indexed=False,
                 )
-            ]
+            )
 
             if not files:
-                return
+                return None
 
             hostname = share.unc_path.split("\\")[2]
             self.logger.info(
-                f"[{name}] Listing {len(files)} folders on {share.unc_path}"
+                f"[{name}] Listing {len(files)} folders on {share.unc_path}",
             )
             target = SMBTarget(
-                hostname=hostname, proxies=[self.proxy] if self.proxy else []
+                hostname=hostname,
+                proxies=[self.proxy] if self.proxy else [],
             )
             if self.smbv3:
                 target.update_dialect(SMBConnectionDialect.SMB3)
@@ -161,10 +167,10 @@ class ShareEnum:
                 _, err = await connection.login()
                 if err is not None:
                     self.logger.warning(f"Error connecting: {err}")
-                    return
+                    return None
             except Exception as e:
-                self.logger.error(f"Exception while connecting: {e}")
-                return
+                self.logger.exception(f"Exception while connecting: {e}")
+                return None
 
             total_count = 0
 
@@ -175,7 +181,7 @@ class ShareEnum:
                 with anyio.fail_after(120):
                     try:
                         async for file, file_type, err in directory.list_gen(
-                            connection
+                            connection,
                         ):
                             if file.name:
                                 await crud.create_share_file(
@@ -196,7 +202,7 @@ class ShareEnum:
                                 count += 1
                             if count > 1000:
                                 self.logger.warning(
-                                    f"Large fileshare (>1000) for speed sake going to skip the rest of {parent_file.unc_path}"
+                                    f"Large fileshare (>1000) for speed sake going to skip the rest of {parent_file.unc_path}",
                                 )
                                 break
                             if count % 200 == 0:
@@ -215,6 +221,7 @@ class ShareEnum:
             await session.commit()
             await connection.disconnect()
             self.logger.info(f"found {total_count} files on {parent_file.unc_path}")
+        return None
 
     async def list_share_root(self, name: str, share_id: str) -> int:
         async with SessionLocal() as session:
@@ -226,7 +233,8 @@ class ShareEnum:
             self.logger.info(f"[{name}] Listing {share.unc_path} on {hostname}")
 
             target = SMBTarget(
-                hostname=hostname, proxies=[self.proxy] if self.proxy else []
+                hostname=hostname,
+                proxies=[self.proxy] if self.proxy else [],
             )
             if self.smbv3:
                 target.update_dialect(SMBConnectionDialect.SMB3)
@@ -263,7 +271,7 @@ class ShareEnum:
                         count += 1
                         if count > 1000:
                             self.logger.warning(
-                                f"Large fileshare (>1000) for speed sake going to skip the rest of {share.unc_path}"
+                                f"Large fileshare (>1000) for speed sake going to skip the rest of {share.unc_path}",
                             )
                             break
                         if count % 200 == 0:
@@ -272,7 +280,7 @@ class ShareEnum:
                 await session.commit()
                 if count:
                     self.logger.info(
-                        f"[{name}] found {count} files on {share.unc_path}"
+                        f"[{name}] found {count} files on {share.unc_path}",
                     )
             except Exception:
                 pass
@@ -283,7 +291,8 @@ class ShareEnum:
             await crud.create_label_item(
                 session,
                 schemas.LabeledItemCreate(
-                    label_id="851853d0-e540-4185-b46e-cf2e0cc63aa8", share_id=share_id
+                    label_id="851853d0-e540-4185-b46e-cf2e0cc63aa8",
+                    share_id=share_id,
                 ),
             )
             return count

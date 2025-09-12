@@ -12,30 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from harbinger.worker.client import get_client
-from pydantic import UUID4
-import click
+import signal
 import typing
-from harbinger.indexer.list_shares import ListShares
-from harbinger.indexer.list_files import ShareEnum
-from harbinger.indexer.download_files import Downloader
-from harbinger.indexer.upload_file import Uploader
-from harbinger import crud
-import structlog
-import anyio
-from asyauth.common.credentials import NTLMCredential
-from asyauth.common.credentials.kerberos import KerberosCredential
-from asysocks.unicomm.common.proxy import UniProxyTarget, UniProxyProto
-from asyauth.common.constants import asyauthSecret
-from harbinger.database.database import SessionLocal
-from asysocks.unicomm.common.target import UniTarget, UniProto
-from harbinger.files.client import download_file
-from harbinger.database.redis_pool import redis
-
+from dataclasses import dataclass
 from functools import wraps
 
-from dataclasses import dataclass
-import signal
+import anyio
+import click
+import structlog
+from asyauth.common.constants import asyauthSecret
+from asyauth.common.credentials import NTLMCredential
+from asyauth.common.credentials.kerberos import KerberosCredential
+from asysocks.unicomm.common.proxy import UniProxyProto, UniProxyTarget
+from asysocks.unicomm.common.target import UniProto, UniTarget
+from pydantic import UUID4
+
+from harbinger import crud
+from harbinger.database.database import SessionLocal
+from harbinger.database.redis_pool import redis
+from harbinger.files.client import download_file
+from harbinger.indexer.download_files import Downloader
+from harbinger.indexer.list_files import ShareEnum
+from harbinger.indexer.list_shares import ListShares
+from harbinger.indexer.upload_file import Uploader
+from harbinger.worker.client import get_client
 
 
 @dataclass
@@ -61,15 +61,19 @@ def cli() -> None:
 
 
 async def load_credential(
-    credential_id: str | UUID4, dc_ip: str = ""
+    credential_id: str | UUID4,
+    dc_ip: str = "",
 ) -> NTLMCredential | KerberosCredential | None:
-    async with SessionLocal() as session:
+    async with SessionLocal():
         cred_db = await crud.get_credential(credential_id)
         if not cred_db:
             return None
         if cred_db.kerberos:
             target = UniTarget(
-                dc_ip=dc_ip, ip="", port=445, protocol=UniProto.CLIENT_TCP
+                dc_ip=dc_ip,
+                ip="",
+                port=445,
+                protocol=UniProto.CLIENT_TCP,
             )
             return KerberosCredential(
                 stype=asyauthSecret.CCACHEB64,
@@ -78,21 +82,16 @@ async def load_credential(
                 domain=cred_db.domain.long_name,
                 target=target,
             )
-        else:
-            return NTLMCredential(
-                secret=cred_db.password.password or cred_db.password.nt,
-                username=cred_db.username,
-                stype=(
-                    asyauthSecret.PASSWORD
-                    if cred_db.password.password
-                    else asyauthSecret.NT
-                ),
-                domain=cred_db.domain.short_name,
-            )
+        return NTLMCredential(
+            secret=cred_db.password.password or cred_db.password.nt,
+            username=cred_db.username,
+            stype=(asyauthSecret.PASSWORD if cred_db.password.password else asyauthSecret.NT),
+            domain=cred_db.domain.short_name,
+        )
 
 
 async def load_proxy(proxy_id: str | UUID4) -> UniProxyTarget | None:
-    async with SessionLocal() as session:
+    async with SessionLocal():
         proxy_db = await crud.get_proxy(proxy_id=proxy_id)
         if not proxy_db:
             return None
@@ -124,7 +123,11 @@ async def get_file(file_id: str | UUID4) -> bytes | None:
 @click.option("--max-hosts", type=int, default=100000000)
 @click.option("--sleep", type=int, default=0)
 @click.option(
-    "--smbv3", is_flag=True, show_default=True, default=False, help="Force smbv3"
+    "--smbv3",
+    is_flag=True,
+    show_default=True,
+    default=False,
+    help="Force smbv3",
 )
 def list_shares(
     hosts: typing.IO,
@@ -137,7 +140,15 @@ def list_shares(
     smbv3: bool = False,
 ) -> None:
     anyio.run(
-        list_sharesa, hosts, workers, proxy, credential, dc_ip, max_hosts, sleep, smbv3
+        list_sharesa,
+        hosts,
+        workers,
+        proxy,
+        credential,
+        dc_ip,
+        max_hosts,
+        sleep,
+        smbv3,
     )
 
 
@@ -151,7 +162,7 @@ async def list_sharesa(
     sleep: int,
     smbv3: bool,
 ) -> None:
-    data = [h.strip() for h in hosts.readlines()]
+    data = [h.strip() for h in hosts]
     logger.info(f"Listing shares on {len(data)} hosts")
 
     proxy = None
@@ -172,7 +183,7 @@ async def list_sharesa(
             tg.start_soon(shares.run, data, workers, max_hosts, sleep)
 
             with anyio.open_signal_receiver(signal.SIGTERM, signal.SIGINT) as signals:
-                async for signum in signals:
+                async for _signum in signals:
                     tg.cancel_scope.cancel()
     finally:
         await redis.aclose()
@@ -185,7 +196,11 @@ async def list_sharesa(
 @click.option("--max", type=int, default=0, help="Max shares to enumerate")
 @click.option("--dc-ip", type=str)
 @click.option(
-    "--smbv3", is_flag=True, show_default=True, default=False, help="Force smbv3"
+    "--smbv3",
+    is_flag=True,
+    show_default=True,
+    default=False,
+    help="Force smbv3",
 )
 def list_root_shares(
     workers: int,
@@ -235,7 +250,11 @@ async def list_root_sharesa(
 @click.option("--dc-ip", type=str, default="")
 @click.option("--search", type=str, default="")
 @click.option(
-    "--smbv3", is_flag=True, show_default=True, default=False, help="Force smbv3"
+    "--smbv3",
+    is_flag=True,
+    show_default=True,
+    default=False,
+    help="Force smbv3",
 )
 def list_shares_depth(
     depth: int,
@@ -248,7 +267,15 @@ def list_shares_depth(
     smbv3: bool = False,
 ) -> None:
     anyio.run(
-        list_shares_deptha, depth, workers, max, proxy, credential, dc_ip, search, smbv3
+        list_shares_deptha,
+        depth,
+        workers,
+        max,
+        proxy,
+        credential,
+        dc_ip,
+        search,
+        smbv3,
     )
 
 
@@ -290,7 +317,11 @@ async def list_shares_deptha(
 @click.option("--max", type=int, default=0, help="Max shares to enumerate")
 @click.option("--dc-ip", type=str, default="")
 @click.option(
-    "--smbv3", is_flag=True, show_default=True, default=False, help="Force smbv3"
+    "--smbv3",
+    is_flag=True,
+    show_default=True,
+    default=False,
+    help="Force smbv3",
 )
 def download(
     search,
@@ -341,7 +372,11 @@ async def downloada(
 @click.option("--unc", type=str, required=True)
 @click.option("--dc-ip", type=str, default="")
 @click.option(
-    "--smbv3", is_flag=True, show_default=True, default=False, help="Force smbv3"
+    "--smbv3",
+    is_flag=True,
+    show_default=True,
+    default=False,
+    help="Force smbv3",
 )
 def upload(
     proxy: str,

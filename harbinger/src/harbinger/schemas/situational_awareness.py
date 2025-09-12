@@ -18,7 +18,6 @@ from enum import Enum
 
 from pydantic import UUID4, BaseModel, ConfigDict, model_validator
 
-
 from .domain import Domain
 
 
@@ -54,9 +53,10 @@ class SituationalAwarenessCreate(SituationalAwarenessBase):
                 self.value_bool,
                 self.value_int is not None,
                 self.value_json,
-            ]
+            ],
         ):
-            raise ValueError("At least one value must be set")
+            msg = "At least one value must be set"
+            raise ValueError(msg)
         return self
 
 

@@ -15,12 +15,12 @@
 
 from datetime import datetime
 from enum import Enum
-from typing import List
+from typing import TYPE_CHECKING
 
 from pydantic import UUID4, BaseModel, ConfigDict, Field
 
-
-from .label import Label
+if TYPE_CHECKING:
+    from .label import Label
 
 
 class ProxyStatus(str, Enum):
@@ -36,7 +36,9 @@ class ProxyType(str, Enum):
 class ProxyBase(BaseModel):
     host: str = "localhost"
     port: int = Field(
-        gt=0, lt=65536, description="The port must be between 1 and 65,535"
+        gt=0,
+        lt=65536,
+        description="The port must be between 1 and 65,535",
     )
     type: ProxyType
     status: ProxyStatus
@@ -57,7 +59,7 @@ class ProxyCreate(ProxyBase):
 class Proxy(ProxyBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4
-    labels: List["Label"] | None = None
+    labels: list["Label"] | None = None
 
     def to_str(self) -> str:
         return f"{self.type.name} {self.host} {self.port} {self.username or ''} {self.password or ''}".strip()
@@ -86,7 +88,7 @@ class ProxyChain(ProxyChainBase):
     time_completed: datetime | None = None
     suggestion_id: UUID4 | None = None
 
-    labels: List["Label"] | None = None
+    labels: list["Label"] | None = None
 
 
 class ProxyChainGraph(ProxyChain):

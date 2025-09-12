@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import uuid
-from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
@@ -23,14 +22,13 @@ from sqlalchemy.sql import func
 from harbinger.database.database import Base
 from harbinger.database.types import mapped_column
 
-if TYPE_CHECKING:
-    from .label import Label
-
 
 class Proxy(Base):
     __tablename__ = "proxies"
     id: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
     )
     host: Mapped[str] = mapped_column(String)
     port: Mapped[int] = mapped_column(Integer)
@@ -39,19 +37,25 @@ class Proxy(Base):
     note: Mapped[str] = mapped_column(String)
     remote_hostname: Mapped[str] = mapped_column(String)
     time_created: Mapped[DateTime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True),
+        server_default=func.now(),
     )
     username: Mapped[str] = mapped_column(String)
     password: Mapped[str] = mapped_column(String)
     c2_server_id: Mapped[UUID] = mapped_column(
-        ForeignKey("c2_servers.id"), nullable=True
+        ForeignKey("c2_servers.id"),
+        nullable=True,
     )
     internal_id: Mapped[str] = mapped_column(String)
     c2_implant_id: Mapped[UUID] = mapped_column(
-        ForeignKey("c2_implants.id"), nullable=True
+        ForeignKey("c2_implants.id"),
+        nullable=True,
     )
     c2_task_id: Mapped[UUID] = mapped_column(ForeignKey("c2_tasks.id"), nullable=True)
 
     labels = relationship(
-        "Label", secondary="labeled_item", lazy="joined", viewonly=True
+        "Label",
+        secondary="labeled_item",
+        lazy="joined",
+        viewonly=True,
     )

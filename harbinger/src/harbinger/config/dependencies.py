@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from fastapi import Request, Depends
+from fastapi import Request
+
 from harbinger.database.users import fastapi_users
 
 

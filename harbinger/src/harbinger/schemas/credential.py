@@ -13,15 +13,16 @@
 # limitations under the License.
 
 
-from typing import List
+from typing import TYPE_CHECKING
 
 from pydantic import UUID4, BaseModel, ConfigDict
 
-
 from .domain import Domain
 from .kerberos import Kerberos
-from .label import Label
 from .password import Password
+
+if TYPE_CHECKING:
+    from .label import Label
 
 
 class CredentialBase(BaseModel):
@@ -42,4 +43,4 @@ class Credential(CredentialBase):
     domain: Domain | None = None
     password: Password | None = None
     kerberos: Kerberos | None = None
-    labels: List["Label"] | None = None
+    labels: list["Label"] | None = None

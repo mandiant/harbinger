@@ -14,7 +14,6 @@
 
 import hashlib
 import uuid
-from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
@@ -24,23 +23,23 @@ from sqlalchemy.sql import func
 from harbinger.database.database import Base
 from harbinger.database.types import mapped_column
 
-if TYPE_CHECKING:
-    from .label import Label
-
 
 def sha256(context):
     return hashlib.sha256(
-        context.get_current_parameters()["hash"].encode("utf-8")
+        context.get_current_parameters()["hash"].encode("utf-8"),
     ).hexdigest()
 
 
 class Hash(Base):
     __tablename__ = "hashes"
     id: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
     )
     time_created: Mapped[DateTime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True),
+        server_default=func.now(),
     )
     hash: Mapped[str] = mapped_column(String)
     type: Mapped[str] = mapped_column(String)
@@ -49,7 +48,10 @@ class Hash(Base):
     sha256_hash: Mapped[str] = mapped_column(String, unique=True, default=sha256)
 
     labels = relationship(
-        "Label", secondary="labeled_item", lazy="joined", viewonly=True
+        "Label",
+        secondary="labeled_item",
+        lazy="joined",
+        viewonly=True,
     )
 
     @validates("hash", "type", "status")

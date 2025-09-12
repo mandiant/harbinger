@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-Temporal Workflow and Activities for the Plan Supervisor.
+"""Temporal Workflow and Activities for the Plan Supervisor.
 
 This module contains the core Temporal workflow, activities, and helper
 functions for the Plan Supervisor agent. It is responsible for managing the
@@ -25,18 +24,15 @@ import asyncio
 import json
 import uuid
 from datetime import timedelta
-from typing import List, Any, Dict
 
 import rigging as rg
 import structlog
+from rigging.chat import Chat
 from sqlalchemy.ext.asyncio import AsyncSession
 from temporalio import activity, workflow
 from temporalio.exceptions import ApplicationError
-from rigging.chat import Chat
 
-from harbinger import crud
-from harbinger import filters
-from harbinger import schemas
+from harbinger import crud, filters, schemas
 from harbinger.database.database import SessionLocal
 from harbinger.database.redis_pool import redis
 from harbinger.enums import LlmStatus
@@ -54,8 +50,7 @@ def format_plan_for_llm(
     steps: list[schemas.PlanStep],
     suggestions: list[schemas.Suggestion],
 ) -> str:
-    """
-    Formats the plan, its steps, and any existing suggestions into a
+    """Formats the plan, its steps, and any existing suggestions into a
     concise, readable string for the LLM.
     """
     summary = f"Plan Name: {plan.name}\n"
@@ -97,7 +92,7 @@ async def get_database_summary(db: AsyncSession) -> str:
 
 # --- Tool Definitions (Consolidated from supervisor.py) ---
 
-SUPERVISOR_TOOLS: List[rg.Tool] = [
+SUPERVISOR_TOOLS: list[rg.Tool] = [
     tools.get_all_c2_implant_info,
     tools.get_c2_tasks_executed,
     tools.get_playbooks,
@@ -123,8 +118,7 @@ SUPERVISOR_TOOLS: List[rg.Tool] = [
 
 
 class RiggingWatcher:
-    """
-    Captures LLM activity from a ChatPipeline and logs it directly to the
+    """Captures LLM activity from a ChatPipeline and logs it directly to the
     database and Redis.
     """
 
@@ -148,9 +142,8 @@ class RiggingWatcher:
         message = schemas.LlmLog.model_validate(created_log).model_dump_json()
         await redis.publish(channel, message)
 
-    async def on_chat_update(self, chats: List[Chat]) -> None:
-        """
-        This is the WatchChatCallback. It's called by the rigging pipeline
+    async def on_chat_update(self, chats: list[Chat]) -> None:
+        """This is the WatchChatCallback. It's called by the rigging pipeline
         whenever a chat is generated.
         """
         if not chats:
@@ -193,14 +186,13 @@ async def create_consumer_group_activity(plan_id: str) -> None:
         )
     except Exception as e:
         if "BUSYGROUP" not in str(e):
-            log.error("Failed to create consumer group", error=e)
+            log.exception("Failed to create consumer group", error=e)
             raise
 
 
 @activity.defn
 async def poll_for_stream_events_activity(plan_id: str) -> list[str]:
-    """
-    Polls the Redis stream and drains all pending events for this plan's
+    """Polls the Redis stream and drains all pending events for this plan's
     consumer group in a single batch.
     """
     stream_name = "supervisor:events"
@@ -237,8 +229,9 @@ async def poll_for_stream_events_activity(plan_id: str) -> list[str]:
                 await redis.xack(stream_name, group_name, *message_ids_to_ack)
 
         except Exception as e:
-            log.error(
-                "Error polling or processing stream events in activity loop", error=e
+            log.exception(
+                "Error polling or processing stream events in activity loop",
+                error=e,
             )
             # Break the loop on error to avoid getting stuck
             break
@@ -253,7 +246,9 @@ async def generate_initial_steps_activity(plan_id: str) -> None:
     plan_uuid = uuid.UUID(plan_id)
     async with SessionLocal() as db:
         existing_steps = await crud.get_plan_steps(
-            db, filters=filters.PlanStepFilter(plan_id=plan_uuid), limit=1
+            db,
+            filters=filters.PlanStepFilter(plan_id=plan_uuid),
+            limit=1,
         )
         if existing_steps:
             log.info("Plan steps already exist. Skipping generation.", plan_id=plan_id)
@@ -261,7 +256,8 @@ async def generate_initial_steps_activity(plan_id: str) -> None:
 
         plan = await crud.get_plan(db, id=plan_uuid)
         if not plan:
-            raise ApplicationError(f"Plan with ID {plan_id} not found.")
+            msg = f"Plan with ID {plan_id} not found."
+            raise ApplicationError(msg)
 
         # Create a detailed objective string for the LLM
         llm_objectives = f"Plan Name: {plan.name}"
@@ -282,7 +278,8 @@ async def generate_initial_steps_activity(plan_id: str) -> None:
             )
             for step in generated_plan.steps:
                 await crud.create_plan_step(
-                    db, schemas.PlanStepCreate(**step.model_dump(), plan_id=plan_uuid)
+                    db,
+                    schemas.PlanStepCreate(**step.model_dump(), plan_id=plan_uuid),
                 )
         else:
             log.warning("LLM did not generate any initial steps", plan_id=plan_id)
@@ -301,10 +298,13 @@ async def handle_events_activity(plan_id: str, events: list[str]) -> None:
     async with SessionLocal() as db:
         plan_obj = await crud.get_plan(db, id=plan_uuid)
         if not plan_obj:
-            raise ApplicationError(f"Plan with ID {plan_id} not found.")
+            msg = f"Plan with ID {plan_id} not found."
+            raise ApplicationError(msg)
 
         plan_steps = await crud.get_plan_steps(
-            db, filters=filters.PlanStepFilter(plan_id=plan_uuid), limit=1000
+            db,
+            filters=filters.PlanStepFilter(plan_id=plan_uuid),
+            limit=1000,
         )
         plan_step_ids = [step.id for step in plan_steps]
         suggestions = []
@@ -312,17 +312,17 @@ async def handle_events_activity(plan_id: str, events: list[str]) -> None:
             suggestions = await crud.get_suggestions(
                 db,
                 filters=filters.SuggestionFilter(
-                    plan_step=filters.PlanStepFilter(id__in=plan_step_ids)
+                    plan_step=filters.PlanStepFilter(id__in=plan_step_ids),
                 ),
                 limit=1000,
             )
 
         plan_summary = format_plan_for_llm(
-            schemas.Plan.model_validate(plan_obj), list(plan_steps), list(suggestions)
+            schemas.Plan.model_validate(plan_obj),
+            list(plan_steps),
+            list(suggestions),
         )
-        event_text = (
-            f"{await get_database_summary(db)}. New events:\n{aggregated_event_context}"
-        )
+        event_text = f"{await get_database_summary(db)}. New events:\n{aggregated_event_context}"
 
         pipeline = prompts.generator.chat().using(SUPERVISOR_TOOLS, max_depth=100)
         run = prompts.update_testing_plan.watch(watcher.on_chat_update).bind(pipeline)
@@ -427,7 +427,8 @@ class PlanSupervisorWorkflow:
                 args=[
                     plan_id,
                     [
-                        "The initial plan has been created. Please analyze the current state and suggest the first logical action."
+                        "The initial plan has been created."
+                        + "Please analyze the current state and suggest the first logical action.",
                     ],
                 ],
                 start_to_close_timeout=timedelta(minutes=10),
@@ -459,7 +460,7 @@ class PlanSupervisorWorkflow:
                         "Batching timer expired, starting processing cycle.",
                         plan_id=plan_id,
                     )
-                    pass  # This is the expected timeout for our batching window
+                    # This is the expected timeout for our batching window
 
                 if self._force_update_requested:
                     log.info(
@@ -469,7 +470,8 @@ class PlanSupervisorWorkflow:
 
                 if self._should_stop:
                     log.info(
-                        "Stop signal received, terminating workflow.", plan_id=plan_id
+                        "Stop signal received, terminating workflow.",
+                        plan_id=plan_id,
                     )
                     break
 
@@ -489,7 +491,7 @@ class PlanSupervisorWorkflow:
         except Exception as e:
             # For any other unexpected exception, log the error and set the
             # plan to INACTIVE as a safety measure.
-            log.error(
+            log.exception(
                 "Workflow failed with an unexpected exception.",
                 plan_id=plan_id,
                 error=e,

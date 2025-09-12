@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from functools import lru_cache
 import socket
+from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -41,7 +41,9 @@ class Settings(BaseSettings):
     temporal_host: str
 
     model_config = SettingsConfigDict(
-        env_file=".env", env_file_encoding="utf-8", extra="ignore"
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
     )
 
     bofhound: str = "/opt/tools/bofhound_venv/bin/bofhound"
@@ -55,6 +57,6 @@ class Settings(BaseSettings):
     gemini_enabled: bool = False
 
 
-@lru_cache()
+@lru_cache
 def get_settings():
     return Settings()  # type: ignore

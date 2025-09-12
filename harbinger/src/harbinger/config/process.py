@@ -13,17 +13,18 @@
 # limitations under the License.
 
 import pathlib
-from typing import Dict
+
 import yaml
+
 from harbinger import schemas
 
 
-def get_process_mapping() -> Dict[str, str]:
-    result = dict()
+def get_process_mapping() -> dict[str, str]:
+    result = {}
     base = pathlib.Path(__file__).parent.resolve() / "process"
-    files = [x for x in base.iterdir()]
+    files = list(base.iterdir())
     for file in files:
-        with open(file, "r") as f:
+        with open(file) as f:
             yaml_data = f.read()
         for entry in yaml.safe_load_all(yaml_data):
             entry = schemas.ProcessMapping(**entry)

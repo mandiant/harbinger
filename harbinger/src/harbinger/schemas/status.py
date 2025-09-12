@@ -37,9 +37,9 @@ class Status(str, Enum):
     uploading = "uploading"
     empty = ""
 
-    def __contains__(cls, item):  # type: ignore
+    def __contains__(self, item):  # type: ignore
         try:
-            cls(item)  # type: ignore
+            self(item)  # type: ignore
         except ValueError:
             return False
         return True

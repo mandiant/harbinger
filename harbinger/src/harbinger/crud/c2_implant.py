@@ -1,28 +1,31 @@
+import contextlib
 import uuid
+from collections.abc import Iterable
 from datetime import datetime
-from typing import Iterable, Optional, Tuple
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
-from harbinger import models, schemas
-from harbinger import filters
+from pydantic import UUID4
+from sqlalchemy import Select, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql.expression import func
+
+from harbinger import filters, models, schemas
 from harbinger.database.cache import (
     invalidate_cache_entry,
     redis_cache,
     redis_cache_invalidate,
 )
 from harbinger.database.database import SessionLocal
-from pydantic import UUID4
-from sqlalchemy import Select, select, update
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql.expression import func
 
 from ._common import DEFAULT_CACHE_TTL, create_filter_for_column
 from .label import get_labels_for_q
 
 
 async def get_c2_implants_paged(
-    db: AsyncSession, filters: filters.ImplantFilter, alive_only: bool = False
+    db: AsyncSession,
+    filters: filters.ImplantFilter,
+    alive_only: bool = False,
 ) -> Page[models.C2Implant]:
     q: Select = select(models.C2Implant)
     q = q.outerjoin(models.C2Implant.labels)
@@ -30,18 +33,18 @@ async def get_c2_implants_paged(
     if alive_only:
         q1 = select(models.LabeledItem.c2_implant_id)
         q1 = q1.where(
-            models.LabeledItem.label_id == "d734d03b-50d4-43e3-bb0e-e6bf56ec76b1"
+            models.LabeledItem.label_id == "d734d03b-50d4-43e3-bb0e-e6bf56ec76b1",
         )
         q = q.where(models.C2Implant.id.not_in(q1))
-    try:
+    with contextlib.suppress(NotImplementedError):
         q = filters.sort(q)
-    except NotImplementedError:
-        pass
     return await paginate(db, q)
 
 
 async def get_c2_implant_filters(
-    db: AsyncSession, filters: filters.ImplantFilter, alive_only: bool = False
+    db: AsyncSession,
+    filters: filters.ImplantFilter,
+    alive_only: bool = False,
 ) -> list[schemas.Filter]:
     result: list[schemas.Filter] = []
     q: Select = (
@@ -53,12 +56,16 @@ async def get_c2_implant_filters(
     if alive_only:
         q1 = select(models.LabeledItem.c2_implant_id)
         q1 = q1.where(
-            models.LabeledItem.label_id == "d734d03b-50d4-43e3-bb0e-e6bf56ec76b1"
+            models.LabeledItem.label_id == "d734d03b-50d4-43e3-bb0e-e6bf56ec76b1",
         )
         q = q.where(models.C2Implant.id.not_in(q1))
     for entry in ["os", "payload_type", "c2_type", "username", "domain"]:
         ft_entry = await create_filter_for_column(
-            db, q, getattr(models.C2Implant, entry), entry, entry
+            db,
+            q,
+            getattr(models.C2Implant, entry),
+            entry,
+            entry,
         )
         result.append(ft_entry)
     lb_entry = await get_labels_for_q(db, q)
@@ -70,7 +77,7 @@ async def get_c2_implant_filters(
             icon="",
             query_name="alive_only",
             type="bool",
-        )
+        ),
     )
     return result
 
@@ -118,14 +125,17 @@ async def get_c2_implants(
     ttl_seconds=DEFAULT_CACHE_TTL,
 )
 async def get_c2_implant(
-    db: AsyncSession, c2_implant_id: str | uuid.UUID
-) -> Optional[models.C2Implant]:
+    db: AsyncSession,
+    c2_implant_id: str | uuid.UUID,
+) -> models.C2Implant | None:
     return await db.get(models.C2Implant, c2_implant_id)
 
 
 async def get_c2_implant_by_internal_id(
-    db: AsyncSession, internal_id: str, c2_server_id: str
-) -> Optional[models.C2Implant]:
+    db: AsyncSession,
+    internal_id: str,
+    c2_server_id: str,
+) -> models.C2Implant | None:
     q = (
         select(models.C2Implant)
         .where(models.C2Implant.internal_id == internal_id)
@@ -138,11 +148,15 @@ async def get_c2_implant_by_internal_id(
 
 @redis_cache_invalidate(key_prefix="c2_implant", key_param_name="c2_implant_id")
 async def update_c2_implant(
-    db: AsyncSession, c2_implant_id: str | UUID4, implant: schemas.C2ImplantUpdate
-) -> Optional[models.C2Implant]:
+    db: AsyncSession,
+    c2_implant_id: str | UUID4,
+    implant: schemas.C2ImplantUpdate,
+) -> models.C2Implant | None:
     q = update(models.C2Implant).where(models.C2Implant.id == c2_implant_id)
     data = implant.model_dump(
-        exclude_none=True, exclude_defaults=True, exclude_unset=True
+        exclude_none=True,
+        exclude_defaults=True,
+        exclude_unset=True,
     )
     if not data:
         return await db.get(models.C2Implant, c2_implant_id)
@@ -153,14 +167,15 @@ async def update_c2_implant(
 
 
 async def create_or_update_c2_implant(
-    db: AsyncSession, implant: schemas.C2ImplantCreate
-) -> Tuple[bool, models.C2Implant]:
+    db: AsyncSession,
+    implant: schemas.C2ImplantCreate,
+) -> tuple[bool, models.C2Implant]:
     """Creates the implant in the database, if the implant with that id already exists, updates it.
     returns tuple[bool, C2Implant]
     The bool indicates if the implant was creaed.
     """
     q = select(models.C2Implant).where(
-        models.C2Implant.c2_server_id == implant.c2_server_id
+        models.C2Implant.c2_server_id == implant.c2_server_id,
     )
     if implant.internal_id:
         q = q.where(models.C2Implant.internal_id == implant.internal_id)
@@ -172,8 +187,10 @@ async def create_or_update_c2_implant(
             .where(models.C2Implant.id == db_implant.id)
             .values(
                 **implant.model_dump(
-                    exclude_none=True, exclude_unset=True, exclude_defaults=True
-                )
+                    exclude_none=True,
+                    exclude_unset=True,
+                    exclude_defaults=True,
+                ),
             )
         )
         await db.execute(q)
@@ -190,20 +207,21 @@ async def create_or_update_c2_implant(
 
 
 async def recurse_labels_c2_implant(
-    db: AsyncSession, c2_implant_id: str | UUID4
+    db: AsyncSession,
+    c2_implant_id: str | UUID4,
 ) -> Iterable[schemas.Label]:
     q = select(models.Label)
     q = q.where(models.LabeledItem.label_id == models.Label.id)
     q = q.where(models.LabeledItem.c2_implant_id == c2_implant_id)
     resp = await db.execute(q)
-    result = [schemas.Label.model_validate(l) for l in resp.scalars().unique().all()]
+    result = [schemas.Label.model_validate(label) for label in resp.scalars().unique().all()]
     q = select(models.Label)
     q = q.where(models.LabeledItem.label_id == models.Label.id)
     q = q.where(models.LabeledItem.host_id == models.C2Implant.host_id)
     q = q.where(models.C2Implant.id == c2_implant_id)
     resp = await db.execute(q)
     result.extend(
-        [schemas.Label.model_validate(l) for l in resp.scalars().unique().all()]
+        [schemas.Label.model_validate(label) for label in resp.scalars().unique().all()],
     )
     q = select(models.Label)
     q = q.where(models.LabeledItem.label_id == models.Label.id)
@@ -212,6 +230,6 @@ async def recurse_labels_c2_implant(
     q = q.where(models.C2Implant.id == c2_implant_id)
     resp = await db.execute(q)
     result.extend(
-        [schemas.Label.model_validate(l) for l in resp.scalars().unique().all()]
+        [schemas.Label.model_validate(label) for label in resp.scalars().unique().all()],
     )
     return result

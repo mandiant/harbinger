@@ -2,13 +2,9 @@ import asyncio
 import logging
 import random
 import string
-from typing import Tuple
 
 from fastapi import Depends
 from fastapi_users.db import SQLAlchemyUserDatabase
-from harbinger import models, schemas
-from harbinger.database.cache import invalidate_cache_entry, redis_cache_fixed_key
-from harbinger.database.database import SessionLocal, get_async_session
 from jinja2 import PackageLoader
 from jinja2.ext import do
 from jinja2.sandbox import SandboxedEnvironment
@@ -16,6 +12,10 @@ from sqlalchemy import Select, desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
 from sqlalchemy.sql.expression import func
+
+from harbinger import models, schemas
+from harbinger.database.cache import invalidate_cache_entry, redis_cache_fixed_key
+from harbinger.database.database import SessionLocal, get_async_session
 
 CACHE_DECORATORS_AVAILABLE = True
 
@@ -29,7 +29,7 @@ def filter_shuffle(seq):
         result = list(seq)
         random.shuffle(result)
         return result
-    except:
+    except Exception:
         return seq
 
 
@@ -56,17 +56,20 @@ async def create_filter_for_column(
     for entry in result.unique().all():
         if entry[1] or entry[1] is False:
             options.append(schemas.FilterOption(name=str(entry[1]), count=entry[0]))
-    ft_entry = schemas.Filter(
-        name=name, icon="", type="options", options=options, query_name=query_name
+    return schemas.Filter(
+        name=name,
+        icon="",
+        type="options",
+        options=options,
+        query_name=query_name,
     )
-    return ft_entry
 
 
 async def get_user_db(session: AsyncSession = Depends(get_async_session)):
     yield SQLAlchemyUserDatabase(session, models.User)
 
 
-def divmod_excel(n: int) -> Tuple[int, int]:
+def divmod_excel(n: int) -> tuple[int, int]:
     a, b = divmod(n, 26)
     if b == 0:
         return (a - 1, b + 26)
@@ -82,9 +85,7 @@ def to_excel(num: int) -> str:
 
 
 async def get_database_statistics(db: AsyncSession) -> dict[str, int]:
-    """
-    Efficiently retrieves counts of key models from the database.
-    """
+    """Efficiently retrieves counts of key models from the database."""
     queries = {
         "C2 Implants": select(func.count(models.C2Implant.id)),
         "Credentials": select(func.count(models.Credential.id)),
@@ -99,7 +100,7 @@ async def get_database_statistics(db: AsyncSession) -> dict[str, int]:
     }
     tasks = [db.scalar(query) for query in queries.values()]
     results = await asyncio.gather(*tasks)
-    return dict(zip(queries.keys(), results))
+    return dict(zip(queries.keys(), results, strict=False))
 
 
 @redis_cache_fixed_key(
@@ -110,14 +111,14 @@ async def get_database_statistics(db: AsyncSession) -> dict[str, int]:
 async def get_job_statistics(db: AsyncSession) -> dict:
     stats = {}
     q = select(models.ProxyJob.status, func.count(models.ProxyJob.id)).group_by(
-        models.ProxyJob.status
+        models.ProxyJob.status,
     )
     result = await db.execute(q)
     for entry in result.all():
         if entry[0]:
             stats[entry[0]] = entry[1]
     q = select(models.C2Job.status, func.count(models.C2Job.id)).group_by(
-        models.C2Job.status
+        models.C2Job.status,
     )
     result = await db.execute(q)
     for entry in result.all():
@@ -125,14 +126,14 @@ async def get_job_statistics(db: AsyncSession) -> dict:
             stats[entry[0]] += entry[1]
         else:
             stats[entry[0]] = entry[1]
-    return dict(items=[dict(key=key, value=value) for key, value in stats.items()])
+    return {"items": [{"key": key, "value": value} for key, value in stats.items()]}
 
 
 def create_random_color():
     r = random.randint(0, 255)
     g = random.randint(0, 255)
     b = random.randint(0, 255)
-    return "#{:02x}{:02x}{:02x}".format(int(r), int(g), int(b))
+    return f"#{int(r):02x}{int(g):02x}{int(b):02x}"
 
 
 async def send_label_events(

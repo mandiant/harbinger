@@ -1,14 +1,13 @@
-from google.protobuf.internal import containers as _containers
-from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
-from google.protobuf import descriptor as _descriptor
-from google.protobuf import message as _message
+from collections.abc import Iterable as _Iterable
+from collections.abc import Mapping as _Mapping
 from typing import (
     ClassVar as _ClassVar,
-    Iterable as _Iterable,
-    Mapping as _Mapping,
-    Optional as _Optional,
-    Union as _Union,
 )
+
+from google.protobuf import descriptor as _descriptor
+from google.protobuf import message as _message
+from google.protobuf.internal import containers as _containers
+from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
@@ -26,28 +25,28 @@ class PingRequest(_message.Message):
     __slots__ = ("message",)
     MESSAGE_FIELD_NUMBER: _ClassVar[int]
     message: str
-    def __init__(self, message: _Optional[str] = ...) -> None: ...
+    def __init__(self, message: str | None = ...) -> None: ...
 
 class ImplantRequest(_message.Message):
     __slots__ = (
-        "c2_server_id",
-        "internal_id",
-        "c2_type",
-        "payload_type",
-        "name",
-        "hostname",
-        "description",
-        "sleep",
-        "jitter",
-        "os",
-        "pid",
         "architecture",
-        "process",
-        "username",
-        "ip",
-        "external_ip",
+        "c2_server_id",
+        "c2_type",
+        "description",
         "domain",
+        "external_ip",
+        "hostname",
+        "internal_id",
+        "ip",
+        "jitter",
         "last_checkin",
+        "name",
+        "os",
+        "payload_type",
+        "pid",
+        "process",
+        "sleep",
+        "username",
     )
     C2_SERVER_ID_FIELD_NUMBER: _ClassVar[int]
     INTERNAL_ID_FIELD_NUMBER: _ClassVar[int]
@@ -87,24 +86,24 @@ class ImplantRequest(_message.Message):
     last_checkin: str
     def __init__(
         self,
-        c2_server_id: _Optional[str] = ...,
-        internal_id: _Optional[str] = ...,
-        c2_type: _Optional[str] = ...,
-        payload_type: _Optional[str] = ...,
-        name: _Optional[str] = ...,
-        hostname: _Optional[str] = ...,
-        description: _Optional[str] = ...,
-        sleep: _Optional[int] = ...,
-        jitter: _Optional[int] = ...,
-        os: _Optional[str] = ...,
-        pid: _Optional[int] = ...,
-        architecture: _Optional[str] = ...,
-        process: _Optional[str] = ...,
-        username: _Optional[str] = ...,
-        ip: _Optional[str] = ...,
-        external_ip: _Optional[str] = ...,
-        domain: _Optional[str] = ...,
-        last_checkin: _Optional[str] = ...,
+        c2_server_id: str | None = ...,
+        internal_id: str | None = ...,
+        c2_type: str | None = ...,
+        payload_type: str | None = ...,
+        name: str | None = ...,
+        hostname: str | None = ...,
+        description: str | None = ...,
+        sleep: int | None = ...,
+        jitter: int | None = ...,
+        os: str | None = ...,
+        pid: int | None = ...,
+        architecture: str | None = ...,
+        process: str | None = ...,
+        username: str | None = ...,
+        ip: str | None = ...,
+        external_ip: str | None = ...,
+        domain: str | None = ...,
+        last_checkin: str | None = ...,
     ) -> None: ...
 
 class ImplantResponse(_message.Message):
@@ -113,16 +112,16 @@ class ImplantResponse(_message.Message):
 
 class ProxyRequest(_message.Message):
     __slots__ = (
-        "host",
-        "port",
-        "type",
-        "status",
-        "note",
-        "remote_hostname",
-        "username",
-        "password",
         "c2_server_id",
+        "host",
         "internal_id",
+        "note",
+        "password",
+        "port",
+        "remote_hostname",
+        "status",
+        "type",
+        "username",
     )
     HOST_FIELD_NUMBER: _ClassVar[int]
     PORT_FIELD_NUMBER: _ClassVar[int]
@@ -146,16 +145,16 @@ class ProxyRequest(_message.Message):
     internal_id: str
     def __init__(
         self,
-        host: _Optional[str] = ...,
-        port: _Optional[int] = ...,
-        type: _Optional[str] = ...,
-        status: _Optional[str] = ...,
-        note: _Optional[str] = ...,
-        remote_hostname: _Optional[str] = ...,
-        username: _Optional[str] = ...,
-        password: _Optional[str] = ...,
-        c2_server_id: _Optional[str] = ...,
-        internal_id: _Optional[str] = ...,
+        host: str | None = ...,
+        port: int | None = ...,
+        type: str | None = ...,
+        status: str | None = ...,
+        note: str | None = ...,
+        remote_hostname: str | None = ...,
+        username: str | None = ...,
+        password: str | None = ...,
+        c2_server_id: str | None = ...,
+        internal_id: str | None = ...,
     ) -> None: ...
 
 class ProxyResponse(_message.Message):
@@ -164,12 +163,12 @@ class ProxyResponse(_message.Message):
 
 class FileRequest(_message.Message):
     __slots__ = (
-        "filename",
         "bucket",
-        "path",
-        "internal_task_id",
         "c2_server_id",
+        "filename",
         "internal_implant_id",
+        "internal_task_id",
+        "path",
         "upload_file_id",
     )
     FILENAME_FIELD_NUMBER: _ClassVar[int]
@@ -188,23 +187,23 @@ class FileRequest(_message.Message):
     upload_file_id: str
     def __init__(
         self,
-        filename: _Optional[str] = ...,
-        bucket: _Optional[str] = ...,
-        path: _Optional[str] = ...,
-        internal_task_id: _Optional[str] = ...,
-        c2_server_id: _Optional[str] = ...,
-        internal_implant_id: _Optional[str] = ...,
-        upload_file_id: _Optional[str] = ...,
+        filename: str | None = ...,
+        bucket: str | None = ...,
+        path: str | None = ...,
+        internal_task_id: str | None = ...,
+        c2_server_id: str | None = ...,
+        internal_implant_id: str | None = ...,
+        upload_file_id: str | None = ...,
     ) -> None: ...
 
 class FileResponse(_message.Message):
     __slots__ = ("id",)
     ID_FIELD_NUMBER: _ClassVar[int]
     id: str
-    def __init__(self, id: _Optional[str] = ...) -> None: ...
+    def __init__(self, id: str | None = ...) -> None: ...
 
 class C2TaskStatusRequest(_message.Message):
-    __slots__ = ("c2_server_id", "c2_task_id", "status", "message")
+    __slots__ = ("c2_server_id", "c2_task_id", "message", "status")
     C2_SERVER_ID_FIELD_NUMBER: _ClassVar[int]
     C2_TASK_ID_FIELD_NUMBER: _ClassVar[int]
     STATUS_FIELD_NUMBER: _ClassVar[int]
@@ -215,10 +214,10 @@ class C2TaskStatusRequest(_message.Message):
     message: str
     def __init__(
         self,
-        c2_server_id: _Optional[str] = ...,
-        c2_task_id: _Optional[str] = ...,
-        status: _Optional[str] = ...,
-        message: _Optional[str] = ...,
+        c2_server_id: str | None = ...,
+        c2_task_id: str | None = ...,
+        status: str | None = ...,
+        message: str | None = ...,
     ) -> None: ...
 
 class C2TaskStatusResponse(_message.Message):
@@ -229,20 +228,20 @@ class SettingsRequest(_message.Message):
     __slots__ = ("c2_server_id",)
     C2_SERVER_ID_FIELD_NUMBER: _ClassVar[int]
     c2_server_id: str
-    def __init__(self, c2_server_id: _Optional[str] = ...) -> None: ...
+    def __init__(self, c2_server_id: str | None = ...) -> None: ...
 
 class SettingsResponse(_message.Message):
     __slots__ = (
-        "type",
-        "name",
-        "hostname",
-        "username",
-        "port",
-        "password",
         "ca_certificate",
+        "certificate",
+        "hostname",
+        "name",
+        "password",
+        "port",
         "private_key",
         "token",
-        "certificate",
+        "type",
+        "username",
     )
     TYPE_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
@@ -266,30 +265,30 @@ class SettingsResponse(_message.Message):
     certificate: str
     def __init__(
         self,
-        type: _Optional[str] = ...,
-        name: _Optional[str] = ...,
-        hostname: _Optional[str] = ...,
-        username: _Optional[str] = ...,
-        port: _Optional[int] = ...,
-        password: _Optional[str] = ...,
-        ca_certificate: _Optional[str] = ...,
-        private_key: _Optional[str] = ...,
-        token: _Optional[str] = ...,
-        certificate: _Optional[str] = ...,
+        type: str | None = ...,
+        name: str | None = ...,
+        hostname: str | None = ...,
+        username: str | None = ...,
+        port: int | None = ...,
+        password: str | None = ...,
+        ca_certificate: str | None = ...,
+        private_key: str | None = ...,
+        token: str | None = ...,
+        certificate: str | None = ...,
     ) -> None: ...
 
 class TaskRequest(_message.Message):
     __slots__ = (
-        "internal_id",
         "c2_server_id",
-        "status",
-        "original_params",
-        "display_params",
-        "time_started",
-        "time_completed",
         "command_name",
-        "operator",
+        "display_params",
+        "internal_id",
         "internal_implant_id",
+        "operator",
+        "original_params",
+        "status",
+        "time_completed",
+        "time_started",
     )
     INTERNAL_ID_FIELD_NUMBER: _ClassVar[int]
     C2_SERVER_ID_FIELD_NUMBER: _ClassVar[int]
@@ -313,16 +312,16 @@ class TaskRequest(_message.Message):
     internal_implant_id: str
     def __init__(
         self,
-        internal_id: _Optional[str] = ...,
-        c2_server_id: _Optional[str] = ...,
-        status: _Optional[str] = ...,
-        original_params: _Optional[str] = ...,
-        display_params: _Optional[str] = ...,
-        time_started: _Optional[str] = ...,
-        time_completed: _Optional[str] = ...,
-        command_name: _Optional[str] = ...,
-        operator: _Optional[str] = ...,
-        internal_implant_id: _Optional[str] = ...,
+        internal_id: str | None = ...,
+        c2_server_id: str | None = ...,
+        status: str | None = ...,
+        original_params: str | None = ...,
+        display_params: str | None = ...,
+        time_started: str | None = ...,
+        time_completed: str | None = ...,
+        command_name: str | None = ...,
+        operator: str | None = ...,
+        internal_implant_id: str | None = ...,
     ) -> None: ...
 
 class TaskResponse(_message.Message):
@@ -331,15 +330,15 @@ class TaskResponse(_message.Message):
 
 class Process(_message.Message):
     __slots__ = (
-        "process_id",
         "architecture",
-        "name",
-        "user",
         "bin_path",
-        "parent_process_id",
         "command_line",
         "description",
         "handle",
+        "name",
+        "parent_process_id",
+        "process_id",
+        "user",
     )
     PROCESS_ID_FIELD_NUMBER: _ClassVar[int]
     ARCHITECTURE_FIELD_NUMBER: _ClassVar[int]
@@ -361,26 +360,26 @@ class Process(_message.Message):
     handle: str
     def __init__(
         self,
-        process_id: _Optional[int] = ...,
-        architecture: _Optional[str] = ...,
-        name: _Optional[str] = ...,
-        user: _Optional[str] = ...,
-        bin_path: _Optional[str] = ...,
-        parent_process_id: _Optional[int] = ...,
-        command_line: _Optional[str] = ...,
-        description: _Optional[str] = ...,
-        handle: _Optional[str] = ...,
+        process_id: int | None = ...,
+        architecture: str | None = ...,
+        name: str | None = ...,
+        user: str | None = ...,
+        bin_path: str | None = ...,
+        parent_process_id: int | None = ...,
+        command_line: str | None = ...,
+        description: str | None = ...,
+        handle: str | None = ...,
     ) -> None: ...
 
 class ShareFile(_message.Message):
     __slots__ = (
-        "type",
-        "size",
+        "created",
         "last_accessed",
         "last_modified",
-        "created",
-        "unc_path",
         "name",
+        "size",
+        "type",
+        "unc_path",
     )
     TYPE_FIELD_NUMBER: _ClassVar[int]
     SIZE_FIELD_NUMBER: _ClassVar[int]
@@ -398,26 +397,26 @@ class ShareFile(_message.Message):
     name: str
     def __init__(
         self,
-        type: _Optional[str] = ...,
-        size: _Optional[int] = ...,
-        last_accessed: _Optional[str] = ...,
-        last_modified: _Optional[str] = ...,
-        created: _Optional[str] = ...,
-        unc_path: _Optional[str] = ...,
-        name: _Optional[str] = ...,
+        type: str | None = ...,
+        size: int | None = ...,
+        last_accessed: str | None = ...,
+        last_modified: str | None = ...,
+        created: str | None = ...,
+        unc_path: str | None = ...,
+        name: str | None = ...,
     ) -> None: ...
 
 class FileList(_message.Message):
     __slots__ = (
-        "host",
-        "parent_path",
-        "name",
-        "unc_path",
-        "size",
-        "last_accessed",
-        "last_modified",
         "created",
         "files",
+        "host",
+        "last_accessed",
+        "last_modified",
+        "name",
+        "parent_path",
+        "size",
+        "unc_path",
     )
     HOST_FIELD_NUMBER: _ClassVar[int]
     PARENT_PATH_FIELD_NUMBER: _ClassVar[int]
@@ -439,29 +438,29 @@ class FileList(_message.Message):
     files: _containers.RepeatedCompositeFieldContainer[ShareFile]
     def __init__(
         self,
-        host: _Optional[str] = ...,
-        parent_path: _Optional[str] = ...,
-        name: _Optional[str] = ...,
-        unc_path: _Optional[str] = ...,
-        size: _Optional[int] = ...,
-        last_accessed: _Optional[str] = ...,
-        last_modified: _Optional[str] = ...,
-        created: _Optional[str] = ...,
-        files: _Optional[_Iterable[_Union[ShareFile, _Mapping]]] = ...,
+        host: str | None = ...,
+        parent_path: str | None = ...,
+        name: str | None = ...,
+        unc_path: str | None = ...,
+        size: int | None = ...,
+        last_accessed: str | None = ...,
+        last_modified: str | None = ...,
+        created: str | None = ...,
+        files: _Iterable[ShareFile | _Mapping] | None = ...,
     ) -> None: ...
 
 class TaskOutputRequest(_message.Message):
     __slots__ = (
-        "internal_id",
-        "c2_server_id",
-        "response_text",
-        "output_type",
-        "timestamp",
-        "internal_task_id",
         "bucket",
+        "c2_server_id",
+        "file_list",
+        "internal_id",
+        "internal_task_id",
+        "output_type",
         "path",
         "processes",
-        "file_list",
+        "response_text",
+        "timestamp",
     )
     INTERNAL_ID_FIELD_NUMBER: _ClassVar[int]
     C2_SERVER_ID_FIELD_NUMBER: _ClassVar[int]
@@ -485,16 +484,16 @@ class TaskOutputRequest(_message.Message):
     file_list: FileList
     def __init__(
         self,
-        internal_id: _Optional[str] = ...,
-        c2_server_id: _Optional[str] = ...,
-        response_text: _Optional[str] = ...,
-        output_type: _Optional[str] = ...,
-        timestamp: _Optional[str] = ...,
-        internal_task_id: _Optional[str] = ...,
-        bucket: _Optional[str] = ...,
-        path: _Optional[str] = ...,
-        processes: _Optional[_Iterable[_Union[Process, _Mapping]]] = ...,
-        file_list: _Optional[_Union[FileList, _Mapping]] = ...,
+        internal_id: str | None = ...,
+        c2_server_id: str | None = ...,
+        response_text: str | None = ...,
+        output_type: str | None = ...,
+        timestamp: str | None = ...,
+        internal_task_id: str | None = ...,
+        bucket: str | None = ...,
+        path: str | None = ...,
+        processes: _Iterable[Process | _Mapping] | None = ...,
+        file_list: FileList | _Mapping | None = ...,
     ) -> None: ...
 
 class TaskOutputResponse(_message.Message):
@@ -505,10 +504,10 @@ class PingResponse(_message.Message):
     __slots__ = ("message",)
     MESSAGE_FIELD_NUMBER: _ClassVar[int]
     message: str
-    def __init__(self, message: _Optional[str] = ...) -> None: ...
+    def __init__(self, message: str | None = ...) -> None: ...
 
 class Event(_message.Message):
-    __slots__ = ("event", "id", "name", "chain_status", "progress")
+    __slots__ = ("chain_status", "event", "id", "name", "progress")
     EVENT_FIELD_NUMBER: _ClassVar[int]
     ID_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
@@ -521,15 +520,15 @@ class Event(_message.Message):
     progress: Progress
     def __init__(
         self,
-        event: _Optional[str] = ...,
-        id: _Optional[str] = ...,
-        name: _Optional[str] = ...,
-        chain_status: _Optional[str] = ...,
-        progress: _Optional[_Union[Progress, _Mapping]] = ...,
+        event: str | None = ...,
+        id: str | None = ...,
+        name: str | None = ...,
+        chain_status: str | None = ...,
+        progress: Progress | _Mapping | None = ...,
     ) -> None: ...
 
 class Progress(_message.Message):
-    __slots__ = ("id", "current", "max", "percentage", "type", "description")
+    __slots__ = ("current", "description", "id", "max", "percentage", "type")
     ID_FIELD_NUMBER: _ClassVar[int]
     CURRENT_FIELD_NUMBER: _ClassVar[int]
     MAX_FIELD_NUMBER: _ClassVar[int]
@@ -544,22 +543,22 @@ class Progress(_message.Message):
     description: str
     def __init__(
         self,
-        id: _Optional[str] = ...,
-        current: _Optional[int] = ...,
-        max: _Optional[int] = ...,
-        percentage: _Optional[float] = ...,
-        type: _Optional[str] = ...,
-        description: _Optional[str] = ...,
+        id: str | None = ...,
+        current: int | None = ...,
+        max: int | None = ...,
+        percentage: float | None = ...,
+        type: str | None = ...,
+        description: str | None = ...,
     ) -> None: ...
 
 class Arguments(_message.Message):
     __slots__ = ("arguments",)
     ARGUMENTS_FIELD_NUMBER: _ClassVar[int]
     arguments: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, arguments: _Optional[_Iterable[str]] = ...) -> None: ...
+    def __init__(self, arguments: _Iterable[str] | None = ...) -> None: ...
 
 class Output(_message.Message):
-    __slots__ = ("id", "job_id", "type", "output", "created_at")
+    __slots__ = ("created_at", "id", "job_id", "output", "type")
     ID_FIELD_NUMBER: _ClassVar[int]
     JOB_ID_FIELD_NUMBER: _ClassVar[int]
     TYPE_FIELD_NUMBER: _ClassVar[int]
@@ -572,11 +571,11 @@ class Output(_message.Message):
     created_at: int
     def __init__(
         self,
-        id: _Optional[str] = ...,
-        job_id: _Optional[str] = ...,
-        type: _Optional[_Union[OutputType, str]] = ...,
-        output: _Optional[str] = ...,
-        created_at: _Optional[int] = ...,
+        id: str | None = ...,
+        job_id: str | None = ...,
+        type: OutputType | str | None = ...,
+        output: str | None = ...,
+        created_at: int | None = ...,
     ) -> None: ...
 
 class FileExistsRequest(_message.Message):
@@ -589,9 +588,9 @@ class FileExistsRequest(_message.Message):
     sha256: str
     def __init__(
         self,
-        md5: _Optional[str] = ...,
-        sha1: _Optional[str] = ...,
-        sha256: _Optional[str] = ...,
+        md5: str | None = ...,
+        sha1: str | None = ...,
+        sha256: str | None = ...,
     ) -> None: ...
 
 class FileExistsResponse(_message.Message):
@@ -604,28 +603,28 @@ class UploadFileRequest(_message.Message):
     __slots__ = ("data",)
     DATA_FIELD_NUMBER: _ClassVar[int]
     data: bytes
-    def __init__(self, data: _Optional[bytes] = ...) -> None: ...
+    def __init__(self, data: bytes | None = ...) -> None: ...
 
 class UploadFileResponse(_message.Message):
     __slots__ = ("upload_file_id",)
     UPLOAD_FILE_ID_FIELD_NUMBER: _ClassVar[int]
     upload_file_id: str
-    def __init__(self, upload_file_id: _Optional[str] = ...) -> None: ...
+    def __init__(self, upload_file_id: str | None = ...) -> None: ...
 
 class DownloadFileRequest(_message.Message):
     __slots__ = ("file_id",)
     FILE_ID_FIELD_NUMBER: _ClassVar[int]
     file_id: str
-    def __init__(self, file_id: _Optional[str] = ...) -> None: ...
+    def __init__(self, file_id: str | None = ...) -> None: ...
 
 class DownloadFileResponse(_message.Message):
     __slots__ = ("data",)
     DATA_FIELD_NUMBER: _ClassVar[int]
     data: bytes
-    def __init__(self, data: _Optional[bytes] = ...) -> None: ...
+    def __init__(self, data: bytes | None = ...) -> None: ...
 
 class C2ServerStatusRequest(_message.Message):
-    __slots__ = ("c2_server_id", "status", "name")
+    __slots__ = ("c2_server_id", "name", "status")
     C2_SERVER_ID_FIELD_NUMBER: _ClassVar[int]
     STATUS_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
@@ -634,9 +633,9 @@ class C2ServerStatusRequest(_message.Message):
     name: str
     def __init__(
         self,
-        c2_server_id: _Optional[str] = ...,
-        status: _Optional[str] = ...,
-        name: _Optional[str] = ...,
+        c2_server_id: str | None = ...,
+        status: str | None = ...,
+        name: str | None = ...,
     ) -> None: ...
 
 class C2ServerStatusResponse(_message.Message):

@@ -15,13 +15,13 @@
 
 from pydantic import BaseModel, Field
 
-
 from .truffle_hog import THSourceMetadata
 
 
 class TruffleHogOutput(BaseModel):
     source_meta_data: THSourceMetadata | None = Field(
-        validation_alias="SourceMetadata", default=None
+        validation_alias="SourceMetadata",
+        default=None,
     )
     source_id: int | None = Field(validation_alias="SourceID", default=None)
     source_type: int | None = Field(validation_alias="SourceType", default=None)

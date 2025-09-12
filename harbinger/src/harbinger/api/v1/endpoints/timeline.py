@@ -1,11 +1,9 @@
 from fastapi import APIRouter, Depends
 from fastapi_filter import FilterDepends
 from fastapi_pagination import Page
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from harbinger import crud, models, schemas
+from harbinger import crud, filters, models, schemas
 from harbinger.config.dependencies import current_active_user, get_db
-from harbinger import filters
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 

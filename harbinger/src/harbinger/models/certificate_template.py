@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import uuid
-from typing import TYPE_CHECKING
 
 from sqlalchemy import JSON, Boolean, DateTime, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
@@ -23,15 +22,13 @@ from sqlalchemy.sql import func
 from harbinger.database.database import Base
 from harbinger.database.types import mapped_column
 
-if TYPE_CHECKING:
-    from .label import Label
-    from .certificate_authority import CertificateAuthority
-
 
 class CertificateTemplate(Base):
     __tablename__ = "certificate_templates"
     id: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
     )
     template_name: Mapped[str] = mapped_column(String)
     display_name: Mapped[str] = mapped_column(String)
@@ -49,14 +46,19 @@ class CertificateTemplate(Base):
     raw_json: Mapped[dict] = mapped_column(JSON)
 
     time_created: Mapped[DateTime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True),
+        server_default=func.now(),
     )
     time_updated: Mapped[DateTime] = mapped_column(
-        DateTime(timezone=True), onupdate=func.now()
+        DateTime(timezone=True),
+        onupdate=func.now(),
     )
 
     labels = relationship(
-        "Label", secondary="labeled_item", lazy="joined", viewonly=True
+        "Label",
+        secondary="labeled_item",
+        lazy="joined",
+        viewonly=True,
     )
     certificate_authorities = relationship(
         "CertificateAuthority",

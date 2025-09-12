@@ -1,16 +1,12 @@
 import uuid
-from typing import Optional
+from typing import Annotated
 
 from fastapi import APIRouter, Depends
 from fastapi_filter import FilterDepends
 from fastapi_pagination import Page
-from pydantic import UUID4
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from harbinger import crud, models, schemas
+from harbinger import crud, filters, models, schemas
 from harbinger.config import constants
 from harbinger.config.dependencies import current_active_user, get_db
-from harbinger import filters
 from harbinger.worker.client import get_client
 from harbinger.worker.workflows import (
     CreateC2ImplantSuggestion,
@@ -19,6 +15,8 @@ from harbinger.worker.workflows import (
     PlaybookDetectionRisk,
     PrivEscSuggestions,
 )
+from pydantic import UUID4
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 
@@ -33,7 +31,9 @@ async def list_suggestions(
 
 
 @router.get(
-    "/filters", response_model=list[schemas.Filter], tags=["suggestions", "crud"]
+    "/filters",
+    response_model=list[schemas.Filter],
+    tags=["suggestions", "crud"],
 )
 async def suggestions_filters(
     filters: filters.SuggestionFilter = FilterDepends(filters.SuggestionFilter),
@@ -44,18 +44,22 @@ async def suggestions_filters(
 
 
 @router.get(
-    "/{id}", response_model=Optional[schemas.Suggestion], tags=["crud", "suggestions"]
+    "/{id}",
+    response_model=schemas.Suggestion | None,
+    tags=["crud", "suggestions"],
 )
-async def get_suggestion(id: UUID4, user: models.User = Depends(current_active_user)):
+async def get_suggestion(id: UUID4, user: Annotated[models.User, Depends(current_active_user)]):
     return await crud.get_suggestion(id)
 
 
 @router.post(
-    "/c2_implant", response_model=schemas.StatusResponse, tags=["crud", "suggestions"]
+    "/c2_implant",
+    response_model=schemas.StatusResponse,
+    tags=["crud", "suggestions"],
 )
 async def create_c2_implant_suggestion(
     suggestion: schemas.C2ImplantSuggestionRequest,
-    user: models.User = Depends(current_active_user),
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     client = await get_client()
     await client.start_workflow(
@@ -68,11 +72,13 @@ async def create_c2_implant_suggestion(
 
 
 @router.post(
-    "/domain", response_model=schemas.StatusResponse, tags=["crud", "suggestions"]
+    "/domain",
+    response_model=schemas.StatusResponse,
+    tags=["crud", "suggestions"],
 )
 async def create_ai_suggestion(
     suggestion: schemas.SuggestionsRequest,
-    user: models.User = Depends(current_active_user),
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     client = await get_client()
     await client.start_workflow(
@@ -85,11 +91,13 @@ async def create_ai_suggestion(
 
 
 @router.post(
-    "/files", response_model=schemas.StatusResponse, tags=["crud", "suggestions"]
+    "/files",
+    response_model=schemas.StatusResponse,
+    tags=["crud", "suggestions"],
 )
 async def create_file_suggestion(
     suggestion: schemas.SuggestionsRequest,
-    user: models.User = Depends(current_active_user),
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     client = await get_client()
     await client.start_workflow(
@@ -108,7 +116,7 @@ async def create_file_suggestion(
 )
 async def c2_task_detection(
     req: schemas.PlaybookDetectionRiskSuggestion,
-    user: models.User = Depends(current_active_user),
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     client = await get_client()
     await client.start_workflow(
@@ -126,7 +134,8 @@ async def c2_task_detection(
     tags=["crud", "suggestions"],
 )
 async def privilege_escalation_suggestions(
-    req: schemas.SuggestionsRequest, user: models.User = Depends(current_active_user)
+    req: schemas.SuggestionsRequest,
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     client = await get_client()
     await client.start_workflow(
@@ -139,24 +148,28 @@ async def privilege_escalation_suggestions(
 
 
 @router.post(
-    "/", response_model=schemas.SuggestionCreated, tags=["crud", "suggestions"]
+    "/",
+    response_model=schemas.SuggestionCreated,
+    tags=["crud", "suggestions"],
 )
 async def create_suggestion(
     suggestions: schemas.SuggestionCreate,
-    db: AsyncSession = Depends(get_db),
-    user: models.User = Depends(current_active_user),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     _, resp = await crud.create_suggestion(db, suggestions)
     return resp
 
 
 @router.put(
-    "/{id}", response_model=Optional[schemas.Suggestion], tags=["crud", "suggestions"]
+    "/{id}",
+    response_model=schemas.Suggestion | None,
+    tags=["crud", "suggestions"],
 )
 async def update_suggestion(
     id: UUID4,
     suggestions: schemas.SuggestionCreate,
-    db: AsyncSession = Depends(get_db),
-    user: models.User = Depends(current_active_user),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     return await crud.update_suggestion(db, id, suggestions)

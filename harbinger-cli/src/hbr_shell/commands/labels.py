@@ -16,13 +16,13 @@ def list_labels(args):
         headers = ["ID", "Name", "Category", "Color"]
 
         output_data = []
-        for l in labels:
+        for label in labels:
             output_data.append(
                 {
-                    "id": l.get("id"),
-                    "name": l.get("name"),
-                    "category": l.get("category"),
-                    "color": l.get("color"),
-                }
+                    "id": label.get("id"),
+                    "name": label.get("name"),
+                    "category": label.get("category"),
+                    "color": label.get("color"),
+                },
             )
         print_output(output_data, headers, args.output)

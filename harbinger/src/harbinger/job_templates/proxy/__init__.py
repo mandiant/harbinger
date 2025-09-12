@@ -12,14 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from enum import Enum
-from typing import Dict, Type
-
-from harbinger.job_templates.proxy.base import JobTemplateModel
 from harbinger.job_templates.proxy import schemas
+from harbinger.job_templates.proxy.base import JobTemplateModel
 
-
-PROXY_JOB_BASE_MAP: Dict[str, Type[JobTemplateModel]] = {
+PROXY_JOB_BASE_MAP: dict[str, type[JobTemplateModel]] = {
     "secretsdump": schemas.SecretsDump,
     "upload_file": schemas.UploadFile,
     "smbclient": schemas.SMBClient,

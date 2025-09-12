@@ -12,29 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import contextlib
+import signal
+import uuid
+from abc import ABC, abstractmethod
+from asyncio import Queue, sleep
+from datetime import datetime
+
+import anyio
+import grpc
+import structlog
+from anyio.abc import TaskGroup
+from google.protobuf.json_format import MessageToDict
+from google.protobuf.message import Message
+from pydantic import BaseModel
 from temporalio import activity
 from temporalio.client import Client
 from temporalio.worker import Worker
-import signal
-from abc import abstractmethod, ABC
-from datetime import datetime
-import anyio
-import structlog
-import uuid
-from harbinger import schemas
-from anyio.abc import TaskGroup
-from harbinger.database.redis_pool import redis
-from harbinger.worker.client import get_client
-from harbinger.connectors.config import get_settings
-from pydantic import BaseModel
-from asyncio import Queue, sleep
-from harbinger.files.client import FileUploader
-import grpc
-from harbinger.proto.v1 import messages_pb2_grpc, messages_pb2
-from google.protobuf.json_format import MessageToDict
-from google.protobuf.message import Message
-from typing import Type
 
+from harbinger import schemas
+from harbinger.connectors.config import get_settings
+from harbinger.database.redis_pool import redis
+from harbinger.files.client import FileUploader
+from harbinger.proto.v1 import messages_pb2, messages_pb2_grpc
+from harbinger.worker.client import get_client
 
 log = structlog.get_logger()
 
@@ -42,8 +43,7 @@ settings = get_settings()
 
 
 class Connector(ABC):
-    """
-    Abstract base for Harbinger connectors.
+    """Abstract base for Harbinger connectors.
     Make sure to implement the following methods:
     custom_create
     run_job
@@ -85,7 +85,7 @@ class Connector(ABC):
         stub = messages_pb2_grpc.HarbingerStub(channel)
         await stub.Ping(messages_pb2.PingRequest(message="Test"))
         resp = await stub.GetSettings(
-            messages_pb2.SettingsRequest(c2_server_id=c2_server_id)
+            messages_pb2.SettingsRequest(c2_server_id=c2_server_id),
         )
         data = schemas.C2ServerAll(**MessageToDict(resp))
         return await cls.custom_create(c2_server_id, client, data, stub, channel)
@@ -116,9 +116,10 @@ class Connector(ABC):
                 tg.start_soon(self._data_loop)
                 log.info("All task started, waiting for signal")
                 with anyio.open_signal_receiver(
-                    signal.SIGTERM, signal.SIGINT
+                    signal.SIGTERM,
+                    signal.SIGINT,
                 ) as signals:
-                    async for signum in signals:
+                    async for _signum in signals:
                         self.running = False
                         tg.cancel_scope.cancel()
                         break
@@ -152,7 +153,8 @@ class Connector(ABC):
 
     @abstractmethod
     async def sync_all(self) -> None:
-        raise NotImplementedError("Must be overwritten.")
+        msg = "Must be overwritten."
+        raise NotImplementedError(msg)
 
     @activity.defn(name="run_job")
     async def _run_job(self, job: schemas.RunJob) -> schemas.C2TaskCreate:
@@ -160,7 +162,8 @@ class Connector(ABC):
 
     @activity.defn(name="wait_for_task")
     async def _wait_for_task(
-        self, c2_task: schemas.C2Task
+        self,
+        c2_task: schemas.C2Task,
     ) -> schemas.WorkflowStepResult:
         return await self.wait_for_task(c2_task)
 
@@ -198,34 +201,37 @@ class Connector(ABC):
 
     @abstractmethod
     async def run_job(
-        self, c2_job: schemas.C2Job, c2_implant: schemas.C2Implant
+        self,
+        c2_job: schemas.C2Job,
+        c2_implant: schemas.C2Implant,
     ) -> schemas.C2TaskCreate:
-        raise NotImplementedError("Must be overwritten.")
+        msg = "Must be overwritten."
+        raise NotImplementedError(msg)
 
     @abstractmethod
     async def wait_for_task(
         self,
         c2_task: schemas.C2Task,
     ) -> schemas.WorkflowStepResult:
-        raise NotImplementedError("Must be overwritten.")
+        msg = "Must be overwritten."
+        raise NotImplementedError(msg)
 
     @abstractmethod
     async def create_tasks(self, tg: TaskGroup):
         """Do whatever initialization you need to do and start the tasks."""
-        pass
 
     def pydantic_to_proto(
-        self, pydantic_object: BaseModel, proto_object: Type[Message]
+        self,
+        pydantic_object: BaseModel,
+        proto_object: type[Message],
     ) -> Message:
         result = proto_object()
         for key, value in pydantic_object.model_dump().items():
             if value:
                 if isinstance(value, datetime):
                     value = str(value.timestamp())
-                try:
+                with contextlib.suppress(ValueError):
                     setattr(result, key, value)
-                except ValueError:
-                    pass
         return result
 
     async def _data_loop(self):
@@ -263,7 +269,8 @@ class Connector(ABC):
             while not self.task_status_queue.empty():
                 task_status = await self.task_status_queue.get()
                 req = self.pydantic_to_proto(
-                    task_status, messages_pb2.C2TaskStatusRequest
+                    task_status,
+                    messages_pb2.C2TaskStatusRequest,
                 )
                 await self.stub.C2TaskStatus(req)
                 self.task_status_queue.task_done()

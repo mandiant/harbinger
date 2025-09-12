@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import uuid
-from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
@@ -23,14 +22,13 @@ from sqlalchemy.sql import func
 from harbinger.database.database import Base
 from harbinger.database.types import mapped_column
 
-if TYPE_CHECKING:
-    from .label import Label
-
 
 class CertificateAuthority(Base):
     __tablename__ = "certificate_authorities"
     id: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
     )
     ca_name: Mapped[str] = mapped_column(String)
     dns_name: Mapped[str] = mapped_column(String)
@@ -44,13 +42,18 @@ class CertificateAuthority(Base):
     enforce_encryption_for_requests: Mapped[str] = mapped_column(String)
 
     time_created: Mapped[DateTime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True),
+        server_default=func.now(),
     )
     time_updated: Mapped[DateTime] = mapped_column(
-        DateTime(timezone=True), onupdate=func.now()
+        DateTime(timezone=True),
+        onupdate=func.now(),
     )
 
     labels = relationship(
-        "Label", secondary="labeled_item", lazy="joined", viewonly=True
+        "Label",
+        secondary="labeled_item",
+        lazy="joined",
+        viewonly=True,
     )
     __table_args__ = (UniqueConstraint("ca_name", "dns_name", name="ca_dns_name_uc"),)

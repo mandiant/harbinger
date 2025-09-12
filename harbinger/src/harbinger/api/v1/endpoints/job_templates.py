@@ -14,21 +14,16 @@
 
 import json
 import uuid
-from typing import Optional, Type, Union
+from typing import Annotated
 
 import jsonref
 import yaml
 from fastapi import APIRouter, Depends, Request, Response, status
 from fastapi_filter import FilterDepends
 from fastapi_pagination import Page, add_pagination
-from pydantic import UUID4, ValidationError
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from harbinger import crud, models, schemas
+from harbinger import crud, filters, models, schemas
 from harbinger.config import get_settings
 from harbinger.config.dependencies import current_active_user, get_db
-from harbinger import filters
-from harbinger.config.dependencies import current_active_user
 from harbinger.job_templates.proxy import PROXY_JOB_BASE_MAP
 from harbinger.job_templates.proxy.base import JobTemplateModel
 from harbinger.job_templates.schemas import (
@@ -38,6 +33,8 @@ from harbinger.job_templates.schemas import (
     TemplateList,
 )
 from harbinger.worker.genai import prompts
+from pydantic import UUID4, ValidationError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 settings = get_settings()
 
@@ -51,7 +48,7 @@ router = APIRouter()
 )
 async def playbook_templates(
     filters: filters.PlaybookTemplateFilter = FilterDepends(
-        filters.PlaybookTemplateFilter
+        filters.PlaybookTemplateFilter,
     ),
     user: models.User = Depends(current_active_user),
     db: AsyncSession = Depends(get_db),
@@ -66,7 +63,7 @@ async def playbook_templates(
 )
 async def playbook_template_filters(
     filters: filters.PlaybookTemplateFilter = FilterDepends(
-        filters.PlaybookTemplateFilter
+        filters.PlaybookTemplateFilter,
     ),
     user: models.User = Depends(current_active_user),
     db: AsyncSession = Depends(get_db),
@@ -81,13 +78,14 @@ async def playbook_template_filters(
 )
 async def job_templates(
     c2_type: schemas.C2Type,
-    user: models.User = Depends(current_active_user),
-    db: AsyncSession = Depends(get_db),
+    user: Annotated[models.User, Depends(current_active_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     if c2_type == schemas.C2Type.c2:
-        return dict(templates=[key for key in C2_JOB_BASE_MAP.keys()])
+        return {"templates": list(C2_JOB_BASE_MAP.keys())}
     if c2_type == schemas.C2Type.proxy:
-        return dict(templates=[key for key in PROXY_JOB_BASE_MAP.keys()])
+        return {"templates": list(PROXY_JOB_BASE_MAP.keys())}
+    return None
 
 
 @router.get(
@@ -109,20 +107,22 @@ async def chain_templates_schema(
     if schema:
         schema_templ = schemas.PlaybookTemplate(**yaml.safe_load(schema.yaml))
         return jsonref.loads(
-            json.dumps(schema_templ.create_model(default_arguments).model_json_schema())
+            json.dumps(
+                schema_templ.create_model(default_arguments).model_json_schema(),
+            ),
         )
     return Response(status_code=status.HTTP_404_NOT_FOUND)
 
 
 @router.get(
     "/playbooks/{id}",
-    response_model=Optional[schemas.PlaybookTemplateView],
+    response_model=schemas.PlaybookTemplateView | None,
     tags=["crud", "playbook_templates"],
 )
 async def get_playbook_template(
     id: UUID4,
-    db: AsyncSession = Depends(get_db),
-    user: models.User = Depends(current_active_user),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     return await crud.get_playbook_template(id)
 
@@ -131,12 +131,13 @@ async def get_playbook_template(
 def proxy_job_templates_schema(
     c2_type: schemas.C2Type,
     name: str,
-    user: models.User = Depends(current_active_user),
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     if c2_type == schemas.C2Type.c2:
         return jsonref.loads(json.dumps(C2_JOB_BASE_MAP[name].model_json_schema()))
     if c2_type == schemas.C2Type.proxy:
         return jsonref.loads(json.dumps(PROXY_JOB_BASE_MAP[name].model_json_schema()))
+    return None
 
 
 @router.post(
@@ -147,8 +148,8 @@ def proxy_job_templates_schema(
 async def create_chain_preview_from_template(
     uuid: str,
     request: Request,
-    db: AsyncSession = Depends(get_db),
-    user: models.User = Depends(current_active_user),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     body = await request.json()
     schema = await crud.get_playbook_template(uuid)
@@ -159,32 +160,29 @@ async def create_chain_preview_from_template(
         except ValidationError as e:
             return Response(e.json(), status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
         return await crud.preview_chain_from_template(db, chain, model)
-    else:
-        return Response(status_code=status.HTTP_404_NOT_FOUND)
+    return Response(status_code=status.HTTP_404_NOT_FOUND)
 
 
 @router.post(
     "/{c2_type}/{name}/preview",
-    response_model=Union[
-        schemas.ProxyJobPreview, schemas.C2JobCreate, schemas.ErrorResponse
-    ],
-    tags=["mythic_jobs", "crud"],
+    response_model=(schemas.ProxyJobPreview | schemas.C2JobCreate | schemas.ErrorResponse),
+    tags=["c2", "crud"],
 )
 async def preview(
     c2_type: schemas.C2Type,
     name: str,
     request: Request,
     response: Response,
-    db: AsyncSession = Depends(get_db),
-    user: models.User = Depends(current_active_user),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     body = await request.json()
-    fake_data = dict(
-        c2_implant=str(uuid.uuid4()),
-        playbook_id=str(uuid.uuid4()),
-    )
+    fake_data = {
+        "c2_implant": str(uuid.uuid4()),
+        "playbook_id": str(uuid.uuid4()),
+    }
 
-    job_template: type[JobTemplateModel] | type[C2ImplantTemplateModel] | None = None
+    job_template: type[JobTemplateModel | C2ImplantTemplateModel] | None = None
 
     try:
         if c2_type == schemas.C2Type.c2:
@@ -196,7 +194,7 @@ async def preview(
 
     if not job_template:
         response.status_code = status.HTTP_400_BAD_REQUEST
-        return dict(error="Not found")
+        return {"error": "Not found"}
 
     try:
         template = job_template(**body | fake_data)
@@ -214,17 +212,18 @@ async def preview(
             socks_server_id=template.socks_server_id,  # type: ignore
             socks_server=socks_server,
         )
-    else:
-        return schemas.C2JobCreate(
-            command=command,
-            arguments=args,
-            playbook_id=template.playbook_id,
-            c2_implant_id=uuid.uuid4(),
-        )
+    return schemas.C2JobCreate(
+        command=command,
+        arguments=args,
+        playbook_id=template.playbook_id,
+        c2_implant_id=uuid.uuid4(),
+    )
 
 
 async def create_c2_job(
-    db: AsyncSession, template: Type[BaseTemplateModel], body: dict
+    db: AsyncSession,
+    template: type[BaseTemplateModel],
+    body: dict,
 ) -> models.C2Job:
     template_obj = template(**body)
     args = await template_obj.generate_arguments(db)
@@ -234,13 +233,15 @@ async def create_c2_job(
         arguments=args,
         input_files=files,
         playbook_id=template_obj.playbook_id,
-        c2_implant_id=getattr(template_obj, "c2_implant_id"),
+        c2_implant_id=template_obj.c2_implant_id,
     )
     return await crud.create_c2_job(db, job=job)
 
 
 async def create_proxy_job(
-    db: AsyncSession, template: Type[JobTemplateModel], body: dict
+    db: AsyncSession,
+    template: type[JobTemplateModel],
+    body: dict,
 ) -> models.ProxyJob:
     template_obj = template(**body)
     args = await template_obj.generate_arguments(db)
@@ -268,14 +269,12 @@ async def create_proxy_job(
 async def generate_playbook_template_from_ai(
     input_data: schemas.ReadmeInput,  # Use the new input schema
     # db: AsyncSession = Depends(get_db), # Keep DB if needed for logging or other checks
-    user: models.User = Depends(current_active_user),  # Ensure user is authenticated
+    user: Annotated[models.User, Depends(current_active_user)],  # Ensure user is authenticated
 ):
-    """
-    Receives README content and attempts to generate a playbook YAML using an AI service.
-    """
+    """Receives README content and attempts to generate a playbook YAML using an AI service."""
     if not settings.gemini_enabled:
         return Response(
-            f"Gemini is not enabled, please configure the gemini api key and set GEMINI_ENABLED=True",
+            "Gemini is not enabled, please configure the gemini api key and set GEMINI_ENABLED=True",
             status_code=status.HTTP_400_BAD_REQUEST,
         )
     try:
@@ -292,24 +291,22 @@ async def generate_playbook_template_from_ai(
         # Catch any other unexpected errors during the process
         print(f"Unexpected error during AI playbook generation: {e}")
         return Response(
-            f"Unexpected error during AI playbook generation",
+            "Unexpected error during AI playbook generation",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
 
 @router.post(
     "/playbooks/{uuid}",
-    response_model=Union[
-        schemas.C2Job, schemas.ProxyJob, schemas.ProxyChain, schemas.ErrorResponse
-    ],
+    response_model=(schemas.C2Job | schemas.ProxyJob | schemas.ProxyChain | schemas.ErrorResponse),
     tags=["c2", "crud"],
 )
 async def create_chain_from_template(
     uuid: str,
     request: Request,
     response: Response,
-    db: AsyncSession = Depends(get_db),
-    user: models.User = Depends(current_active_user),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     body = await request.json()
     schema = await crud.get_playbook_template(uuid)
@@ -334,22 +331,24 @@ async def create_chain_from_template(
 )
 async def create_chain_template(
     chain_template: schemas.PlaybookTemplateBase,
-    db: AsyncSession = Depends(get_db),
-    user: models.User = Depends(current_active_user),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     try:
         schema = schemas.PlaybookTemplateCreate(
-            **yaml.safe_load(chain_template.yaml), yaml=chain_template.yaml
+            **yaml.safe_load(chain_template.yaml),
+            yaml=chain_template.yaml,
         )
     except ValidationError as e:
         return Response(e.json(), status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
     except yaml.YAMLError as e:
         return Response(
-            f"yaml is invalid: {e}", status_code=status.HTTP_422_UNPROCESSABLE_ENTITY
+            f"yaml is invalid: {e}",
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         )
     except TypeError:
         return Response(
-            f"yaml is invalid: format is wrong.",
+            "yaml is invalid: format is wrong.",
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         )
 
@@ -358,9 +357,7 @@ async def create_chain_template(
 
 @router.post(
     "/{c2_type}/{name}",
-    response_model=Union[
-        schemas.C2Job, schemas.ProxyJob, schemas.ProxyChain, schemas.ErrorResponse
-    ],
+    response_model=(schemas.C2Job | schemas.ProxyJob | schemas.ProxyChain | schemas.ErrorResponse),
     tags=["c2", "crud"],
 )
 async def create_from_template(
@@ -368,8 +365,8 @@ async def create_from_template(
     name: str,
     request: Request,
     response: Response,
-    db: AsyncSession = Depends(get_db),
-    user: models.User = Depends(current_active_user),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     body = await request.json()
     try:
@@ -382,12 +379,12 @@ async def create_from_template(
 
     except KeyError:
         response.status_code = status.HTTP_400_BAD_REQUEST
-        return dict(error="Not found")
+        return {"error": "Not found"}
     except ValidationError as e:
         return Response(e.json(), status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
 
     response.status_code = status.HTTP_400_BAD_REQUEST
-    return dict(error="Not found")
+    return {"error": "Not found"}
 
 
 add_pagination(router)

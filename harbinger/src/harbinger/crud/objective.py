@@ -1,22 +1,23 @@
 import uuid
-from typing import Iterable, Optional, Tuple
+from collections.abc import Iterable
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
-from harbinger import models, schemas
-from harbinger import filters
 from pydantic import UUID4
 from sqlalchemy import Select, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import func
 
+from harbinger import filters, models, schemas
+
 from ._common import create_filter_for_column
 from .label import get_labels_for_q
 
 
 async def get_objectives_paged(
-    db: AsyncSession, filters: filters.ObjectivesFilter
+    db: AsyncSession,
+    filters: filters.ObjectivesFilter,
 ) -> Page[models.Objectives]:
     q: Select = select(models.Objectives)
     q = q.outerjoin(models.Objectives.labels)
@@ -53,24 +54,30 @@ async def get_objectives_filters(db: AsyncSession, filters: filters.ObjectivesFi
     result.extend(lb_entry)
     for field in ["status"]:
         res = await create_filter_for_column(
-            db, q, getattr(models.Objectives, field), field, field
+            db,
+            q,
+            getattr(models.Objectives, field),
+            field,
+            field,
         )
         result.append(res)
     return result
 
 
-async def get_objective(db: AsyncSession, id: UUID4) -> Optional[models.Objectives]:
+async def get_objective(db: AsyncSession, id: UUID4) -> models.Objectives | None:
     return await db.get(models.Objectives, id)
 
 
 async def create_objective(
-    db: AsyncSession, objective: schemas.ObjectiveCreate
-) -> Tuple[bool, models.Objectives]:
+    db: AsyncSession,
+    objective: schemas.ObjectiveCreate,
+) -> tuple[bool, models.Objectives]:
     data = objective.model_dump()
     q = insert(models.Objectives).values(**data).values(time_created=func.now())
     data["time_updated"] = func.now()
     update_stmt = q.on_conflict_do_update(
-        models.Objectives.__table__.primary_key, set_=data
+        models.Objectives.__table__.primary_key,
+        set_=data,
     )
     result = await db.scalars(
         update_stmt.returning(models.Objectives),
@@ -78,16 +85,14 @@ async def create_objective(
     )
     await db.commit()
     result = result.unique().one()
-    return (result.time_updated == None, result)
+    return (result.time_updated is None, result)
 
 
 async def update_objective(
-    db: AsyncSession, id: str | uuid.UUID, objective: schemas.ObjectiveCreate
+    db: AsyncSession,
+    id: str | uuid.UUID,
+    objective: schemas.ObjectiveCreate,
 ) -> None:
-    q = (
-        update(models.Objectives)
-        .where(models.Objectives.id == id)
-        .values(**objective.model_dump())
-    )
+    q = update(models.Objectives).where(models.Objectives.id == id).values(**objective.model_dump())
     await db.execute(q)
     await db.commit()

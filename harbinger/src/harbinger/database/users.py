@@ -13,37 +13,42 @@
 # limitations under the License.
 
 import uuid
-from typing import Optional
 
-from harbinger.config import get_settings
-from harbinger.crud import get_user_db
-from harbinger.database.redis_pool import redis
-from harbinger.models import User
 from fastapi import Depends, Request
 from fastapi_users import BaseUserManager, FastAPIUsers, UUIDIDMixin
 from fastapi_users.authentication import (
     AuthenticationBackend,
     BearerTransport,
     CookieTransport,
-    JWTStrategy,
+    RedisStrategy,
 )
 from fastapi_users.db import SQLAlchemyUserDatabase
-from fastapi_users.authentication import RedisStrategy
+
+from harbinger.config import get_settings
+from harbinger.crud import get_user_db
+from harbinger.database.redis_pool import redis
+from harbinger.models import User
 
 settings = get_settings()
 
 
 class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
-    async def on_after_register(self, user: User, request: Optional[Request] = None):
+    async def on_after_register(self, user: User, request: Request | None = None):
         print(f"User {user.id} has registered.")
 
     async def on_after_forgot_password(
-        self, user: User, token: str, request: Optional[Request] = None
+        self,
+        user: User,
+        token: str,
+        request: Request | None = None,
     ):
         print(f"User {user.id} has forgot their password. Reset token: {token}")
 
     async def on_after_request_verify(
-        self, user: User, token: str, request: Optional[Request] = None
+        self,
+        user: User,
+        token: str,
+        request: Request | None = None,
     ):
         print(f"Verification requested for user {user.id}. Verification token: {token}")
 
@@ -79,7 +84,8 @@ auth_backend_bearer = AuthenticationBackend(
 )
 
 fastapi_users = FastAPIUsers[User, uuid.UUID](
-    get_user_manager, [auth_backend_cookie, auth_backend_bearer]
+    get_user_manager,
+    [auth_backend_cookie, auth_backend_bearer],
 )
 
 current_active_user = fastapi_users.current_user(active=True)

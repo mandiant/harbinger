@@ -1,22 +1,23 @@
+import contextlib
 import ntpath
 import uuid
-from typing import Iterable, Optional, Tuple
+from collections.abc import Iterable
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
-from harbinger import models, schemas
-from harbinger import filters
+from pydantic import UUID4
+from sqlalchemy import Select, delete, or_, select, update
+from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql.expression import func
+
+from harbinger import filters, models, schemas
 from harbinger.database.cache import (
     invalidate_cache_entry,
     redis_cache,
     redis_cache_invalidate,
 )
 from harbinger.database.database import SessionLocal
-from pydantic import UUID4
-from sqlalchemy import Select, delete, or_, select, update
-from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql.expression import func
 
 from ._common import DEFAULT_CACHE_TTL, create_filter_for_column
 from .domain import get_or_create_domain
@@ -48,7 +49,9 @@ async def create_input_file(
     c2_job_id: str | UUID4 | None = None,
 ) -> models.InputFile:
     input_db = models.InputFile(
-        file_id=file_id, c2_job_id=c2_job_id, proxy_job_id=proxy_job_id
+        file_id=file_id,
+        c2_job_id=c2_job_id,
+        proxy_job_id=proxy_job_id,
     )
     db.add(input_db)
     await db.commit()
@@ -87,7 +90,9 @@ async def add_file(
 
 @redis_cache_invalidate(key_prefix="file", key_param_name="file_id")
 async def update_file(
-    db: AsyncSession, file_id: str | uuid.UUID, file: schemas.FileUpdate
+    db: AsyncSession,
+    file_id: str | uuid.UUID,
+    file: schemas.FileUpdate,
 ) -> None:
     q = update(models.File).where(models.File.id == file_id).values(**file.model_dump())
     await db.execute(q)
@@ -96,7 +101,9 @@ async def update_file(
 
 @redis_cache_invalidate(key_prefix="file", key_param_name="file_id")
 async def update_file_path(
-    db: AsyncSession, file_id: str | uuid.UUID, path: str
+    db: AsyncSession,
+    file_id: str | uuid.UUID,
+    path: str,
 ) -> None:
     q = update(models.File).where(models.File.id == file_id).values(path=path)
     await db.execute(q)
@@ -110,42 +117,41 @@ async def update_file_path(
     key_param_name="file_id",
     ttl_seconds=DEFAULT_CACHE_TTL,
 )
-async def get_file(db: AsyncSession, file_id: str | uuid.UUID) -> Optional[models.File]:
+async def get_file(db: AsyncSession, file_id: str | uuid.UUID) -> models.File | None:
     return await db.get(models.File, file_id)
 
 
 async def get_files(
-    db: AsyncSession, filters: filters.FileFilter
+    db: AsyncSession,
+    filters: filters.FileFilter,
 ) -> Iterable[models.File]:
     """Gets files based on a filter."""
     q: Select = select(models.File)
     q = q.outerjoin(models.File.labels)
     q = filters.filter(q)
-    try:
+    with contextlib.suppress(NotImplementedError):
         q = filters.sort(q)
-    except NotImplementedError:
-        pass
     q = q.group_by(models.File.id)
     result = await db.execute(q)
     return result.unique().scalars().all()
 
 
 async def get_files_paged(
-    db: AsyncSession, file_filters: filters.FileFilter
+    db: AsyncSession,
+    file_filters: filters.FileFilter,
 ) -> Page[models.File]:
     q: Select = select(models.File)
     q = q.outerjoin(models.File.labels)
     q = file_filters.filter(q)
-    try:
+    with contextlib.suppress(NotImplementedError):
         q = file_filters.sort(q)
-    except NotImplementedError:
-        pass
     q = q.group_by(models.File.id)
     return await paginate(db, q)
 
 
 async def get_file_filters(
-    db: AsyncSession, file_filters: filters.FileFilter
+    db: AsyncSession,
+    file_filters: filters.FileFilter,
 ) -> list[schemas.Filter]:
     result: list[schemas.Filter] = []
     q: Select = (
@@ -155,7 +161,11 @@ async def get_file_filters(
     )
     q = file_filters.filter(q)
     ft_entry = await create_filter_for_column(
-        db, q, models.File.filetype, "filetype", "filetype"
+        db,
+        q,
+        models.File.filetype,
+        "filetype",
+        "filetype",
     )
     result.append(ft_entry)
     lb_entry = await get_labels_for_q(db, q)
@@ -164,7 +174,10 @@ async def get_file_filters(
 
 
 async def search_files(
-    db: AsyncSession, file_filters: filters.FileFilter, offset: int = 0, limit: int = 10
+    db: AsyncSession,
+    file_filters: filters.FileFilter,
+    offset: int = 0,
+    limit: int = 10,
 ) -> Iterable[models.File]:
     q = select(models.File).outerjoin(models.LabeledItem).outerjoin(models.Label)
     q = file_filters.filter(q)
@@ -174,15 +187,18 @@ async def search_files(
 
 @redis_cache_invalidate(key_prefix="file", key_param_name="file_id")
 async def update_file_type(
-    db: AsyncSession, file_id: str | uuid.UUID, filetype: schemas.FileType | str | None
-) -> Optional[models.File]:
+    db: AsyncSession,
+    file_id: str | uuid.UUID,
+    filetype: schemas.FileType | str | None,
+) -> models.File | None:
     q = update(models.File).where(models.File.id == file_id).values(filetype=filetype)
     await db.execute(q)
     await db.commit()
 
 
 async def create_share_file(
-    db: AsyncSession, share_file: schemas.ShareFileCreate
+    db: AsyncSession,
+    share_file: schemas.ShareFileCreate,
 ) -> models.ShareFile:
     q = insert(models.ShareFile).values(**share_file.model_dump())
     data = share_file.model_dump()
@@ -199,12 +215,11 @@ async def create_share_file(
 
 
 async def set_share_file_downloaded(
-    db: AsyncSession, share_file_id: str | UUID4
+    db: AsyncSession,
+    share_file_id: str | UUID4,
 ) -> None:
     await db.execute(
-        update(models.ShareFile)
-        .where(models.ShareFile.id == share_file_id)
-        .values(downloaded=True)
+        update(models.ShareFile).where(models.ShareFile.id == share_file_id).values(downloaded=True),
     )
     await db.commit()
     await invalidate_cache_entry("share_file", share_file_id)
@@ -273,7 +288,8 @@ async def list_share_files(
 
 
 async def get_share_files_paged(
-    db: AsyncSession, filters: filters.ShareFileFilter
+    db: AsyncSession,
+    filters: filters.ShareFileFilter,
 ) -> Page[models.ShareFile]:
     q: Select = select(models.ShareFile)
     q = q.outerjoin(models.ShareFile.labels)
@@ -284,7 +300,10 @@ async def get_share_files_paged(
 
 
 async def get_share_files(
-    db: AsyncSession, filters: filters.ShareFileFilter, offset: int = 0, limit: int = 10
+    db: AsyncSession,
+    filters: filters.ShareFileFilter,
+    offset: int = 0,
+    limit: int = 10,
 ) -> Iterable[models.ShareFile]:
     q: Select = select(models.ShareFile)
     q = q.outerjoin(models.ShareFile.labels)
@@ -307,7 +326,11 @@ async def get_share_file_filters(db: AsyncSession, filters: filters.ShareFileFil
     result.extend(lb_entry)
     for field in ["type", "downloaded", "indexed", "depth", "extension"]:
         res = await create_filter_for_column(
-            db, q, getattr(models.ShareFile, field), field, field
+            db,
+            q,
+            getattr(models.ShareFile, field),
+            field,
+            field,
         )
         result.append(res)
     return result
@@ -321,31 +344,33 @@ async def get_share_file_filters(db: AsyncSession, filters: filters.ShareFileFil
     ttl_seconds=DEFAULT_CACHE_TTL,
 )
 async def get_share_file(
-    db: AsyncSession, id: UUID4 | str
-) -> Optional[models.ShareFile]:
+    db: AsyncSession,
+    id: UUID4 | str,
+) -> models.ShareFile | None:
     return await db.get(models.ShareFile, id)
 
 
 @redis_cache_invalidate(key_prefix="share_file", key_param_name="id")
 async def update_share_file(
-    db: AsyncSession, id: str | uuid.UUID, share_file: schemas.ShareFileUpdate
+    db: AsyncSession,
+    id: str | uuid.UUID,
+    share_file: schemas.ShareFileUpdate,
 ) -> None:
     to_update = share_file.model_dump(
-        exclude_unset=True, exclude_defaults=True, exclude_none=True
+        exclude_unset=True,
+        exclude_defaults=True,
+        exclude_none=True,
     )
     if to_update:
-        q = (
-            update(models.ShareFile)
-            .where(models.ShareFile.id == id)
-            .values(**to_update)
-        )
+        q = update(models.ShareFile).where(models.ShareFile.id == id).values(**to_update)
         await db.execute(q)
         await db.commit()
 
 
 async def save_parsed_share_file(
-    db: AsyncSession, file: schemas.BaseParsedShareFile
-) -> Tuple[models.Share, models.ShareFile]:
+    db: AsyncSession,
+    file: schemas.BaseParsedShareFile,
+) -> tuple[models.Share, models.ShareFile]:
     domain_id = None
     host_id = None
     if file.domain:
@@ -356,7 +381,9 @@ async def save_parsed_share_file(
     _, share_db = await get_or_create_share(
         db,
         schemas.ShareCreate(
-            host_id=host_id, name=file.sharename, unc_path=file.share_unc_path
+            host_id=host_id,
+            name=file.sharename,
+            unc_path=file.share_unc_path,
         ),
     )
     parent_id = None
@@ -389,7 +416,8 @@ async def save_parsed_share_file(
         await create_label_item(
             db,
             schemas.LabeledItemCreate(
-                label_id="851853d0-e540-4185-b46e-cf2e0cc63aa8", share_id=share_db.id
+                label_id="851853d0-e540-4185-b46e-cf2e0cc63aa8",
+                share_id=share_db.id,
             ),
         )
     else:
@@ -409,7 +437,7 @@ async def save_parsed_share_file(
     return (share_db, share_file)
 
 
-async def get_file_by_hash(db: AsyncSession, hash_value: str) -> Optional[models.File]:
+async def get_file_by_hash(db: AsyncSession, hash_value: str) -> models.File | None:
     hash_value = hash_value.lower()
     q = await db.execute(
         select(models.File).where(
@@ -417,8 +445,8 @@ async def get_file_by_hash(db: AsyncSession, hash_value: str) -> Optional[models
                 models.File.md5sum == hash_value,
                 models.File.sha1sum == hash_value,
                 models.File.sha256sum == hash_value,
-            )
-        )
+            ),
+        ),
     )
     return q.scalars().first()
 
@@ -447,5 +475,10 @@ async def save_objects(
         file_db = await create_share_file(db, file)
         await db.commit()
         await save_objects(
-            db, entry.children, unc_file_path, share_id, depth + 1, file_db.id
+            db,
+            entry.children,
+            unc_file_path,
+            share_id,
+            depth + 1,
+            file_db.id,
         )

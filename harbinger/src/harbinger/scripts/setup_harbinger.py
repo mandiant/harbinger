@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from getpass import getpass
+import pathlib
 import secrets
 import string
-import pathlib
 import subprocess
+from getpass import getpass
 
 
 def generate_password(n=20):
@@ -60,11 +60,11 @@ def main() -> int:
     if not ed25519.exists():
         print("Creating ed25519 key")
         subprocess.check_call(
-            ["ssh-keygen", "-t", "ed25519", "-f", f"{ed25519}", "-N", ""]
+            ["ssh-keygen", "-t", "ed25519", "-f", f"{ed25519}", "-N", ""],
         )
 
     ed25519_sig = subprocess.check_output(
-        ["ssh-keygen", "-l", "-E", "SHA256", "-f", f"{ed25519}.pub"]
+        ["ssh-keygen", "-l", "-E", "SHA256", "-f", f"{ed25519}.pub"],
     ).decode("utf-8")
     ed25519_sig = ed25519_sig.split(" ")[1]
 
@@ -74,7 +74,7 @@ def main() -> int:
         subprocess.check_call(["ssh-keygen", "-t", "rsa", "-f", f"{rsa}", "-N", ""])
 
     rsa_sig = subprocess.check_output(
-        ["ssh-keygen", "-l", "-E", "SHA256", "-f", f"{rsa}.pub"]
+        ["ssh-keygen", "-l", "-E", "SHA256", "-f", f"{rsa}.pub"],
     ).decode("utf-8")
     rsa_sig = rsa_sig.split(" ")[1]
 
@@ -101,7 +101,7 @@ def main() -> int:
                 minio_secret_key=minio_secret_key,
                 neo4j_host=neo4j_host,
                 neo4j_password=neo4j_password,
-            )
+            ),
         )
 
     with open(deploy / "postgres.env", "w") as f:
@@ -114,7 +114,7 @@ def main() -> int:
                 minio_secret_key=minio_secret_key,
                 rsa_sig=rsa_sig,
                 ed25519_sig=ed25519_sig,
-            )
+            ),
         )
 
     with open(deploy / "minio.env", "w") as f:

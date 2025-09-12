@@ -13,12 +13,12 @@
 # limitations under the License.
 
 
-from typing import List
+from typing import TYPE_CHECKING
 
 from pydantic import UUID4, BaseModel, ConfigDict
 
-
-from .label import Label
+if TYPE_CHECKING:
+    from .label import Label
 
 
 class GraphBase(BaseModel):
@@ -34,4 +34,4 @@ class Graph(GraphBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4 | str
 
-    labels: List["Label"] | None = None
+    labels: list["Label"] | None = None

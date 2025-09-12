@@ -38,7 +38,7 @@ def list_servers(args):
                     "status": s.get("status")[0].get("status")
                     if s.get("status")
                     else "",
-                }
+                },
             )
         print_output(output_data, headers, args.output)
 
@@ -59,14 +59,14 @@ def list_implants(args):
                     "hostname": i.get("hostname"),
                     "os": i.get("os"),
                     "last_check-in": i.get("last_checkin"),
-                }
+                },
             )
         print_output(output_data, headers, args.output)
 
 
 def list_tasks(args):
     """List C2 tasks."""
-    response = make_api_request("GET", f"/c2/tasks/")
+    response = make_api_request("GET", "/c2/tasks/")
     if response:
         tasks_data = response.json()
         tasks = tasks_data.get("items", [])
@@ -80,6 +80,6 @@ def list_tasks(args):
                     "command": t.get("command_name"),
                     "status": t.get("status"),
                     "time_created": t.get("time_created"),
-                }
+                },
             )
         print_output(output_data, headers, args.output)

@@ -12,16 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from testcontainers.postgres import PostgresContainer
-from testcontainers.core.utils import inside_container
 import logging
-import sys
-from alembic.config import Config
-from alembic import command
 import os
-from pathlib import Path
-from harbinger.config import get_settings
+import sys
 import unittest
+from pathlib import Path
+
+from alembic import command
+from alembic.config import Config
+from testcontainers.core.utils import inside_container
+from testcontainers.postgres import PostgresContainer
+
+from harbinger.config import get_settings
 
 here = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -41,7 +43,7 @@ def enable_logger():
     handler = logging.StreamHandler(sys.stdout)
     handler.setLevel(logging.INFO)
     formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
     handler.setFormatter(formatter)
     root.addHandler(handler)
@@ -51,13 +53,13 @@ class TestMigrations(unittest.TestCase):
     def test_migrations(self):
         with FixedPostgresContainer("postgres:14", driver="asyncpg") as postgres:
             psql_url = postgres.get_connection_url()
-            os.environ["pg_dsn"] = psql_url
-            os.environ["redis_dsn"] = "test"
-            os.environ["minio_access_key"] = "test"
-            os.environ["minio_secret_key"] = "test"
-            os.environ["minio_host"] = "localhost"
-            os.environ["minio_default_bucket"] = "test"
-            os.environ["temporal_host"] = "localhost"
+            os.environ["PG_DSN"] = psql_url
+            os.environ["REDIS_DSN"] = "test"
+            os.environ["MINIO_ACCESS_KEY"] = "test"
+            os.environ["MINIO_SECRET_KEY"] = "test"
+            os.environ["MINIO_HOST"] = "localhost"
+            os.environ["MINIO_DEFAULT_BUCKET"] = "test"
+            os.environ["TEMPORAL_HOST"] = "localhost"
             enable_logger()
             logger = logging.getLogger()
             get_settings.cache_clear()

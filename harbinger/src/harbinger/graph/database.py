@@ -13,22 +13,26 @@
 # limitations under the License.
 
 import contextlib
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
+
+from neo4j import AsyncGraphDatabase, AsyncSession
 
 from harbinger.config import get_settings
-from neo4j import AsyncGraphDatabase, AsyncSession
 
 settings = get_settings()
 
 
 async def get_async_neo4j_session() -> AsyncGenerator[AsyncSession, None]:
-    async with AsyncGraphDatabase.driver(
-        settings.neo4j_host, auth=(settings.neo4j_user, settings.neo4j_password)
-    ) as driver:
-        async with driver.session() as session:
-            yield session
+    async with (
+        AsyncGraphDatabase.driver(
+            settings.neo4j_host,
+            auth=(settings.neo4j_user, settings.neo4j_password),
+        ) as driver,
+        driver.session() as session,
+    ):
+        yield session
 
 
 get_async_neo4j_session_context = contextlib.asynccontextmanager(
-    get_async_neo4j_session
+    get_async_neo4j_session,
 )

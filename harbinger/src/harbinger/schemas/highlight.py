@@ -14,12 +14,12 @@
 
 
 from datetime import datetime
-from typing import List
+from typing import TYPE_CHECKING
 
 from pydantic import UUID4, BaseModel, ConfigDict
 
-
-from .label import Label
+if TYPE_CHECKING:
+    from .label import Label
 
 
 class HighlightBase(BaseModel):
@@ -45,4 +45,4 @@ class Highlight(HighlightBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4
     time_created: datetime
-    labels: List["Label"] | None = []
+    labels: list["Label"] | None = []

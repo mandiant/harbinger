@@ -12,30 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import anyio
-import click
-from harbinger.database.database import SessionLocal
-from harbinger import crud
-from harbinger import schemas
-import structlog
-from harbinger.config import get_settings
 import asyncio
+import contextlib
 import signal
 import uuid
-from harbinger.worker.client import get_client
-from temporalio.worker import Worker
+
+import anyio
+import click
+import structlog
 from temporalio.client import (
     Schedule,
     ScheduleActionStartWorkflow,
-    ScheduleSpec,
     ScheduleAlreadyRunningError,
+    ScheduleSpec,
 )
 from temporalio.service import RPCError
-from harbinger.connectors import workflows
-from harbinger.connectors import activities
-from harbinger.connectors.socks import workflows as socks_workflows
+from temporalio.worker import Worker
+
+from harbinger import crud, schemas
+from harbinger.config import get_settings
+from harbinger.connectors import activities, workflows
 from harbinger.connectors.socks import activities as socks_activities
+from harbinger.connectors.socks import workflows as socks_workflows
+from harbinger.database.database import SessionLocal
 from harbinger.database.redis_pool import redis
+from harbinger.worker.client import get_client
 
 settings = get_settings()
 
@@ -93,7 +94,7 @@ async def main():
     )
     worker2 = Worker(
         client,
-        task_queue=f"socks_jobs_{str(DEFAULT_HARBINGER_SOCKS_SERVER)}",
+        task_queue=f"socks_jobs_{DEFAULT_HARBINGER_SOCKS_SERVER!s}",
         workflows=[],
         activities=[
             socks_activities.run_proxy_job,
@@ -121,13 +122,11 @@ async def main():
     # delete older cron version of the loop
     handle = client.get_workflow_handle(workflow_id="workflow-loop")
     if handle:
-        try:
+        with contextlib.suppress(RPCError):
             await handle.terminate()
-        except RPCError:
-            pass
 
     # create new schedule based.
-    try:
+    with contextlib.suppress(ScheduleAlreadyRunningError):
         await client.create_schedule(
             "check-container-states",
             Schedule(
@@ -141,8 +140,6 @@ async def main():
                 ),
             ),
         )
-    except ScheduleAlreadyRunningError:
-        pass
 
     try:
         with anyio.open_signal_receiver(signal.SIGTERM, signal.SIGINT) as signals:

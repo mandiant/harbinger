@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import uuid
-from typing import TYPE_CHECKING
 
 from sqlalchemy import ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
@@ -22,14 +21,13 @@ from sqlalchemy.orm import Mapped, relationship
 from harbinger.database.database import Base
 from harbinger.database.types import mapped_column
 
-if TYPE_CHECKING:
-    from .label import Label
-
 
 class Process(Base):
     __tablename__ = "processes"
     id: Mapped[UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
     )
     process_id: Mapped[int] = mapped_column(Integer)
     architecture: Mapped[str] = mapped_column(String)
@@ -43,9 +41,13 @@ class Process(Base):
     host_id: Mapped[UUID] = mapped_column(ForeignKey("hosts.id"), nullable=True)
     number: Mapped[int] = mapped_column(Integer)
     c2_implant_id: Mapped[UUID] = mapped_column(
-        ForeignKey("c2_implants.id"), nullable=True
+        ForeignKey("c2_implants.id"),
+        nullable=True,
     )
 
     labels = relationship(
-        "Label", secondary="labeled_item", lazy="joined", viewonly=True
+        "Label",
+        secondary="labeled_item",
+        lazy="joined",
+        viewonly=True,
     )

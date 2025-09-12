@@ -14,12 +14,12 @@
 
 
 from datetime import datetime
-from typing import List
+from typing import TYPE_CHECKING
 
 from pydantic import UUID4, BaseModel, ConfigDict, field_validator
 
-
-from .label import Label
+if TYPE_CHECKING:
+    from .label import Label
 
 
 class ShareBase(BaseModel):
@@ -55,4 +55,4 @@ class Share(ShareBase):
     id: UUID4
     time_created: datetime
 
-    labels: List["Label"] | None = None
+    labels: list["Label"] | None = None

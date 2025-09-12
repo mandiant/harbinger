@@ -12,22 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import jinja2
-from sqlalchemy.orm.decl_api import DeclarativeMeta
-from jinja2.sandbox import SandboxedEnvironment
-
-from harbinger import models
+import contextlib
 import os
 import re
 
+from harbinger import models
+from jinja2.sandbox import SandboxedEnvironment
+from sqlalchemy.orm.decl_api import DeclarativeMeta
 
-database_objects = dict(
-    [
-        (name, cls)
-        for name, cls in models.__dict__.items()
-        if type(cls) == DeclarativeMeta and name != "Base" and name != "TimeLine"
-    ]
-)
+database_objects = {
+    name: cls
+    for name, cls in models.__dict__.items()
+    if type(cls) == DeclarativeMeta and name != "Base" and name != "TimeLine"
+}
 
 env = SandboxedEnvironment(
     enable_async=False,
@@ -58,7 +55,7 @@ ts_type_map = {
     "ARRAY": "Array<string>",
 }
 
-for name in database_objects.keys():
+for name in database_objects:
     print(f"Processing {name}")
     name_vue = re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
     route = name_vue + "s"
@@ -76,10 +73,8 @@ for name in database_objects.keys():
         if "(" in column_type:
             column_type = column_type.split("(")[0]
 
-        try:
+        with contextlib.suppress(KeyError):
             ts_fields.append({"name": column.name, "value": ts_type_map[column_type]})
-        except KeyError:
-            pass
 
         if column.name == "id":
             continue
@@ -96,7 +91,7 @@ for name in database_objects.keys():
 
     filters_template = """
 # Filters.py
-class {{ name }}Filter(Filter): 
+class {{ name }}Filter(Filter):
     order_by: list[str] | None = ["-time_created"]
     search: str | None = None
     {% for filter in filters %}{{ filter.name }}: {{ filter.value }} | None = None
@@ -108,7 +103,11 @@ class {{ name }}Filter(Filter):
 """
     templ = env.from_string(filters_template)
     resp = templ.render(
-        name=name, filters=filters, names=names, route=route, constraint=constraint
+        name=name,
+        filters=filters,
+        names=names,
+        route=route,
+        constraint=constraint,
     )
 
     with open(f"gen/{name}/filters.py", "w") as f:
@@ -138,7 +137,11 @@ class {{name}}({{name}}Base):
 """
     templ = env.from_string(schemas_template)
     resp = templ.render(
-        name=name, filters=filters, names=names, route=route, constraint=constraint
+        name=name,
+        filters=filters,
+        names=names,
+        route=route,
+        constraint=constraint,
     )
 
     with open(f"gen/{name}/schemas.py", "w") as f:
@@ -210,7 +213,11 @@ async def update_{{route[:-1]}}(
 """
     templ = env.from_string(router_schema)
     resp = templ.render(
-        name=name, filters=filters, names=names, route=route, constraint=constraint
+        name=name,
+        filters=filters,
+        names=names,
+        route=route,
+        constraint=constraint,
     )
 
     with open(f"gen/{name}/router.py", "w") as f:
@@ -287,7 +294,11 @@ async def update_{{route[:-1]}}(db: AsyncSession, id: str | uuid.UUID, {{route}}
 """
     templ = env.from_string(crud_schema)
     resp = templ.render(
-        name=name, filters=filters, names=names, route=route, constraint=constraint
+        name=name,
+        filters=filters,
+        names=names,
+        route=route,
+        constraint=constraint,
     )
 
     with open(f"gen/{name}/crud.py", "w") as f:
@@ -308,7 +319,11 @@ async def update_{{route[:-1]}}(db: AsyncSession, id: str | uuid.UUID, {{route}}
     """
     templ = env.from_string(test_template)
     resp = templ.render(
-        name=name, filters=filters, names=names, route=route, constraint=constraint
+        name=name,
+        filters=filters,
+        names=names,
+        route=route,
+        constraint=constraint,
     )
 
     with open(f"gen/{name}/tests.py", "w") as f:

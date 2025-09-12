@@ -120,3 +120,10 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = "src/*"
 ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+ignore = ["E501"]
