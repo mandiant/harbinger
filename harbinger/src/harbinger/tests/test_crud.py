@@ -130,10 +130,18 @@ class TestCrud(unittest.IsolatedAsyncioTestCase):
             importlib.reload(
                 database,
             )  # Reload database to re-create engine/SessionLocal
-            print("Reloading crud module to re-apply decorators...")
-            importlib.reload(
-                crud,
-            )  # Reload crud to make decorators capture new SessionLocal
+            print("Reloading crud modules to re-apply decorators...")
+            # Reload the crud package and all submodules to ensure that any
+            # decorators are re-initialized with the patched db/cache connections.
+            import sys
+
+            # Create a copy of sys.modules to iterate over, as reloading can
+            # change the dictionary.
+            modules_to_reload = [
+                module for module_name, module in sys.modules.items() if module_name.startswith("harbinger.crud")
+            ]
+            for module in modules_to_reload:
+                importlib.reload(module)
             print("Modules reloaded.")
 
             # --- Database Migrations ---
