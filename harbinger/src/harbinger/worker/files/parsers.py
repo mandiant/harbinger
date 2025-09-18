@@ -350,7 +350,7 @@ class ProcessListParser(BaseFileParser):
         # await label_processes({}, str(host.id), number + 1)
 
         if created and host.domain_id:
-            domain = await crud.get_domain(host.domain_id)
+            domain = await crud.get_domain(db, host.domain_id)
             if domain:
                 await merge_db_neo4j_host(db, host, domain, False)
         return []
@@ -368,15 +368,9 @@ class Dir2JsonParser(BaseFileParser):
         host = ""
         domain = ""
         if file.c2_implant_id:
-            implant = await crud.get_c2_implant(file.c2_implant_id)
+            implant = await crud.get_c2_implant(db, file.c2_implant_id)
             if implant and implant.host_id:
-                host_db = await crud.get_host(implant.host_id)
-                if host_db:
-                    host = host_db.name or ""
-                    if host_db.fqdn:
-                        host = host_db.fqdn
-                    elif host_db.domain_id:
-                        domain = await crud.get_domain_name_from_host(db, host_db.id)
+                host = await crud.get_host(db, implant.host_id)
 
         async with aiofiles.open(tmpfilename, "rb") as f:
             data = await f.read()

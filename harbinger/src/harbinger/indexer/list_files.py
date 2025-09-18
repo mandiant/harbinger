@@ -133,7 +133,7 @@ class ShareEnum:
 
     async def list_share_folders(self, name: str, share_id: str, depth: int):
         async with SessionLocal() as session:
-            share = await crud.get_share(share_id)
+            share = await crud.get_share(session, share_id)
             if not share:
                 return 0
 
@@ -225,7 +225,7 @@ class ShareEnum:
 
     async def list_share_root(self, name: str, share_id: str) -> int:
         async with SessionLocal() as session:
-            share = await crud.get_share(share_id)
+            share = await crud.get_share(session, share_id)
             if not share:
                 return 0
             hostname = share.unc_path.split("\\")[2]

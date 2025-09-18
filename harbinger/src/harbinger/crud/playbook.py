@@ -16,12 +16,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import func
 
 from harbinger import filters, models, schemas
-from harbinger.database.cache import redis_cache, redis_cache_invalidate
-from harbinger.database.database import SessionLocal
 from harbinger.database.redis_pool import redis
 from harbinger.proto.v1 import messages_pb2
 
-from ._common import DEFAULT_CACHE_TTL, create_filter_for_column, env, to_excel
+from ._common import create_filter_for_column, env, to_excel
 from .c2_job import clone_c2_job, create_c2_job
 from .file import delete_input_files
 from .label import (
@@ -220,7 +218,6 @@ async def get_playbooks(
     return result.scalars().unique().all()
 
 
-@redis_cache_invalidate(key_prefix="playbook", key_param_name="playbook_id")
 async def update_chain(
     db: AsyncSession,
     playbook_id: str,
@@ -276,13 +273,6 @@ async def get_playbooks_filters(db: AsyncSession, filters: filters.PlaybookFilte
     return result
 
 
-@redis_cache(
-    key_prefix="playbook",
-    session_factory=SessionLocal,
-    schema=schemas.ProxyChainGraph,
-    key_param_name="id",
-    ttl_seconds=DEFAULT_CACHE_TTL,
-)
 async def get_playbook(db: AsyncSession, id: UUID4 | str) -> models.Playbook | None:
     return await db.get(models.Playbook, id)
 
@@ -385,7 +375,6 @@ async def clone_chain_step(
     return new_step
 
 
-@redis_cache_invalidate(key_prefix="playbook", key_param_name="playbook_id")
 async def update_chain_status(
     db: AsyncSession,
     status: str,
@@ -412,7 +401,6 @@ async def update_chain_status(
     return None
 
 
-@redis_cache_invalidate(key_prefix="playbook_step", key_param_name="step_id")
 async def update_step_status(
     db: AsyncSession,
     status: str,
@@ -540,7 +528,6 @@ async def add_step(
     return db_step
 
 
-@redis_cache_invalidate(key_prefix="playbook_step", key_param_name="step_id")
 async def update_step(
     db: AsyncSession,
     step_id: str,
@@ -570,13 +557,6 @@ async def update_step(
     return None
 
 
-@redis_cache(
-    key_prefix="playbook_template",
-    session_factory=SessionLocal,
-    schema=schemas.PlaybookTemplateView,
-    key_param_name="template_id",
-    ttl_seconds=DEFAULT_CACHE_TTL,
-)
 async def get_playbook_template(
     db: AsyncSession,
     template_id: str | uuid.UUID,

@@ -5,10 +5,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from harbinger import models, schemas
-from harbinger.database.cache import redis_cache
-from harbinger.database.database import SessionLocal
-
-from ._common import DEFAULT_CACHE_TTL
 
 
 async def create_parse_result(
@@ -22,13 +18,6 @@ async def create_parse_result(
     return result_db
 
 
-@redis_cache(
-    key_prefix="parse_result",
-    session_factory=SessionLocal,
-    schema=schemas.ParseResult,
-    key_param_name="result_id",
-    ttl_seconds=DEFAULT_CACHE_TTL,
-)
 async def get_parse_result(
     db: AsyncSession,
     result_id: UUID4 | str,

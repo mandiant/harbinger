@@ -10,8 +10,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import func
 
 from harbinger import filters, models, schemas
-from harbinger.database.cache import redis_cache_fixed_key
-from harbinger.database.database import SessionLocal
 
 from ._common import create_filter_for_column
 from .label import get_labels_for_q
@@ -132,11 +130,6 @@ async def delete_c2_server_status_custom(
     await db.commit()
 
 
-@redis_cache_fixed_key(
-    cache_key="c2_server_statistics",
-    session_factory=SessionLocal,
-    schema=schemas.StatisticsItems,
-)
 async def get_c2_server_statistics(db: AsyncSession) -> dict:
     stats = {}
     c2_server_stats = {}

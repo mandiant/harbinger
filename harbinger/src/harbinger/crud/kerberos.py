@@ -5,10 +5,6 @@ from sqlalchemy import exc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from harbinger import models, schemas
-from harbinger.database.cache import redis_cache
-from harbinger.database.database import SessionLocal
-
-from ._common import DEFAULT_CACHE_TTL
 
 
 async def get_or_create_kerberos(
@@ -48,13 +44,6 @@ async def get_kerberos_paged(
     return await paginate(db, q.order_by(models.Kerberos.time_created.desc()))
 
 
-@redis_cache(
-    key_prefix="kerberos",
-    session_factory=SessionLocal,
-    schema=schemas.Kerberos,
-    key_param_name="kerberos_id",
-    ttl_seconds=DEFAULT_CACHE_TTL,
-)
 async def get_kerberos(
     db: AsyncSession,
     kerberos_id: str | UUID4,

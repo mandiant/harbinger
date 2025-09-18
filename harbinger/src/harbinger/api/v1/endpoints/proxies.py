@@ -29,8 +29,12 @@ async def proxys_filters(
 
 
 @router.get("/{proxy_id}", response_model=schemas.Proxy, tags=["proxies", "crud"])
-async def read_proxy(proxy_id: str, user: Annotated[models.User, Depends(current_active_user)]):
-    return await crud.get_proxy(proxy_id)
+async def read_proxy(
+    proxy_id: str,
+    user: Annotated[models.User, Depends(current_active_user)],
+    db: AsyncSession = Depends(get_db),
+):
+    return await crud.get_proxy(db, proxy_id)
 
 
 @router.post("/", response_model=schemas.Proxy, tags=["proxies", "crud"])

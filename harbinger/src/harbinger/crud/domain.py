@@ -10,20 +10,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import func
 
 from harbinger import filters, models, schemas
-from harbinger.database.cache import redis_cache, redis_cache_invalidate
-from harbinger.database.database import SessionLocal
 
-from ._common import DEFAULT_CACHE_TTL
 from .label import get_labels_for_q
 
 
-@redis_cache(
-    key_prefix="domain",
-    session_factory=SessionLocal,
-    schema=schemas.Domain,
-    key_param_name="domain_id",
-    ttl_seconds=DEFAULT_CACHE_TTL,
-)
 async def get_domain(
     db: AsyncSession,
     domain_id: str | UUID4,
@@ -117,7 +107,6 @@ async def create_domain(
     return db_domain
 
 
-@redis_cache_invalidate(key_prefix="domain", key_param_name="domain_id")
 async def update_domain(
     db: AsyncSession,
     domain_id: str | UUID4,

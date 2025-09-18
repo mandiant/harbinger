@@ -9,7 +9,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import func
 
 from harbinger import filters, models, schemas
-from harbinger.database.cache import redis_cache_invalidate
 
 from ._common import create_filter_for_column
 
@@ -67,7 +66,6 @@ async def create_issue(
     return (result.time_updated is None, result)
 
 
-@redis_cache_invalidate(key_prefix="issue", key_param_name="id")
 async def update_issue(
     db: AsyncSession,
     id: str | uuid.UUID,

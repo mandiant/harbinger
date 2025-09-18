@@ -764,7 +764,7 @@ async def create_suggestion_for_plan_step(
             return f"Error: Plan Step with ID '{plan_step_id}' not found. Please use a valid ID."
 
         # Validate playbook_template_id
-        playbook_template = await crud.get_playbook_template(playbook_template_id)
+        playbook_template = await crud.get_playbook_template(db, playbook_template_id)
         if not playbook_template:
             return (
                 f"Error: Playbook Template with ID '{playbook_template_id}' not found. "
@@ -854,7 +854,7 @@ async def delete_suggestion(suggestion_id: str) -> str:
     without permanently deleting it from the database.
     """
     async with SessionLocal() as db:
-        suggestion = await crud.get_suggestion(suggestion_id)
+        suggestion = await crud.get_suggestion(db, suggestion_id)
         if not suggestion:
             return f"Error: Suggestion with ID '{suggestion_id}' not found."
         await crud.delete_suggestion(db, suggestion_id)
@@ -872,7 +872,7 @@ async def update_suggestion(
     Use this to refine or correct a suggestion.
     """
     async with SessionLocal() as db:
-        suggestion = await crud.get_suggestion(suggestion_id)
+        suggestion = await crud.get_suggestion(db, suggestion_id)
         if not suggestion:
             return f"Error: Suggestion with ID '{suggestion_id}' not found."
 
@@ -903,16 +903,18 @@ async def validate_playbook_arguments(playbook_template_id: str, arguments: str)
     except json.JSONDecodeError:
         return "Error: The 'arguments' parameter must be a valid JSON-encoded dictionary string."
 
-    playbook_template = await crud.get_playbook_template(playbook_template_id)
-    if not playbook_template:
-        return f"Error: Playbook Template with ID '{playbook_template_id}' not found."
+    async with SessionLocal() as db:
+        playbook_template = await crud.get_playbook_template(db, playbook_template_id)
+        if not playbook_template:
+            return f"Error: Playbook Template with ID '{playbook_template_id}' not found."
 
     # This part is a simplified adaptation. A full implementation would parse the template's arg definitions.
     # For now, we focus on the most common and critical validation: c2_implant_id.
     if "c2_implant_id" in args_dict:
         implant_id = args_dict["c2_implant_id"]
-        implant = await crud.get_c2_implant(implant_id)
-        if not implant:
-            return f"Error: C2 Implant with ID '{implant_id}' not found."
+        async with SessionLocal() as db:
+            implant = await crud.get_c2_implant(db, implant_id)
+            if not implant:
+                return f"Error: C2 Implant with ID '{implant_id}' not found."
 
     return "Validation successful."

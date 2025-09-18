@@ -67,7 +67,7 @@ async def update_situational_awareness(
     user: Annotated[models.User, Depends(current_active_user)],
 ):
     await crud.update_situational_awareness(db, sa_id=sa_id, sa=sa)
-    return crud.get_situational_awareness(sa_id=sa_id)
+    return await crud.get_situational_awareness(db, sa_id=sa_id)
 
 
 @router.delete("/{sa_id}", tags=["situational_awareness", "crud"])

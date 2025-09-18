@@ -6,11 +6,7 @@ from pydantic import UUID4
 from sqlalchemy import Select, exc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from harbinger import filters, models, schemas
-from harbinger.database.cache import redis_cache
-from harbinger.database.database import SessionLocal
-
-from ._common import DEFAULT_CACHE_TTL
+from harbinger import filters, models
 
 
 async def get_or_create_password(
@@ -48,13 +44,6 @@ async def get_or_create_password(
     return password_db
 
 
-@redis_cache(
-    key_prefix="password",
-    session_factory=SessionLocal,
-    schema=schemas.Password,
-    key_param_name="password_id",
-    ttl_seconds=DEFAULT_CACHE_TTL,
-)
 async def get_password(
     db: AsyncSession,
     password_id: str | UUID4,

@@ -10,10 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import func
 
 from harbinger import filters, models, schemas
-from harbinger.database.cache import invalidate_cache_entry, redis_cache
-from harbinger.database.database import SessionLocal
 
-from ._common import DEFAULT_CACHE_TTL, create_filter_for_column
+from ._common import create_filter_for_column
 from .label import get_labels_for_q
 
 
@@ -85,12 +83,9 @@ async def create_or_update_c2_task(
     data = task.model_dump()
     data.pop("internal_implant_id", None)
     if db_task:
-        new = False
-        q = update(models.C2Task).where(models.C2Task.id == db_task.id)
-        q = q.values(**data)
         await db.execute(q)
         await db.commit()
-        await invalidate_cache_entry("c2_task", db_task.id)
+        new = False
     else:
         db_task = models.C2Task(**data)
         db.add(db_task)
@@ -123,13 +118,6 @@ async def create_c2_task_output(
     return (result.time_updated is None, result)
 
 
-@redis_cache(
-    key_prefix="c2_task",
-    session_factory=SessionLocal,
-    schema=schemas.C2Task,
-    key_param_name="c2_task_id",
-    ttl_seconds=DEFAULT_CACHE_TTL,
-)
 async def get_c2_task(db, c2_task_id: str | UUID4) -> models.C2Task | None:
     return await db.get(models.C2Task, c2_task_id)
 
@@ -173,4 +161,3 @@ async def update_c2_task_summary(
     q = update(models.C2Task).where(models.C2Task.id == c2_task_id).values(processing_status=status, ai_summary=summary)
     await db.execute(q)
     await db.commit()
-    await invalidate_cache_entry("c2_task", c2_task_id)

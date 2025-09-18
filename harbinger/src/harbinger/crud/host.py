@@ -9,10 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import func
 
 from harbinger import filters, models, schemas
-from harbinger.database.cache import redis_cache, redis_cache_invalidate
-from harbinger.database.database import SessionLocal
 
-from ._common import DEFAULT_CACHE_TTL
 from .domain import get_or_create_domain
 from .label import get_labels_for_q
 
@@ -60,13 +57,6 @@ async def get_host_filters(
     return result
 
 
-@redis_cache(
-    key_prefix="host",
-    session_factory=SessionLocal,
-    schema=schemas.Host,
-    key_param_name="host_id",
-    ttl_seconds=DEFAULT_CACHE_TTL,
-)
 async def get_host(db: AsyncSession, host_id: str | uuid.UUID) -> models.Host | None:
     return await db.get(models.Host, host_id)
 
@@ -115,7 +105,6 @@ async def get_or_create_host(
     return (created, host)
 
 
-@redis_cache_invalidate(key_prefix="host", key_param_name="host_id")
 async def update_host(
     db: AsyncSession,
     host_id: str | uuid.UUID,

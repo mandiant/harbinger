@@ -80,7 +80,7 @@ async def get_c2_job(
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[models.User, Depends(current_active_user)],
 ):
-    return await crud.get_c2_job(job_id=job_id)
+    return await crud.get_c2_job(db, job_id=job_id)
 
 
 @router.post(
@@ -94,7 +94,7 @@ async def start_c2_job(
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[models.User, Depends(current_active_user)],
 ):
-    job = await crud.get_c2_job(job_id=job_id)
+    job = await crud.get_c2_job(db, job_id=job_id)
     if job and job.status != schemas.Status.created:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return {"error": "This job cannot be started, the status is not created."}
@@ -105,7 +105,7 @@ async def start_c2_job(
         id=job_id,
         task_queue=constants.WORKER_TASK_QUEUE,
     )
-    return await crud.get_c2_job(job_id=job_id)
+    return await crud.get_c2_job(db, job_id=job_id)
 
 
 @router.post(

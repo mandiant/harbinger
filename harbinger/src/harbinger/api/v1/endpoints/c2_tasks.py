@@ -37,5 +37,9 @@ async def c2_task_filters(
     response_model=schemas.C2Task,
     tags=["c2", "implants", "crud"],
 )
-async def read_c2_task(task_id: str, user: Annotated[models.User, Depends(current_active_user)]):
-    return await crud.get_c2_task(c2_task_id=task_id)
+async def read_c2_task(
+    task_id: str,
+    user: Annotated[models.User, Depends(current_active_user)],
+    db: AsyncSession = Depends(get_db),
+):
+    return await crud.get_c2_task(db, c2_task_id=task_id)

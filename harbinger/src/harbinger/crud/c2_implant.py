@@ -11,14 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import func
 
 from harbinger import filters, models, schemas
-from harbinger.database.cache import (
-    invalidate_cache_entry,
-    redis_cache,
-    redis_cache_invalidate,
-)
-from harbinger.database.database import SessionLocal
 
-from ._common import DEFAULT_CACHE_TTL, create_filter_for_column
+from ._common import create_filter_for_column
 from .label import get_labels_for_q
 
 
@@ -117,13 +111,6 @@ async def get_c2_implants(
     return result.scalars().unique().all()
 
 
-@redis_cache(
-    key_prefix="c2_implant",
-    session_factory=SessionLocal,
-    schema=schemas.C2Implant,
-    key_param_name="c2_implant_id",
-    ttl_seconds=DEFAULT_CACHE_TTL,
-)
 async def get_c2_implant(
     db: AsyncSession,
     c2_implant_id: str | uuid.UUID,
@@ -146,7 +133,6 @@ async def get_c2_implant_by_internal_id(
     return result.unique().scalar_one_or_none()
 
 
-@redis_cache_invalidate(key_prefix="c2_implant", key_param_name="c2_implant_id")
 async def update_c2_implant(
     db: AsyncSession,
     c2_implant_id: str | UUID4,
@@ -195,7 +181,6 @@ async def create_or_update_c2_implant(
         )
         await db.execute(q)
         await db.commit()
-        await invalidate_cache_entry("c2_implant", db_implant.id)
         new = False
     else:
         db_implant = models.C2Implant(**implant.model_dump())

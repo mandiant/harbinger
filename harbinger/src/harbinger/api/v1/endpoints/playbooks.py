@@ -47,9 +47,9 @@ async def create_graph(
     for step in steps:
         label = f"({step.label})"
         if step.proxy_job_id:
-            if job := await crud.get_proxy_job(step.proxy_job_id):
+            if job := await crud.get_proxy_job(db, step.proxy_job_id):
                 label = f"({step.label}: {job.command})"
-        elif step.c2_job_id and (job := await crud.get_c2_job(step.c2_job_id)):
+        elif step.c2_job_id and (job := await crud.get_c2_job(db, step.c2_job_id)):
             label = f"({step.label}:{job.command})"
         if step.depends_on:
             depends_on = step.depends_on.split(",")
@@ -106,7 +106,7 @@ async def get_chain(
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[models.User, Depends(current_active_user)],
 ):
-    chain = await crud.get_playbook(playbook_id)
+    chain = await crud.get_playbook(db, playbook_id)
     if chain:
         chain.graph, chain.correct = await create_graph(playbook_id=playbook_id, db=db)
         return chain
@@ -145,8 +145,9 @@ async def start_chain(
     playbook_id: UUID4,
     response: Response,
     user: Annotated[models.User, Depends(current_active_user)],
+    db: AsyncSession = Depends(get_db),
 ):
-    chain = await crud.get_playbook(playbook_id)
+    chain = await crud.get_playbook(db, playbook_id)
     if chain and chain.status != schemas.Status.created:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return {"error": "This chain cannot be started, the status is not created."}
@@ -171,7 +172,7 @@ async def clone_chain(
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[models.User, Depends(current_active_user)],
 ):
-    chain = await crud.get_playbook(playbook_id)
+    chain = await crud.get_playbook(db, playbook_id)
     if not chain:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return {"error": "Chain could not be found."}
@@ -189,7 +190,7 @@ async def create_template_from_chain(
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[models.User, Depends(current_active_user)],
 ):
-    chain = await crud.get_playbook(playbook_id)
+    chain = await crud.get_playbook(db, playbook_id)
     if not chain:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return {"error": "Chain could not be found."}
@@ -209,7 +210,7 @@ async def create_template_from_chain(
         step_dict = collections.OrderedDict()
         if step.c2_job_id:
             add_c2_implant = True
-            c2_job = await crud.get_c2_job(step.c2_job_id)
+            c2_job = await crud.get_c2_job(db, step.c2_job_id)
             if c2_job:
                 step_dict["type"] = schemas.C2Type.c2.value
                 step_dict["name"] = c2_job.command
@@ -238,7 +239,7 @@ async def create_template_from_chain(
                     input_file_count += 1
         elif step.proxy_job_id:
             add_proxy_server = True
-            proxy_job = await crud.get_proxy_job(step.proxy_job_id)
+            proxy_job = await crud.get_proxy_job(db, step.proxy_job_id)
             if proxy_job:
                 step_dict["type"] = schemas.C2Type.proxy.value
                 step_dict["name"] = "custom"

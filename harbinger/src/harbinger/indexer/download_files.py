@@ -68,7 +68,7 @@ class Downloader:
             async with SessionLocal() as session:
                 try:
                     file_id = await self.queue.get()
-                    file = await crud.get_share_file(file_id)
+                    file = await crud.get_share_file(session, file_id)
 
                     if not file:
                         self.logger.warning(

@@ -8,10 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import func
 
 from harbinger import filters, models, schemas
-from harbinger.database.cache import redis_cache, redis_cache_fixed_key
-from harbinger.database.database import SessionLocal
 
-from ._common import DEFAULT_CACHE_TTL
 from .label import create_label_item, get_labels_for_q
 
 
@@ -86,22 +83,10 @@ async def get_share_filters(
     return result
 
 
-@redis_cache(
-    key_prefix="share",
-    session_factory=SessionLocal,
-    schema=schemas.Share,
-    key_param_name="share_id",
-    ttl_seconds=DEFAULT_CACHE_TTL,
-)
 async def get_share(db: AsyncSession, share_id: str | UUID4) -> models.Share | None:
     return await db.get(models.Share, share_id)
 
 
-@redis_cache_fixed_key(
-    cache_key="share_statistics",
-    session_factory=SessionLocal,
-    schema=schemas.StatisticsItems,
-)
 async def get_share_statistics(db: AsyncSession) -> dict:
     stats = {}
     q = select(func.count(models.Share.id))

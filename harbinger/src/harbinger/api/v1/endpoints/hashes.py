@@ -39,5 +39,5 @@ async def export_hashes(db: Annotated[AsyncSession, Depends(get_db)]):
 
 
 @router.get("/{hash_id}", response_model=schemas.Hash, tags=["crud", "hashes"])
-async def get_hash(hash_id: UUID4):
-    return await crud.get_hash(hash_id)
+async def get_hash(hash_id: UUID4, db: AsyncSession = Depends(get_db)):
+    return await crud.get_hash(db, hash_id)

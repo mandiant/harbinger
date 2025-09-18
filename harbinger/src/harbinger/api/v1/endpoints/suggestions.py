@@ -48,8 +48,12 @@ async def suggestions_filters(
     response_model=schemas.Suggestion | None,
     tags=["crud", "suggestions"],
 )
-async def get_suggestion(id: UUID4, user: Annotated[models.User, Depends(current_active_user)]):
-    return await crud.get_suggestion(id)
+async def get_suggestion(
+    id: UUID4,
+    user: Annotated[models.User, Depends(current_active_user)],
+    db: AsyncSession = Depends(get_db),
+):
+    return await crud.get_suggestion(db, id)
 
 
 @router.post(

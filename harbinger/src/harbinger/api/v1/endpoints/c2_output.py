@@ -62,5 +62,9 @@ async def c2_output_filters(
     response_model=schemas.C2Output | None,
     tags=["crud", "c2_outputs"],
 )
-async def get_c2_output(id: UUID4, user: Annotated[models.User, Depends(current_active_user)]):
-    return await crud.get_c2_output(id)
+async def get_c2_output(
+    id: UUID4,
+    user: Annotated[models.User, Depends(current_active_user)],
+    db: AsyncSession = Depends(get_db),
+):
+    return await crud.get_c2_output(db, id)

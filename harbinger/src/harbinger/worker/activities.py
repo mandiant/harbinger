@@ -113,10 +113,11 @@ async def check_and_finalize_plan_activity(plan_id: str) -> bool:
 
 @activity.defn
 async def get_playbook(playbook_id: str) -> None | schemas.ProxyChain:
-    playbook = await crud.get_playbook(playbook_id)
-    result = None
-    if playbook:
-        result = schemas.ProxyChain.model_validate(playbook)
+    async with SessionLocal() as db:
+        playbook = await crud.get_playbook(db, playbook_id)
+        result = None
+        if playbook:
+            result = schemas.ProxyChain.model_validate(playbook)
     return result
 
 
@@ -132,17 +133,19 @@ async def get_playbook_steps(playbook_id: str) -> list[schemas.ChainStep]:
 
 @activity.defn
 async def get_c2_implant(c2_implant_id: str) -> None | schemas.C2Implant:
-    implant = await crud.get_c2_implant(c2_implant_id)
-    if implant:
-        return schemas.C2Implant.model_validate(implant)
+    async with SessionLocal() as db:
+        implant = await crud.get_c2_implant(db, c2_implant_id)
+        if implant:
+            return schemas.C2Implant.model_validate(implant)
     return None
 
 
 @activity.defn
 async def get_c2_job(job_id: str) -> None | schemas.C2Job:
-    job = await crud.get_c2_job(job_id)
-    if job:
-        return schemas.C2Job.model_validate(job)
+    async with SessionLocal() as db:
+        job = await crud.get_c2_job(db, job_id)
+        if job:
+            return schemas.C2Job.model_validate(job)
     return None
 
 
@@ -160,8 +163,8 @@ async def get_c2_task_output(c2_task_id: UUID4) -> str:
 
 @activity.defn
 async def get_proxy_job(job_id: str) -> schemas.ProxyJob:
-    async with SessionLocal():
-        job = await crud.get_proxy_job(job_id)
+    async with SessionLocal() as db:
+        job = await crud.get_proxy_job(db, job_id)
         return schemas.ProxyJob.model_validate(job)
 
 
@@ -194,7 +197,7 @@ async def update_c2_job(replace: schemas.PlaybookStepModifierEntry) -> None:
         log.warning("c2 job id was not set.")
         return
     async with SessionLocal() as session:
-        c2_job = await crud.get_c2_job(replace.c2_job_id)
+        c2_job = await crud.get_c2_job(session, replace.c2_job_id)
         if not c2_job:
             log.warning("C2 job was not found.")
             return
@@ -226,7 +229,7 @@ async def update_proxy_job(replace: schemas.PlaybookStepModifierEntry) -> None:
         log.warning("Proxy job id was not set.")
         return
     async with SessionLocal() as session:
-        proxy_job = await crud.get_proxy_job(replace.proxy_job_id)
+        proxy_job = await crud.get_proxy_job(session, replace.proxy_job_id)
         if not proxy_job:
             log.warning("Proxy job was not found.")
             return
@@ -241,9 +244,10 @@ async def update_proxy_job(replace: schemas.PlaybookStepModifierEntry) -> None:
 @activity.defn
 async def get_file(file_id: str) -> schemas.File | None:
     if file_id:
-        file = await crud.get_file(file_id)
-        if file:
-            return schemas.File.model_validate(file)
+        async with SessionLocal() as db:
+            file = await crud.get_file(db, file_id)
+            if file:
+                return schemas.File.model_validate(file)
     return None
 
 
@@ -378,7 +382,7 @@ class FileParsing:
 
             async with SessionLocal() as session:
                 await crud.update_file(session, file.id, file_update)
-                file_db = await crud.get_file(file.id)
+                file_db = await crud.get_file(session, file.id)
                 if not file_db:
                     return None
                 return schemas.File.model_validate(file_db)

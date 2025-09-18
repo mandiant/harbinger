@@ -30,8 +30,12 @@ async def domains_filters(
 
 
 @router.get("/{id}", response_model=schemas.Domain | None, tags=["crud", "domains"])
-async def get_domain(id: UUID4, user: Annotated[models.User, Depends(current_active_user)]):
-    return await crud.get_domain(id)
+async def get_domain(
+    id: UUID4,
+    user: Annotated[models.User, Depends(current_active_user)],
+    db: AsyncSession = Depends(get_db),
+):
+    return await crud.get_domain(db, domain_id=id)
 
 
 @router.post("/", response_model=schemas.Domain, tags=["crud", "domains"])
