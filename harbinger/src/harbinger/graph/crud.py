@@ -20,8 +20,6 @@ from neo4j import AsyncSession, graph
 from neo4j.exceptions import Neo4jError
 
 from harbinger import models, schemas
-from harbinger.database.cache import redis_cache_neo4j_cm_fixed_key
-from harbinger.graph.database import get_async_neo4j_session_context
 
 
 def exception_handler(default):
@@ -254,11 +252,6 @@ user_query = "MATCH (o:User) WHERE NOT o.name ENDS WITH '$' RETURN count(o) as c
 
 
 @exception_handler(default=schemas.StatisticsItems(items=[]))
-@redis_cache_neo4j_cm_fixed_key(
-    cache_key="neo4j_object_stats",
-    session_factory=get_async_neo4j_session_context,
-    schema=schemas.StatisticsItems,
-)
 async def get_object_stats(session: AsyncSession) -> dict:
     results = []
     for entry in GraphObjects:
@@ -277,11 +270,6 @@ admin_servers_query = "MATCH (u:Base {owned: true}) WHERE u.domain = $domain CAL
 
 
 @exception_handler(default=schemas.StatisticsItems(items=[]))
-@redis_cache_neo4j_cm_fixed_key(
-    cache_key="owned_stats",
-    session_factory=get_async_neo4j_session_context,
-    schema=schemas.StatisticsItems,
-)
 async def get_owned_stats(session: AsyncSession) -> dict:
     results = []
     domains = []

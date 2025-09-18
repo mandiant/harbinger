@@ -7,10 +7,6 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from harbinger import models, schemas
-from harbinger.database.cache import redis_cache
-from harbinger.database.database import SessionLocal
-
-from ._common import DEFAULT_CACHE_TTL
 
 
 async def create_hash(
@@ -29,13 +25,6 @@ async def create_hash(
     return (True, hash_db)
 
 
-@redis_cache(
-    key_prefix="hash",
-    session_factory=SessionLocal,
-    schema=schemas.Hash,
-    key_param_name="hash_id",
-    ttl_seconds=DEFAULT_CACHE_TTL,
-)
 async def get_hash(db: AsyncSession, hash_id: UUID4 | str) -> models.Hash | None:
     return await db.get(models.Hash, hash_id)
 

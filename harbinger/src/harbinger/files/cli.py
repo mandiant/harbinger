@@ -94,25 +94,26 @@ async def upload_main(
 async def download_main(files: list[str], destination: str, bucket: str) -> None:
     dest = Path(destination)
     click.echo(f"Downloading {len(files)} file(s) to {destination}")
-    for file in files:
-        file_path = file
-        filename = file
-        if is_uuid(file):
-            file_db = await crud.get_file(file)
-            if file_db:
-                file_path = file_db.path
-                filename = os.path.basename(file_db.filename)
-            else:
-                click.echo(f"File with guid {file} not found, skipping.")
-                continue
-        else:
+    async with SessionLocal() as db:
+        for file in files:
             file_path = file
-            filename = os.path.basename(file)
+            filename = file
+            if is_uuid(file):
+                file_db = await crud.get_file(db, file)
+                if file_db:
+                    file_path = file_db.path
+                    filename = os.path.basename(file_db.filename)
+                else:
+                    click.echo(f"File with guid {file} not found, skipping.")
+                    continue
+            else:
+                file_path = file
+                filename = os.path.basename(file)
 
-        data = await download_file(file_path, bucket)
-        with open(dest / filename, "wb") as f:
-            f.write(data)
-        click.echo(f"Written {len(data)} bytes to {dest / filename}")
+            data = await download_file(file_path, bucket)
+            with open(dest / filename, "wb") as f:
+                f.write(data)
+            click.echo(f"Written {len(data)} bytes to {dest / filename}")
 
 
 @click.group()

@@ -42,5 +42,6 @@ async def read_parse_results(
 async def get_parse_result(
     parse_id: UUID4,
     user: Annotated[models.User, Depends(current_active_user)],
+    db: AsyncSession = Depends(get_db),
 ):
-    return await crud.get_parse_result(parse_id)
+    return await crud.get_parse_result(db, parse_id)

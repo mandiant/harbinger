@@ -12,14 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import func
 
 from harbinger import filters, models, schemas
-from harbinger.database.cache import (
-    invalidate_cache_entry,
-    redis_cache,
-    redis_cache_invalidate,
-)
-from harbinger.database.database import SessionLocal
 
-from ._common import DEFAULT_CACHE_TTL, create_filter_for_column
+from ._common import create_filter_for_column
 from .domain import get_or_create_domain
 from .host import get_or_create_host
 from .label import create_label_item, get_labels_for_q
@@ -88,7 +82,6 @@ async def add_file(
     return file
 
 
-@redis_cache_invalidate(key_prefix="file", key_param_name="file_id")
 async def update_file(
     db: AsyncSession,
     file_id: str | uuid.UUID,
@@ -99,7 +92,6 @@ async def update_file(
     await db.commit()
 
 
-@redis_cache_invalidate(key_prefix="file", key_param_name="file_id")
 async def update_file_path(
     db: AsyncSession,
     file_id: str | uuid.UUID,
@@ -110,13 +102,6 @@ async def update_file_path(
     await db.commit()
 
 
-@redis_cache(
-    key_prefix="file",
-    session_factory=SessionLocal,
-    schema=schemas.File,
-    key_param_name="file_id",
-    ttl_seconds=DEFAULT_CACHE_TTL,
-)
 async def get_file(db: AsyncSession, file_id: str | uuid.UUID) -> models.File | None:
     return await db.get(models.File, file_id)
 
@@ -185,7 +170,6 @@ async def search_files(
     return result.scalars().unique().all()
 
 
-@redis_cache_invalidate(key_prefix="file", key_param_name="file_id")
 async def update_file_type(
     db: AsyncSession,
     file_id: str | uuid.UUID,
@@ -222,7 +206,6 @@ async def set_share_file_downloaded(
         update(models.ShareFile).where(models.ShareFile.id == share_file_id).values(downloaded=True),
     )
     await db.commit()
-    await invalidate_cache_entry("share_file", share_file_id)
 
 
 async def list_share_files_paged(
@@ -336,13 +319,6 @@ async def get_share_file_filters(db: AsyncSession, filters: filters.ShareFileFil
     return result
 
 
-@redis_cache(
-    key_prefix="share_file",
-    session_factory=SessionLocal,
-    schema=schemas.ShareFile,
-    key_param_name="id",
-    ttl_seconds=DEFAULT_CACHE_TTL,
-)
 async def get_share_file(
     db: AsyncSession,
     id: UUID4 | str,
@@ -350,7 +326,6 @@ async def get_share_file(
     return await db.get(models.ShareFile, id)
 
 
-@redis_cache_invalidate(key_prefix="share_file", key_param_name="id")
 async def update_share_file(
     db: AsyncSession,
     id: str | uuid.UUID,

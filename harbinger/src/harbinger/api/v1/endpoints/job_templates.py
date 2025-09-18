@@ -100,10 +100,10 @@ async def chain_templates_schema(
 ):
     default_arguments = {}
     if suggestion_id:
-        suggestion = await crud.get_suggestion(suggestion_id)
+        suggestion = await crud.get_suggestion(db, suggestion_id)
         if suggestion:
             default_arguments = suggestion.arguments
-    schema = await crud.get_playbook_template(uuid)
+    schema = await crud.get_playbook_template(db, uuid)
     if schema:
         schema_templ = schemas.PlaybookTemplate(**yaml.safe_load(schema.yaml))
         return jsonref.loads(
@@ -124,7 +124,7 @@ async def get_playbook_template(
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[models.User, Depends(current_active_user)],
 ):
-    return await crud.get_playbook_template(id)
+    return await crud.get_playbook_template(db, id)
 
 
 @router.get("/{c2_type}/{name}/schema", tags=["proxy_jobs", "crud"])
@@ -152,7 +152,7 @@ async def create_chain_preview_from_template(
     user: Annotated[models.User, Depends(current_active_user)],
 ):
     body = await request.json()
-    schema = await crud.get_playbook_template(uuid)
+    schema = await crud.get_playbook_template(db, uuid)
     if schema:
         try:
             chain = schemas.PlaybookTemplate(**yaml.safe_load(schema.yaml))
@@ -204,7 +204,7 @@ async def preview(
     args = await template.generate_arguments(db)
     command = await template.generate_command()
     if c2_type == schemas.C2Type.proxy:
-        socks_server = await crud.get_socks_server(template.socks_server_id)  # type: ignore
+        socks_server = await crud.get_socks_server(db, template.socks_server_id)  # type: ignore
         return schemas.ProxyJobPreview(
             command=command,
             arguments=args,
@@ -309,7 +309,7 @@ async def create_chain_from_template(
     user: Annotated[models.User, Depends(current_active_user)],
 ):
     body = await request.json()
-    schema = await crud.get_playbook_template(uuid)
+    schema = await crud.get_playbook_template(db, uuid)
     if schema:
         try:
             chain = schemas.PlaybookTemplate(**yaml.safe_load(schema.yaml))

@@ -1,5 +1,3 @@
-from typing import Annotated
-
 from fastapi import APIRouter, Depends
 from fastapi_filter import FilterDepends
 from fastapi_pagination import Page
@@ -20,7 +18,7 @@ async def read_c2_implants(
     alive_only: bool = False,
     db: AsyncSession = Depends(get_db),
     user: models.User = Depends(current_active_user),
-):
+) -> Page[models.C2Implant]:
     return await crud.get_c2_implants_paged(db, implants_filter, alive_only)
 
 
@@ -45,6 +43,7 @@ async def c2_implant_filters(
 )
 async def read_c2_implant(
     implant_id: str,
-    user: Annotated[models.User, Depends(current_active_user)],
-):
-    return await crud.get_c2_implant(c2_implant_id=implant_id)
+    db: AsyncSession = Depends(get_db),
+    user: models.User = Depends(current_active_user),
+) -> models.C2Implant | None:
+    return await crud.get_c2_implant(db, c2_implant_id=implant_id)

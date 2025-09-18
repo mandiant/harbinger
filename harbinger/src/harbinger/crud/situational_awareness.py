@@ -8,10 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import func
 
 from harbinger import filters, models, schemas
-from harbinger.database.cache import redis_cache, redis_cache_fixed_key
-from harbinger.database.database import SessionLocal
 
-from ._common import DEFAULT_CACHE_TTL, create_filter_for_column
+from ._common import create_filter_for_column
 
 
 async def list_situational_awareness(
@@ -67,13 +65,6 @@ async def get_situational_awarenesss_filters(
     return result
 
 
-@redis_cache(
-    key_prefix="situational_awareness",
-    session_factory=SessionLocal,
-    schema=schemas.SituationalAwareness,
-    key_param_name="sa_id",
-    ttl_seconds=DEFAULT_CACHE_TTL,
-)
 async def get_situational_awareness(
     db,
     sa_id: str | UUID4,
@@ -128,11 +119,6 @@ async def get_or_create_situational_awareness(
     return (created, sa_db)
 
 
-@redis_cache_fixed_key(
-    cache_key="sa_statistics",
-    session_factory=SessionLocal,
-    schema=schemas.StatisticsItems,
-)
 async def get_sa_statistics(db: AsyncSession) -> dict:
     stats = {}
     q = select(

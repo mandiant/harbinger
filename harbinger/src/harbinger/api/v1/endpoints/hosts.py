@@ -30,8 +30,12 @@ async def host_filters(
 
 
 @router.get("/{host_id}", response_model=schemas.Host, tags=["hosts", "crud"])
-async def get_host(host_id: str, user: Annotated[models.User, Depends(current_active_user)]):
-    return await crud.get_host(host_id)
+async def get_host(
+    host_id: str,
+    user: Annotated[models.User, Depends(current_active_user)],
+    db: AsyncSession = Depends(get_db),
+):
+    return await crud.get_host(db, host_id)
 
 
 @router.put("/{host_id}", response_model=schemas.Host, tags=["hosts", "crud"])

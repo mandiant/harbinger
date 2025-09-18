@@ -38,5 +38,9 @@ async def share_files_filters(
     response_model=schemas.ShareFile | None,
     tags=["crud", "share_files"],
 )
-async def get_share_file(id: UUID4, user: Annotated[models.User, Depends(current_active_user)]):
-    return await crud.get_share_file(id)
+async def get_share_file(
+    id: UUID4,
+    user: Annotated[models.User, Depends(current_active_user)],
+    db: AsyncSession = Depends(get_db),
+):
+    return await crud.get_share_file(db, id)

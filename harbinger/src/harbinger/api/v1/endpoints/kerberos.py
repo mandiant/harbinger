@@ -27,5 +27,6 @@ async def read_kerberos(
 async def get_kerberos(
     kerberos_id: UUID4,
     user: Annotated[models.User, Depends(current_active_user)],
+    db: AsyncSession = Depends(get_db),
 ):
-    return await crud.get_kerberos(kerberos_id)
+    return await crud.get_kerberos(db, kerberos_id)

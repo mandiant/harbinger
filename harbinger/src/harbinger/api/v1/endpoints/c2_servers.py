@@ -56,8 +56,11 @@ async def create_c2_server(
     response_model=schemas.StatisticsItems,
     tags=["crud", "statistics"],
 )
-async def get_c2_server_statistics(user: Annotated[models.User, Depends(current_active_user)]):
-    return await crud.get_c2_server_statistics()
+async def get_c2_server_statistics(
+    user: Annotated[models.User, Depends(current_active_user)],
+    db: AsyncSession = Depends(get_db),
+):
+    return await crud.get_c2_server_statistics(db)
 
 
 @router.post("/{server_id}/command", tags=["c2", "implants", "crud"])

@@ -9,10 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import func
 
 from harbinger import filters, models, schemas
-from harbinger.database.cache import redis_cache, redis_cache_invalidate
-from harbinger.database.database import SessionLocal
 
-from ._common import DEFAULT_CACHE_TTL, create_filter_for_column
+from ._common import create_filter_for_column
 from .file import create_input_file, delete_input_files
 from .label import get_labels_for_q
 
@@ -98,18 +96,10 @@ async def create_c2_job(db: AsyncSession, job: schemas.C2JobCreate) -> models.C2
     return db_obj
 
 
-@redis_cache(
-    key_prefix="c2_job",
-    session_factory=SessionLocal,
-    schema=schemas.C2Job,
-    key_param_name="job_id",
-    ttl_seconds=DEFAULT_CACHE_TTL,
-)
 async def get_c2_job(db: AsyncSession, job_id: str | UUID4) -> models.C2Job | None:
     return await db.get(models.C2Job, job_id)
 
 
-@redis_cache_invalidate(key_prefix="c2_job", key_param_name="c2_job_id")
 async def update_c2_job(
     db: AsyncSession,
     c2_job_id: str | UUID4,
@@ -131,7 +121,6 @@ async def update_c2_job(
     return c2_job
 
 
-@redis_cache_invalidate(key_prefix="c2_job", key_param_name="c2_job_id")
 async def update_c2_job_status(
     db: AsyncSession,
     c2_job_id: str | UUID4,

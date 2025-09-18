@@ -10,18 +10,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import func
 
 from harbinger import filters, models, schemas
-from harbinger.database.cache import redis_cache_fixed_key
-from harbinger.database.database import SessionLocal
 
 from ._common import create_filter_for_column
 from .label import get_labels_for_q
 
 
-@redis_cache_fixed_key(
-    cache_key="implant_statistics",
-    session_factory=SessionLocal,
-    schema=schemas.StatisticsItems,
-)
 async def get_implant_statistics(db: AsyncSession) -> dict:
     stats = {}
     q = select(models.C2Implant.payload_type, func.count(models.C2Implant.id)).group_by(

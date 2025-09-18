@@ -14,8 +14,7 @@ from sqlalchemy.orm import InstrumentedAttribute
 from sqlalchemy.sql.expression import func
 
 from harbinger import models, schemas
-from harbinger.database.cache import invalidate_cache_entry, redis_cache_fixed_key
-from harbinger.database.database import SessionLocal, get_async_session
+from harbinger.database.database import get_async_session
 
 CACHE_DECORATORS_AVAILABLE = True
 
@@ -103,11 +102,6 @@ async def get_database_statistics(db: AsyncSession) -> dict[str, int]:
     return dict(zip(queries.keys(), results, strict=False))
 
 
-@redis_cache_fixed_key(
-    cache_key="job_statistics",
-    session_factory=SessionLocal,
-    schema=schemas.StatisticsItems,
-)
 async def get_job_statistics(db: AsyncSession) -> dict:
     stats = {}
     q = select(models.ProxyJob.status, func.count(models.ProxyJob.id)).group_by(
@@ -145,7 +139,7 @@ async def send_label_events(
         if value is not None and key.endswith("_id"):
             key_prefix = key.replace("_id", "")
             try:
-                await invalidate_cache_entry(key_prefix=key_prefix, key_value=value)
+                pass
             except Exception as e:
                 logger.error(
                     f"Error during cache invalidation call for {key_prefix}:{value}: {e}",

@@ -53,8 +53,12 @@ async def update_proxy_job(
 
 
 @router.get("/{job_id}", response_model=schemas.ProxyJob, tags=["proxy_jobs", "crud"])
-async def get_proxy_job(job_id: str, user: Annotated[models.User, Depends(current_active_user)]):
-    return await crud.get_proxy_job(job_id=job_id)
+async def get_proxy_job(
+    job_id: str,
+    user: Annotated[models.User, Depends(current_active_user)],
+    db: AsyncSession = Depends(get_db),
+):
+    return await crud.get_proxy_job(db, job_id=job_id)
 
 
 @router.post(
@@ -62,8 +66,12 @@ async def get_proxy_job(job_id: str, user: Annotated[models.User, Depends(curren
     response_model=schemas.ProxyJob,
     tags=["proxy_jobs", "crud"],
 )
-async def kill_proxy_job(job_id: str, user: Annotated[models.User, Depends(current_active_user)]):
-    return await crud.get_proxy_job(job_id=job_id)
+async def kill_proxy_job(
+    job_id: str,
+    user: Annotated[models.User, Depends(current_active_user)],
+    db: AsyncSession = Depends(get_db),
+):
+    return await crud.get_proxy_job(db, job_id=job_id)
 
 
 @router.post(
@@ -75,8 +83,9 @@ async def start_proxy_job(
     job_id: str,
     response: Response,
     user: Annotated[models.User, Depends(current_active_user)],
+    db: AsyncSession = Depends(get_db),
 ):
-    proxy_job = await crud.get_proxy_job(job_id=job_id)
+    proxy_job = await crud.get_proxy_job(db, job_id=job_id)
     if proxy_job and proxy_job.status != schemas.Status.created:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return {"error": "This job cannot be started, the status is not created."}

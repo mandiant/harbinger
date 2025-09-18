@@ -9,10 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import func
 
 from harbinger import filters, models, schemas
-from harbinger.database.cache import redis_cache
-from harbinger.database.database import SessionLocal
 
-from ._common import DEFAULT_CACHE_TTL, create_filter_for_column
+from ._common import create_filter_for_column
 from .label import get_labels_for_q
 
 
@@ -73,13 +71,6 @@ async def create_socks_server(
     return result.unique().one()
 
 
-@redis_cache(
-    key_prefix="socks_server",
-    session_factory=SessionLocal,
-    schema=schemas.SocksServer,
-    key_param_name="id",
-    ttl_seconds=DEFAULT_CACHE_TTL,
-)
 async def get_socks_server(db: AsyncSession, id: UUID4) -> models.SocksServer | None:
     return await db.get(models.SocksServer, id)
 

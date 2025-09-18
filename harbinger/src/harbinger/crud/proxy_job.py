@@ -11,20 +11,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import func
 
 from harbinger import filters, models, schemas
-from harbinger.database.cache import redis_cache, redis_cache_invalidate
-from harbinger.database.database import SessionLocal
 
-from ._common import DEFAULT_CACHE_TTL
 from .file import create_input_file, delete_input_files
 
 
-@redis_cache(
-    key_prefix="proxy_job",
-    session_factory=SessionLocal,
-    schema=schemas.ProxyJob,
-    key_param_name="job_id",
-    ttl_seconds=DEFAULT_CACHE_TTL,
-)
 async def get_proxy_job(
     db: AsyncSession,
     job_id: str | UUID4,
@@ -32,7 +22,6 @@ async def get_proxy_job(
     return await db.get(models.ProxyJob, job_id)
 
 
-@redis_cache_invalidate(key_prefix="proxy_job", key_param_name="job_id")
 async def update_proxy_job(
     db: AsyncSession,
     job_id: str | UUID4,
@@ -58,7 +47,6 @@ async def update_proxy_job(
     return proxy_job
 
 
-@redis_cache_invalidate(key_prefix="proxy_job", key_param_name="job_id")
 async def update_proxy_job_status(
     db: AsyncSession,
     status: str | None,

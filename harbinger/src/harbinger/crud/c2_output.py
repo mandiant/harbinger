@@ -6,10 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import func
 
 from harbinger import filters, models, schemas
-from harbinger.database.cache import redis_cache
-from harbinger.database.database import SessionLocal
 
-from ._common import DEFAULT_CACHE_TTL
 from .label import get_labels_for_q
 
 
@@ -43,13 +40,6 @@ async def get_c2_output_filters(
     return result
 
 
-@redis_cache(
-    key_prefix="c2_output",
-    session_factory=SessionLocal,
-    schema=schemas.C2Output,
-    key_param_name="c2_output_id",
-    ttl_seconds=DEFAULT_CACHE_TTL,
-)
 async def get_c2_output(
     db: AsyncSession,
     c2_output_id: str | UUID4,

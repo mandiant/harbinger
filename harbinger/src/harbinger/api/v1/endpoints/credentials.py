@@ -42,8 +42,9 @@ async def credentials_filters(
 async def read_credential(
     credential_id: str,
     user: Annotated[models.User, Depends(current_active_user)],
-):
-    return await crud.get_credential(credential_id)
+    db: AsyncSession = Depends(get_db),
+) -> models.Credential | None:
+    return await crud.get_credential(db, credential_id=credential_id)
 
 
 @router.post("/", response_model=schemas.Credential, tags=["credentials", "crud"])

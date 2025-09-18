@@ -38,5 +38,9 @@ async def highlights_filters(
     response_model=schemas.Highlight | None,
     tags=["crud", "highlights"],
 )
-async def get_highlight(id: UUID4, user: Annotated[models.User, Depends(current_active_user)]):
-    return await crud.get_highlight(id)
+async def get_highlight(
+    id: UUID4,
+    user: Annotated[models.User, Depends(current_active_user)],
+    db: AsyncSession = Depends(get_db),
+):
+    return await crud.get_highlight(db, id)

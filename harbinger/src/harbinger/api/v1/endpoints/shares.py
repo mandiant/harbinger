@@ -34,5 +34,9 @@ async def shares_filters(
     response_model=schemas.Share | None,
     tags=["crud", "shares"],
 )
-async def get_share(share_id: UUID4, user: Annotated[models.User, Depends(current_active_user)]):
-    return await crud.get_share(share_id)
+async def get_share(
+    share_id: UUID4,
+    user: Annotated[models.User, Depends(current_active_user)],
+    db: AsyncSession = Depends(get_db),
+):
+    return await crud.get_share(db, share_id)

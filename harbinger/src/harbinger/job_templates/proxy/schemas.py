@@ -78,8 +78,8 @@ class UploadFile(JobTemplateModel):
         template = "smbclient_upload.jinja2"
 
     async def resolve_objects(self, db: AsyncSession) -> dict:
-        cred = await crud.get_credential(credential_id=self.credential_id)
-        file = await crud.get_file(self.file_id)
+        cred = await crud.get_credential(db, credential_id=self.credential_id)
+        file = await crud.get_file(db, self.file_id)
         return {"credential": cred, "file": file}
 
 
@@ -88,7 +88,7 @@ class CredJobTemplateModel(JobTemplateModel):
     credential_id: str
 
     async def resolve_objects(self, db: AsyncSession) -> dict:
-        cred = await crud.get_credential(credential_id=self.credential_id)
+        cred = await crud.get_credential(db, credential_id=self.credential_id)
         return {"credential": cred}
 
 
@@ -234,7 +234,7 @@ class Custom(JobTemplateModel):
     async def files(self, db: AsyncSession) -> list[str]:
         result = []
         for file in self.input_files or []:
-            if await crud.get_file(file):
+            if await crud.get_file(db, file):
                 result.append(file)
         return result
 
