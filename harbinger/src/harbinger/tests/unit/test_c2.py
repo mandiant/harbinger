@@ -12,10 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
 
+def test_command_names():
+    """
+    Tests that all C2 job template schemas have valid command names.
+    """
+    from harbinger.job_templates import schemas
 
-class TestProto(unittest.TestCase):
-    # Check if the import is not broken.
-    def test_proto(self):
-        pass
+    for entry in schemas.LIST:
+        assert hasattr(entry, "Settings")
+        assert entry.Settings.command != ""
+        assert entry.Settings.command in schemas.Command
