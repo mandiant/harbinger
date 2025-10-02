@@ -34,7 +34,7 @@ harbinger_server:
       - src_path: "~/config.yaml"
         filetype: "harbinger_yaml"
   vars:
-    users:
+    harbinger_users:
     - user1
     harbinger_neo4j_host: 10.10.10.2
     harbinger_neo4j_port: 7687
@@ -61,7 +61,7 @@ harbinger_server:
       ansible_password: local-user-password-here
       ansible_connection: local
   vars:
-    users:
+    harbinger_users:
     - example
     harbinger_neo4j_host: 10.10.10.2
     harbinger_neo4j_port: 7687
@@ -69,6 +69,13 @@ harbinger_server:
     harbinger_neo4j_password: neo4j_password_here
     # if you want to enable gemini based processing, leave empty if not needed
     harbinger_gemini_key: api_key_here
+```
+
+Make sure you have the prerequisites:
+
+```bash
+pip install requests
+sudo apt-get install sshpass
 ```
 
 Run the ansible playbook:

@@ -47,7 +47,11 @@ async def create_multipart_upload(
         aws_secret_access_key=settings.minio_secret_key,
         aws_access_key_id=settings.minio_access_key,
     ) as client:
-        resp = await client.create_multipart_upload(Bucket=bucket, Key=key)  # type: ignore
+        try:
+            resp = await client.create_multipart_upload(Bucket=bucket, Key=key)  # type: ignore
+        except client.exceptions.NoSuchBucket:
+            await client.create_bucket(Bucket=bucket)  # type: ignore
+            resp = await client.create_multipart_upload(Bucket=bucket, Key=key)  # type: ignore
         return resp["UploadId"]  # type: ignore
 
 
@@ -195,7 +199,7 @@ class FileUploader:
         await cancel_multipart_upload(self.upload_id, self.path, self.bucket)
 
     async def __aenter__(self) -> "FileUploader":
-        self.upload_id = await create_multipart_upload(self.path)
+        self.upload_id = await create_multipart_upload(self.path, self.bucket)
         return self
 
     async def __aexit__(self, exc_type, exc, tb) -> None:
