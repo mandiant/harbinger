@@ -181,6 +181,7 @@ async def create_or_update_c2_implant(
         )
         await db.execute(q)
         await db.commit()
+        await db.refresh(db_implant)
         new = False
     else:
         db_implant = models.C2Implant(**implant.model_dump())

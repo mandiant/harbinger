@@ -47,9 +47,11 @@ async def create_certificate_authority(
         update_stmt.returning(models.CertificateAuthority),
         execution_options={"populate_existing": True},
     )
-    await db.commit()
     result = res.unique().one()
-    return (result.time_updated is None, result)
+    was_created = result.time_updated is None
+    await db.commit()
+    await db.refresh(result)
+    return (was_created, result)
 
 
 async def get_certificate_authorities(

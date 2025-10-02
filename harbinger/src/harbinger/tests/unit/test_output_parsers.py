@@ -2,6 +2,7 @@
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
+# You may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
 #     http://www.apache.org/licenses/LICENSE-2.0
@@ -12,9 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
 from unittest import mock
 
+import pytest
 from harbinger.worker.output import OUTPUT_PARSERS, EnvParser, IPConfigParser
 
 ipconfig_data = """{6929494D-CB96-4E0C-AE4C-3FB5DF62D6C0}
@@ -35,7 +36,7 @@ ALLUSERSPROFILE=C:\ProgramData
 APPDATA=C:\Users\development\AppData\Roaming
 CLIENTNAME=SW1-111174
 CommonProgramFiles=C:\Program Files\Common Files
-CommonProgramFiles(x86)=C:\Program Files (x86)\Common Files
+CommonProgramFiles(x88)=C:\Program Files (x88)\Common Files
 CommonProgramW6432=C:\Program Files\Common Files
 COMPUTERNAME=PC1
 ComSpec=C:\WINDOWS\system32\cmd.exe
@@ -71,28 +72,36 @@ USERDOMAIN=BLARG
 USERDOMAIN_ROAMINGPROFILE=BLARG"""
 
 
-class TestMythicC2(unittest.IsolatedAsyncioTestCase):
-    def test_output_parsers(self):
-        for parser in OUTPUT_PARSERS:
-            p = parser(mock.AsyncMock)
-            assert isinstance(p.needle, list)
-            assert p.needle != []
+def test_output_parsers_initialization():
+    """Tests that all output parsers initialize correctly."""
+    for parser in OUTPUT_PARSERS:
+        p = parser(mock.AsyncMock())
+        assert isinstance(p.needle, list)
+        assert p.needle != []
 
-    def test_parser_list_unique(self):
-        assert len(OUTPUT_PARSERS) == len(set(OUTPUT_PARSERS))
 
-    async def test_ipconfig(self):
-        p = IPConfigParser(mock.AsyncMock)
-        res = await p.match(ipconfig_data)
-        assert res, "IPConfigParser doesn't match on ipconfig output"
+def test_parser_list_is_unique():
+    """Tests that the list of output parsers contains no duplicates."""
+    assert len(OUTPUT_PARSERS) == len(set(OUTPUT_PARSERS))
 
-        res = await p.match(env_data)
-        assert not res, "IPConfigParser does match on env output"
 
-    async def test_env(self):
-        p = EnvParser(mock.AsyncMock)
-        res = await p.match(env_data)
-        assert res, "EnvParser doesn't match on env output"
+@pytest.mark.asyncio
+async def test_ipconfig_parser():
+    """Tests the matching logic of the IPConfigParser."""
+    p = IPConfigParser(mock.AsyncMock())
+    res = await p.match(ipconfig_data)
+    assert res is True, "IPConfigParser should match on ipconfig output"
 
-        res = await p.match(ipconfig_data)
-        assert not res, "EnvParser does match on ipconfig output"
+    res = await p.match(env_data)
+    assert res is False, "IPConfigParser should not match on env output"
+
+
+@pytest.mark.asyncio
+async def test_env_parser():
+    """Tests the matching logic of the EnvParser."""
+    p = EnvParser(mock.AsyncMock())
+    res = await p.match(env_data)
+    assert res is True, "EnvParser should match on env output"
+
+    res = await p.match(ipconfig_data)
+    assert res is False, "EnvParser should not match on ipconfig output"

@@ -40,6 +40,7 @@ from harbinger.api.v1.endpoints import (
     files_root,
     graph,
     hashes,
+    healthcheck,
     highlights,
     hosts,
     issues,
@@ -171,6 +172,7 @@ app.include_router(files.router, prefix="/files", tags=["files"])
 app.include_router(files_root.router, prefix="", tags=["files_root"])
 app.include_router(graph.router, prefix="/graph", tags=["graph"])
 app.include_router(hashes.router, prefix="/hashes", tags=["hashes"])
+app.include_router(healthcheck.router, prefix="", tags=["healthcheck"])
 app.include_router(highlights.router, prefix="/highlights", tags=["highlights"])
 app.include_router(hosts.router, prefix="/hosts", tags=["hosts"])
 app.include_router(issues.router, prefix="/issues", tags=["issues"])

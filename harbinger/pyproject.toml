@@ -98,6 +98,7 @@ build-backend = "setuptools.build_meta"
 pythonVersion = "3.10"
 
 [tool.pytest.ini_options]
+asyncio_mode = "auto"
 filterwarnings = ["ignore:::.*passlib*"]
 addopts = "--cov=harbinger"
 env = ["C2_SERVER_ID=11111111-2222-44444-55555-666666666666"]
