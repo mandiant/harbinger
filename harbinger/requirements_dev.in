@@ -8,3 +8,4 @@ isort
 autoflake
 ruff
 pre-commit
+pytest-asyncio
