@@ -13,13 +13,11 @@
 # limitations under the License.
 
 from datetime import datetime
-from typing import TYPE_CHECKING
 
 from pydantic import UUID4, BaseModel, ConfigDict, Field
 
-if TYPE_CHECKING:
-    from .label import Label
-    from .playbook_template import PlaybookTemplateView
+from .label import Label
+from .playbook_template import PlaybookTemplateView
 
 
 class ActionBase(BaseModel):
@@ -44,3 +42,6 @@ class Action(ActionBase):
 
     labels: list["Label"] | None = None
     playbook_templates: list["PlaybookTemplateView"] | None = None
+
+
+Action.model_rebuild()

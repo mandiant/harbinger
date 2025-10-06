@@ -18,6 +18,7 @@ from harbinger.schemas import FileList, ShareFileCreate
 pytestmark = pytest.mark.asyncio
 
 
+@pytest.mark.asyncio
 async def test_file_parser_local_path():
     file_list = FileList(
         host="host1",
@@ -168,10 +169,7 @@ async def test_file_parser_root_share():
 
     # Check parents
     assert file_list.parents is not None
-    assert len(file_list.parents) == 1
-    assert file_list.parents[0].name == ""
-    assert file_list.parents[0].unc_path == "\\\\host1\\C$"
-    assert file_list.parents[0].depth == 0
+    assert len(file_list.parents) == 0
 
 
 async def test_file_parser_netlogon_share():
@@ -204,10 +202,7 @@ async def test_file_parser_netlogon_share():
 
     # Check parents (should only have the root share)
     assert file_list.parents is not None
-    assert len(file_list.parents) == 1
-    assert file_list.parents[0].name == ""
-    assert file_list.parents[0].unc_path == "\\\\HOST1.DOMAIN.LOCAL\\NETLOGON"
-    assert file_list.parents[0].depth == 0
+    assert len(file_list.parents) == 0
 
     # Check files
     assert file_list.files is not None

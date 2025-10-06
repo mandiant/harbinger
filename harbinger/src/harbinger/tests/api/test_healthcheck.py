@@ -36,6 +36,7 @@ import pytest
 pytestmark = pytest.mark.asyncio
 
 
+@pytest.mark.asyncio
 async def test_healthcheck_success(client: httpx.AsyncClient):
     """Tests that the healthcheck endpoint returns 200 when all services are healthy."""
     with (
@@ -49,6 +50,7 @@ async def test_healthcheck_success(client: httpx.AsyncClient):
         assert response.json() == {"database": "ok", "redis": "ok"}
 
 
+@pytest.mark.asyncio
 async def test_healthcheck_db_error(client: httpx.AsyncClient):
     """Tests that the healthcheck endpoint returns 503 when the database is down."""
     with (
@@ -62,6 +64,7 @@ async def test_healthcheck_db_error(client: httpx.AsyncClient):
         assert response.json() == {"detail": {"database": "error", "redis": "ok"}}
 
 
+@pytest.mark.asyncio
 async def test_healthcheck_redis_error(client: httpx.AsyncClient):
     """Tests that the healthcheck endpoint returns 503 when redis is down."""
     with (
@@ -75,6 +78,7 @@ async def test_healthcheck_redis_error(client: httpx.AsyncClient):
         assert response.json() == {"detail": {"database": "ok", "redis": "error"}}
 
 
+@pytest.mark.asyncio
 async def test_healthcheck_all_error(client: httpx.AsyncClient):
     """Tests that the healthcheck endpoint returns 503 when all services are down."""
     with (

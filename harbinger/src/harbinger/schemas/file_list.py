@@ -48,8 +48,7 @@ class BaseParsedShareFile(BaseModel):
         self.parents = []
         if not self.name.startswith("\\"):
             if not hostname:
-                msg = "Cannot parse the file without hostname"
-                raise ValueError(msg)
+                raise ValueError("Cannot parse the file without hostname")
             host = hostname
             if domain:
                 host = f"{host}.{domain}"
@@ -83,7 +82,7 @@ class BaseParsedShareFile(BaseModel):
                     unc_path=self.share_unc_path,
                     indexed=len(parts) == 0 and indexer,
                     depth=0,
-                ),
+                )
             )
             depth += 1
 
@@ -95,7 +94,7 @@ class BaseParsedShareFile(BaseModel):
                     unc_path=ntpath.join(self.share_unc_path, *parts[0:depth]),
                     depth=depth,
                     indexed=False,
-                ),
+                )
             )
             depth += 1
 
@@ -150,7 +149,6 @@ class FileList(BaseModel):
     parent_path: str
     name: str
     domain: str = ""
-
     unc_path: str = ""
     sharename: str = ""
     share_unc_path: str = ""
@@ -187,7 +185,7 @@ class FileList(BaseModel):
                     type="dir",
                     unc_path=parent.unc_path or "",
                     depth=parent.depth or 0,
-                ),
+                )
             )
 
         for file in self.files or []:
@@ -198,7 +196,7 @@ class FileList(BaseModel):
                     type=file.type or "",
                     unc_path=file.unc_path or "",
                     depth=file.depth or 0,
-                ),
+                )
             )
         return result
 
@@ -208,8 +206,7 @@ class FileList(BaseModel):
         if not self.name.startswith("\\"):
             # print("not self.name.startswith('\\')")
             if not self.host:
-                msg = "Cannot parse the file without hostname"
-                raise ValueError(msg)
+                raise ValueError("Cannot parse the file without hostname")
             share = ""
             if self.parent_path:
                 if self.parent_path.startswith("\\"):
@@ -256,7 +253,7 @@ class FileList(BaseModel):
                     unc_path=self.share_unc_path,
                     indexed=len(parts) == 0 and indexer,
                     depth=0,
-                ),
+                )
             )
             depth += 1
 
@@ -268,7 +265,7 @@ class FileList(BaseModel):
                     unc_path=ntpath.join(self.share_unc_path, *parts[0:depth]),
                     depth=depth,
                     indexed=False,
-                ),
+                )
             )
             depth += 1
 
