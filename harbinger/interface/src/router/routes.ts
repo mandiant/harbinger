@@ -161,6 +161,17 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: '/credentials/:id',
+        name: 'credential',
+        component: () => import('src/pages/CredentialPage.vue'),
+        props: true,
+        meta: {
+          icon: 'fingerprint',
+          parent: 'credentials',
+          display_name: 'Credential',
+        },
+      },
+      {
         path: '/proxies',
         name: 'proxies',
         component: () => import('src/pages/ProxiesPage.vue'),
@@ -739,6 +750,17 @@ const routes: RouteRecordRaw[] = [
           icon: 'plus',
           parent: 'issues',
           display_name: 'Add Issue',
+        },
+      },
+      {
+        path: '/issues/:id',
+        name: 'issue',
+        component: () => import('src/pages/IssueDetailPage.vue'),
+        props: true,
+        meta: {
+          icon: 'priority_high',
+          parent: 'issues',
+          display_name: 'Issue',
         },
       },
       {

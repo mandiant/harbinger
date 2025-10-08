@@ -15,6 +15,7 @@
  */
 
 import { route } from 'quasar/wrappers';
+import { LoadingBar } from 'quasar';
 import {
   createMemoryHistory,
   createRouter,
@@ -49,10 +50,19 @@ export default route(function (/* { store, ssrContext } */) {
     history: createHistory(process.env.VUE_ROUTER_BASE),
   });
 
+  Router.beforeEach(() => {
+    LoadingBar.start();
+  });
+
   Router.afterEach((to) => {
     const meta = useMetaStore();
-    meta.setTitle(to.meta.display_name)
-  })
+    meta.setTitle(to.meta.display_name);
+    LoadingBar.stop();
+  });
+
+  Router.onError(() => {
+    LoadingBar.stop();
+  });
 
   return Router;
 });

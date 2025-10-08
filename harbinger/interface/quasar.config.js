@@ -109,6 +109,9 @@ module.exports = configure(function (/* ctx */) {
           secondary: '#991F26',
           accent: '#504170',
         },
+        loadingBar: {
+          skipHijack: true, // Prevent automatic AJAX watching
+        },
       },
 
       // iconSet: 'material-icons', // Quasar icon set
@@ -122,7 +125,7 @@ module.exports = configure(function (/* ctx */) {
       // directives: [],
 
       // Quasar plugins
-      plugins: ['Notify', 'Dialog', 'Meta'],
+      plugins: ['Notify', 'Dialog', 'Meta', 'LoadingBar'],
     },
 
     // animations: 'all', // --- includes all animations
