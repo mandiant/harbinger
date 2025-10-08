@@ -9,17 +9,23 @@ services:
     networks:
       - harbinger
     volumes:
-      - /var/lib/postgresql/data
+      - temporal-db-data:/var/lib/postgresql/data
 {% if harbinger_expose_all_ports %}
     ports:
       - "5432:5432
 {% endif %}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U temporal"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   temporal:
     container_name: temporal
     restart: unless-stopped
     depends_on:
-      - postgresql
+      postgresql:
+        condition: service_healthy
     environment:
       - DB=postgresql
       - DB_PORT=5432
@@ -91,6 +97,11 @@ services:
       - redis-data:/data
     networks:
       - harbinger
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   minio:
     image: "{{ harbinger_image_minio }}"
@@ -107,6 +118,11 @@ services:
       - deploy/minio.env
     networks:
       - harbinger
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   web:
     image: "{{ harbinger_image_harbinger }}"
@@ -120,8 +136,12 @@ services:
       - deploy/redis.env
       - deploy/server.env
     depends_on:
-      - redis
-      - minio
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     networks:
       - harbinger
 
@@ -137,8 +157,12 @@ services:
       - deploy/redis.env
       - deploy/server.env
     depends_on:
-      - redis
-      - minio
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     networks:
       - harbinger
 
@@ -210,7 +234,9 @@ services:
       temporal:
         condition: service_started
       redis:
-        condition: service_started
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     restart: on-failure
     networks:
       - harbinger
@@ -231,7 +257,9 @@ services:
       temporal:
         condition: service_started
       redis:
-        condition: service_started
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     restart: on-failure
     networks:
       - harbinger
@@ -254,6 +282,7 @@ services:
       - harbinger
 
 volumes:
+  temporal-db-data:
   db-data:
   minio-data:
   caddy:

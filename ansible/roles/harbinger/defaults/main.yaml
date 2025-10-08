@@ -51,11 +51,11 @@ harbinger_worker_replicas: 2
 harbinger_image_postgres: "postgres:17"
 harbinger_image_temporal_auto_setup: "temporalio/auto-setup:1.22"
 harbinger_image_temporal_ui: "temporalio/ui:2.25.0"
-harbinger_image_redis: "redis:latest"
-harbinger_image_minio: "quay.io/minio/minio:latest"
+harbinger_image_redis: "redis:8.2"
+harbinger_image_minio: "minio/minio:RELEASE.2025-09-07T16-13-09Z"
 harbinger_image_harbinger: "harbinger:latest"
 harbinger_image_events: "harbinger_events:latest"
-harbinger_image_caddy: "caddy:2.4.3-alpine"
+harbinger_image_caddy: "caddy:2.10.2-alpine"
 harbinger_image_tmate_ssh_server: "tmate/tmate-ssh-server:latest"
 harbinger_users: []
 harbinger_skip_docker_installation: false

@@ -23,13 +23,19 @@ services:
     networks:
       - harbinger
     volumes:
-      - /var/lib/postgresql/data
+      - temporal-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U temporal"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   temporal:
     container_name: temporal
     restart: unless-stopped
     depends_on:
-      - postgresql
+      postgresql:
+        condition: service_healthy
     environment:
       - DB=postgresql
       - DB_PORT=5432
@@ -80,21 +86,23 @@ services:
       start_period: 80s
 
   redis:
-    image: "redis:latest"
+    image: "redis:8.2"
     restart: unless-stopped
     command: "redis-server /etc/redis/redis.conf"
     ports:
       - "6379:6379"
     env_file:
       - deploy/redis.env
-    volumes:
-      - ./deploy/redis.conf:/etc/redis/redis.conf:ro
-      - redis-data:/data
     networks:
       - harbinger
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   minio:
-    image: quay.io/minio/minio
+    image: "minio/minio:RELEASE.2025-09-07T16-13-09Z"
     restart: unless-stopped
     command: server /data --console-address ":9001"
     ports:
@@ -102,10 +110,13 @@ services:
       - 9001:9001
     volumes:
       - minio-data:/data
-    env_file:
-      - deploy/minio.env
     networks:
       - harbinger
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   web:
     image: harbinger:latest
@@ -117,8 +128,12 @@ services:
       - deploy/redis.env
       - deploy/server.env
     depends_on:
-      - redis
-      - minio
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     networks:
       - harbinger
 
@@ -132,8 +147,12 @@ services:
       - deploy/redis.env
       - deploy/server.env
     depends_on:
-      - redis
-      - minio
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     networks:
       - harbinger
 
@@ -151,7 +170,7 @@ services:
       - harbinger
 
   tmate:
-    image: tmate/tmate-ssh-server:latest
+    image: tmate/tmate-ssh-server:2.4.0
     restart: unless-stopped
     ports:
       - 2200:2200
@@ -202,7 +221,9 @@ services:
       temporal:
         condition: service_started
       redis:
-        condition: service_started
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     restart: on-failure
     networks:
       - harbinger
@@ -221,7 +242,9 @@ services:
       temporal:
         condition: service_started
       redis:
-        condition: service_started
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     restart: on-failure
     networks:
       - harbinger
@@ -229,6 +252,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
 
 volumes:
+  temporal-db-data:
   db-data:
   minio-data:
   caddy:
