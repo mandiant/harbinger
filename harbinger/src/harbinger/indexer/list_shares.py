@@ -112,7 +112,7 @@ class ListShares:
                     if err is not None:
                         self.logger.debug(f"Error during listing shares: {err}")
                         continue
-                    created, _ = await crud.get_or_create_share(
+                    await crud.get_or_create_share(
                         session,
                         schemas.ShareCreate(
                             name=share.name,
@@ -122,15 +122,10 @@ class ListShares:
                             remark=share.remark,
                         ),
                     )  # type: ignore
-                    if created:
-                        count += 1
-                        self.logger.info(
-                            f"Created share with name: {share.name} and unc_path: {share.unc_path}",
-                        )
-                    else:
-                        self.logger.debug(
-                            f"Share with name: {share.name} and unc_path: {share.unc_path} already exists",
-                        )
+                    count += 1
+                    self.logger.info(
+                        f"Created share with name: {share.name} and unc_path: {share.unc_path}",
+                    )
                 await session.commit()
         except Exception as e:
             self.logger.exception(f"Exception: {e}")

@@ -41,7 +41,7 @@ async def add_step(
 
 @router.post(
     "/{step_id}/clone",
-    response_model=schemas.ChainStep,
+    response_model=schemas.ChainStep | None,
     tags=["chains", "crud"],
 )
 async def clone_step(

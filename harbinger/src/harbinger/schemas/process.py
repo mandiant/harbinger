@@ -13,12 +13,9 @@
 # limitations under the License.
 
 
-from typing import TYPE_CHECKING
-
 from pydantic import UUID4, AliasChoices, BaseModel, ConfigDict, Field, field_validator
 
-if TYPE_CHECKING:
-    from .label import Label
+from .label import Label
 
 
 class ProcessBase(BaseModel):
@@ -75,3 +72,6 @@ class ProcessMapping(BaseModel):
 
 class ProcessNumbers(BaseModel):
     items: list[int]
+
+
+Process.model_rebuild()

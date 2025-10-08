@@ -67,7 +67,7 @@ class {model_name_camel}({model_name_camel}Base):
 from sqlalchemy import select, update, insert
 from sqlalchemy.sql import func
 from fastapi_pagination import Page
-from fastapi_pagination.ext.sqlalchemy import paginate
+from fastapi_pagination.ext.sqlalchemy import apaginate
 from typing import Tuple, Optional, Iterable
 from pydantic import UUID4
 import uuid
@@ -86,7 +86,7 @@ async def get_{plural_snake}_paged(
     # q = q.outerjoin(models.{model_name_camel}.labels)
     q = filters.filter(q)
     q = filters.sort(q)
-    return await paginate(db, q)
+    return await apaginate(db, q)
 
 async def get_{model_name_snake}(db: AsyncSession, id: UUID4) -> Optional[models.{model_name_camel}]:
     return await db.get(models.{model_name_camel}, id)

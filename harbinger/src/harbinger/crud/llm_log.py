@@ -2,7 +2,7 @@ import uuid
 from collections.abc import Iterable
 
 from fastapi_pagination import Page
-from fastapi_pagination.ext.sqlalchemy import paginate
+from fastapi_pagination.ext.sqlalchemy import apaginate
 from pydantic import UUID4
 from sqlalchemy import Select, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,7 +11,6 @@ from sqlalchemy.sql.expression import func
 from harbinger import filters, models, schemas
 
 from ._common import create_filter_for_column
-from .label import get_labels_for_q
 
 
 async def get_llm_logs_paged(
@@ -22,7 +21,7 @@ async def get_llm_logs_paged(
     q = filters.filter(q)
     q = filters.sort(q)
     q = q.group_by(models.LlmLog.id)
-    return await paginate(db, q)
+    return await apaginate(db, q)
 
 
 async def get_llm_logs(
@@ -42,14 +41,8 @@ async def get_llm_logs(
 
 async def get_llm_logs_filters(db: AsyncSession, filters: filters.LlmLogFilter):
     result: list[schemas.Filter] = []
-    q: Select = (
-        select(func.count(models.LlmLog.id.distinct()).label("count_1"))
-        .outerjoin(models.LabeledItem)
-        .outerjoin(models.Label)
-    )
+    q: Select = select(func.count(models.LlmLog.id.distinct()).label("count_1"))
     q = filters.filter(q)
-    lb_entry = await get_labels_for_q(db, q)
-    result.extend(lb_entry)
     for field in ["log_type"]:
         res = await create_filter_for_column(
             db,

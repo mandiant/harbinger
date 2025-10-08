@@ -14,12 +14,10 @@
 
 
 from datetime import datetime
-from typing import TYPE_CHECKING
 
 from pydantic import UUID4, AliasChoices, BaseModel, ConfigDict, Field, field_validator
 
-if TYPE_CHECKING:
-    from .label import Label
+from .label import Label
 
 
 class C2TaskStatus(BaseModel):
@@ -72,3 +70,6 @@ class C2Task(C2TaskBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4 | str
     labels: list["Label"] | None = []
+
+
+C2Task.model_rebuild()

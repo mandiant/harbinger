@@ -7,12 +7,13 @@ from datetime import timedelta
 import jinja2
 import yaml
 from fastapi_pagination import Page
-from fastapi_pagination.ext.sqlalchemy import paginate
+from fastapi_pagination.ext.sqlalchemy import apaginate
 from pydantic import UUID4, TypeAdapter, ValidationError
 from sqlalchemy import Select, delete, exc, or_, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.expression import func
 
 from harbinger import filters, models, schemas
@@ -248,7 +249,7 @@ async def get_playbooks_paged(
     q = filters.filter(q)
     q = filters.sort(q)
     q = q.group_by(models.Playbook.id)
-    return await paginate(db, q)
+    return await apaginate(db, q)
 
 
 async def get_playbooks_filters(db: AsyncSession, filters: filters.PlaybookFilter):
@@ -278,7 +279,7 @@ async def get_playbook(db: AsyncSession, id: UUID4 | str) -> models.Playbook | N
 
 
 async def get_chains(db: AsyncSession) -> Page[models.Playbook]:
-    return await paginate(
+    return await apaginate(
         db,
         select(models.Playbook).order_by(models.Playbook.time_created.desc()),
     )
@@ -292,7 +293,7 @@ async def get_chain_steps_paged(
     if playbook_id:
         q = q.where(models.PlaybookStep.playbook_id == playbook_id)
     q = q.order_by(models.PlaybookStep.number.asc())
-    return await paginate(db, q)
+    return await apaginate(db, q)
 
 
 async def get_playbook_steps(
@@ -457,7 +458,7 @@ async def get_chain_step_by_c2_job_id(
 
 
 async def update_playbook_steps(db: AsyncSession, playbook_id: str | uuid.UUID) -> None:
-    playbook = await get_playbook(playbook_id)
+    playbook = await get_playbook(db, playbook_id)
     if playbook:
         count = 0
         steps = await get_playbook_steps(db, 0, 100000, playbook_id)
@@ -520,11 +521,15 @@ async def add_step(
     db_step = models.PlaybookStep(**step.model_dump())
     db_step.status = schemas.Status.created
     db.add(db_step)
-    await db.commit()
-    await db.refresh(db_step)
+    await db.flush()  # Ensure the step is in the transaction before querying
     if step.playbook_id:
         await update_playbook_steps(db, step.playbook_id)
+        await db.refresh(db_step)  # Refresh the object after commit
         await send_update_playbook(step.playbook_id, "new_step", str(db_step.id))
+    else:
+        await db.commit()
+        await db.refresh(db_step)
+
     return db_step
 
 
@@ -604,7 +609,7 @@ async def get_chain_templates_paged(
                 models.PlaybookTemplate.id == filters.search,
             ),
         )
-    return await paginate(db, q)
+    return await apaginate(db, q)
 
 
 async def get_playbook_template_filters(
@@ -636,7 +641,7 @@ async def create_playbook_template(
     db: AsyncSession,
     playbook_template: schemas.PlaybookTemplateCreate,
 ) -> models.PlaybookTemplate:
-    template = await get_playbook_template(playbook_template.id)
+    template = await get_playbook_template(db, playbook_template.id)
     exists = False
     if not template:
         template = models.PlaybookTemplate(
@@ -702,7 +707,7 @@ async def get_playbook_steps_modifiers_paged(
     )
     if playbook_step_id:
         q = q.where(models.PlaybookStepModifier.playbook_step_id == playbook_step_id)
-    return await paginate(db, q)
+    return await apaginate(db, q)
 
 
 async def get_playbook_steps_modifiers(
@@ -804,7 +809,7 @@ async def get_plan_steps_paged(
     q = filters.filter(q)
     q = filters.sort(q)
     q = q.group_by(models.PlanStep.id)
-    return await paginate(db, q)
+    return await apaginate(db, q)
 
 
 async def get_plan_steps(
@@ -845,7 +850,12 @@ async def get_plan_steps_filters(db: AsyncSession, filters: filters.PlanStepFilt
 
 
 async def get_plan_step(db: AsyncSession, id: UUID4 | str) -> models.PlanStep | None:
-    return await db.get(models.PlanStep, id)
+    stmt = select(models.PlanStep).where(models.PlanStep.id == id)
+    stmt = stmt.options(
+        selectinload(models.PlanStep.suggestions),
+    )
+    result = await db.execute(stmt)
+    return result.scalars().unique().one_or_none()
 
 
 async def create_plan_step(
@@ -860,9 +870,12 @@ async def create_plan_step(
         update_stmt.returning(models.PlanStep),
         execution_options={"populate_existing": True},
     )
-    await db.commit()
     result = result.unique().one()
-    return (result.time_updated is None, result)
+    created = result.time_updated is None
+    await db.refresh(result, ["labels", "suggestions"])
+    db.expunge(result)
+    await db.commit()
+    return (created, result)
 
 
 async def update_plan_step(
@@ -877,6 +890,7 @@ async def update_plan_step(
     )
     await db.execute(q)
     await db.commit()
+    return await get_plan_step(db, id)
 
 
 async def get_highest_plan_step_order(

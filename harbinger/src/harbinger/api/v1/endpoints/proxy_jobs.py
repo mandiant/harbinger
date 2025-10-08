@@ -117,7 +117,7 @@ async def start_proxy_job(
 
 @router.post(
     "/{job_id}/clone",
-    response_model=schemas.ProxyJob,
+    response_model=schemas.ProxyJob | None,
     tags=["proxy_jobs", "crud"],
 )
 async def clone_proxy_job(

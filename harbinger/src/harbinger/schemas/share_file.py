@@ -15,12 +15,10 @@
 
 import ntpath
 from datetime import datetime
-from typing import TYPE_CHECKING
 
 from pydantic import UUID4, BaseModel, ConfigDict, model_validator
 
-if TYPE_CHECKING:
-    from .label import Label
+from .label import Label
 
 
 class ShareFileBase(BaseModel):
@@ -65,3 +63,6 @@ class ShareFile(ShareFileBase):
     time_created: datetime
 
     labels: list["Label"] | None = None
+
+
+ShareFile.model_rebuild()

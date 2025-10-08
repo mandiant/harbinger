@@ -41,6 +41,22 @@ async def get_certificate_templates(
     )
 
 
+@router.put(
+    "/{id}",
+    response_model=schemas.CertificateTemplate | None,
+    tags=["crud", "certificate_templates"],
+)
+async def update_certificate_template(
+    id: UUID4,
+    certificate_template: schemas.CertificateTemplateCreate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[models.User, Depends(current_active_user)],
+):
+    return await crud.update_certificate_template(
+        db, certificate_template_id=id, certificate_template=certificate_template
+    )
+
+
 @router.get(
     "/filters",
     response_model=list[schemas.Filter],

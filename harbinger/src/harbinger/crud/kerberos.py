@@ -1,5 +1,5 @@
 from fastapi_pagination import Page
-from fastapi_pagination.ext.sqlalchemy import paginate
+from fastapi_pagination.ext.sqlalchemy import apaginate
 from pydantic import UUID4
 from sqlalchemy import exc, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -41,7 +41,7 @@ async def get_kerberos_paged(
     q = select(models.Kerberos)
     if search:
         q = q.filter(models.Kerberos.client.ilike(f"%{search}%"))
-    return await paginate(db, q.order_by(models.Kerberos.time_created.desc()))
+    return await apaginate(db, q.order_by(models.Kerberos.time_created.desc()))
 
 
 async def get_kerberos(

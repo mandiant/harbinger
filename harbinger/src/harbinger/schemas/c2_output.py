@@ -14,16 +14,13 @@
 
 
 from datetime import datetime
-from typing import TYPE_CHECKING
 
 from pydantic import UUID4, AliasChoices, BaseModel, ConfigDict, Field, field_validator
 
 from .c2_task import C2TaskBase
 from .file_list import FileList
+from .label import Label
 from .process import ProcessCreate
-
-if TYPE_CHECKING:
-    from .label import Label
 
 
 class C2OutputBase(BaseModel):
@@ -85,3 +82,6 @@ class C2OutputCreated(BaseModel):
 class C2OutputPlaybook(BaseModel):
     task: C2TaskBase
     output: list[C2OutputCreate]
+
+
+C2Output.model_rebuild()

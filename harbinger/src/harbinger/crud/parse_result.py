@@ -1,5 +1,5 @@
 from fastapi_pagination import Page
-from fastapi_pagination.ext.sqlalchemy import paginate
+from fastapi_pagination.ext.sqlalchemy import apaginate
 from pydantic import UUID4
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -45,4 +45,4 @@ async def get_parse_results_paged(
     if proxy_job_id:
         q = q.where(models.ParseResult.proxy_job_id == proxy_job_id)
     q = q.order_by(models.ParseResult.time_created.asc())
-    return await paginate(db, q)
+    return await apaginate(db, q)

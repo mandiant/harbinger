@@ -1,7 +1,7 @@
 from collections.abc import Iterable
 
 from fastapi_pagination import Page
-from fastapi_pagination.ext.sqlalchemy import paginate
+from fastapi_pagination.ext.sqlalchemy import apaginate
 from pydantic import UUID4
 from sqlalchemy import Select, exc, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -90,7 +90,7 @@ async def get_proxies_paged(
     q = filters.filter(q)
     q = filters.sort(q)
     q = q.group_by(models.Proxy.id)
-    return await paginate(db, q)
+    return await apaginate(db, q)
 
 
 async def get_proxies(
@@ -106,3 +106,16 @@ async def get_proxies(
     q = q.offset(offset).limit(limit)
     result = await db.execute(q)
     return result.scalars().unique().all()
+
+
+async def update_proxy(
+    db: AsyncSession, proxy_id: str | UUID4, proxy_update: schemas.ProxyUpdate
+) -> models.Proxy | None:
+    db_proxy = await get_proxy(db, proxy_id)
+    if db_proxy:
+        update_data = proxy_update.model_dump(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(db_proxy, key, value)
+        await db.commit()
+        await db.refresh(db_proxy)
+    return db_proxy

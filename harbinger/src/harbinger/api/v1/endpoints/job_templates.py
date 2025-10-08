@@ -77,15 +77,15 @@ async def playbook_template_filters(
     tags=["proxy_jobs", "crud"],
 )
 async def job_templates(
-    c2_type: schemas.C2Type,
+    c2_type: str,
     user: Annotated[models.User, Depends(current_active_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    if c2_type == schemas.C2Type.c2:
+    if c2_type == schemas.C2Type.c2.value:
         return {"templates": list(C2_JOB_BASE_MAP.keys())}
-    if c2_type == schemas.C2Type.proxy:
+    if c2_type == schemas.C2Type.proxy.value:
         return {"templates": list(PROXY_JOB_BASE_MAP.keys())}
-    return None
+    return {"templates": []}
 
 
 @router.get(

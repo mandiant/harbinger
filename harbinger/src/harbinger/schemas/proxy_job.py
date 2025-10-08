@@ -14,17 +14,14 @@
 
 
 from datetime import datetime
-from typing import TYPE_CHECKING
 
 from pydantic import UUID4, BaseModel, ConfigDict, field_validator
 
 from .credential import Credential
 from .file import File
+from .label import Label
 from .proxy import Proxy
 from .socks_server import SocksServer
-
-if TYPE_CHECKING:
-    from .label import Label
 
 
 class ProxyJobBase(BaseModel):
@@ -74,3 +71,6 @@ class ProxyJob(ProxyJobBase):
     credential: Credential | None = None
     socks_server_id: UUID4 | None = None
     socks_server: SocksServer | None = None
+
+
+ProxyJob.model_rebuild()

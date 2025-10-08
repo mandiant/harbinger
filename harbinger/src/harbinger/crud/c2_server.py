@@ -2,7 +2,7 @@ import uuid
 from collections.abc import Iterable
 
 from fastapi_pagination import Page
-from fastapi_pagination.ext.sqlalchemy import paginate
+from fastapi_pagination.ext.sqlalchemy import apaginate
 from pydantic import UUID4
 from sqlalchemy import Select, delete, select, update
 from sqlalchemy.dialects.postgresql import insert
@@ -16,7 +16,7 @@ from .label import get_labels_for_q
 
 
 async def get_c2_servers_paged(db: AsyncSession) -> Page[models.C2Server]:
-    return await paginate(
+    return await apaginate(
         db,
         select(models.C2Server).order_by(models.C2Server.time_created.desc()),
     )
@@ -187,7 +187,7 @@ async def get_c2_server_types_paged(
     q = filters.filter(q)
     q = filters.sort(q)
     q = q.group_by(models.C2ServerType.id)
-    return await paginate(db, q)
+    return await apaginate(db, q)
 
 
 async def get_c2_server_types(
@@ -199,22 +199,15 @@ async def get_c2_server_types(
 
 async def create_c2_server_type(
     db: AsyncSession,
-    c2_server_types: schemas.C2ServerTypeCreate,
+    c2_server_type: schemas.C2ServerTypeCreate,
 ) -> tuple[bool, models.C2ServerType]:
-    data = c2_server_types.model_dump()
-    q = insert(models.C2ServerType).values(**data).values(time_created=func.now())
-    data["time_updated"] = func.now()
-    update_stmt = q.on_conflict_do_update(
-        models.C2ServerType.__table__.primary_key,
-        set_=data,
-    )
-    result = await db.scalars(
-        update_stmt.returning(models.C2ServerType),
-        execution_options={"populate_existing": True},
-    )
+    data = c2_server_type.model_dump()
+    if "id" not in data or data["id"] is None:
+        data["id"] = uuid.uuid4()
+    q = insert(models.C2ServerType).values(**data)
+    await db.execute(q)
     await db.commit()
-    result = result.unique().one()
-    return (result.time_updated is None, result)
+    return (True, await db.get(models.C2ServerType, data["id"]))
 
 
 async def update_c2_server_type(
@@ -243,7 +236,7 @@ async def get_c2_server_arguments_paged(
 ) -> Page[models.C2ServerArguments]:
     q: Select = select(models.C2ServerArguments)
     q = q.where(models.C2ServerArguments.c2_server_type_id == c2_server_type)
-    return await paginate(db, q)
+    return await apaginate(db, q)
 
 
 async def get_c2_server_arguments(
@@ -268,9 +261,12 @@ async def create_c2_server_argument(
         update_stmt.returning(models.C2ServerArguments),
         execution_options={"populate_existing": True},
     )
-    await db.commit()
     result = result.unique().one()
-    return (result.time_updated is None, result)
+    created = result.time_updated is None
+    await db.refresh(result)
+    db.expunge(result)
+    await db.commit()
+    return (created, result)
 
 
 async def delete_c2_server_arguments(

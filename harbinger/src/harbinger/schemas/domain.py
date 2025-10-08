@@ -13,12 +13,9 @@
 # limitations under the License.
 
 
-from typing import TYPE_CHECKING
-
 from pydantic import UUID4, BaseModel, ConfigDict
 
-if TYPE_CHECKING:
-    from .label import Label
+from .label import Label
 
 
 class DomainBase(BaseModel):
@@ -35,3 +32,6 @@ class Domain(DomainBase):
 
     id: UUID4
     labels: list["Label"] | None = None
+
+
+Domain.model_rebuild()

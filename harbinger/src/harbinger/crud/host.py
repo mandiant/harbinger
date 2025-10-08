@@ -3,7 +3,7 @@ import uuid
 from collections.abc import Iterable
 
 from fastapi_pagination import Page
-from fastapi_pagination.ext.sqlalchemy import paginate
+from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import Select, exc, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import func
@@ -23,7 +23,7 @@ async def get_hosts_paged(
     with contextlib.suppress(NotImplementedError):
         q = host_filters.sort(q)
     q = q.group_by(models.Host.id)
-    return await paginate(db, q)
+    return await apaginate(db, q)
 
 
 async def get_hosts(

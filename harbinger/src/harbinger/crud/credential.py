@@ -2,7 +2,7 @@ import uuid
 from collections.abc import Iterable
 
 from fastapi_pagination import Page
-from fastapi_pagination.ext.sqlalchemy import paginate
+from fastapi_pagination.ext.sqlalchemy import apaginate
 from pydantic import UUID4
 from sqlalchemy import Select, desc, exc, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -82,23 +82,15 @@ async def get_credentials_paged(
     filters: filters.CredentialFilter,
 ) -> Page[models.Credential]:
     q: Select = select(models.Credential)
-    q = q.outerjoin(
-        models.LabeledItem,
-        onclause=models.Credential.id == models.LabeledItem.credential_id,
+    q = q.outerjoin(models.Credential.labels)
+    q = q.select_from(models.Credential).outerjoin(
+        models.Domain,
+        onclause=models.Credential.domain_id == models.Domain.id,
     )
-    q = q.outerjoin(
-        models.Label,
-        onclause=models.LabeledItem.label_id == models.Label.id,
-    )
-    if filters.domain:
-        q = q.select_from(models.Credential).join(
-            models.Domain,
-            onclause=models.Credential.domain_id == models.Domain.id,
-        )
     q = filters.filter(q)
     q = filters.sort(q)
     q = q.group_by(models.Credential.id)
-    return await paginate(db, q)
+    return await apaginate(db, q)
 
 
 async def create_credential(

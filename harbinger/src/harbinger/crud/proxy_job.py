@@ -4,7 +4,7 @@ from collections.abc import Iterable
 from typing import Any
 
 from fastapi_pagination import Page
-from fastapi_pagination.ext.sqlalchemy import paginate
+from fastapi_pagination.ext.sqlalchemy import apaginate
 from pydantic import UUID4
 from sqlalchemy import Select, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,12 +30,12 @@ async def update_proxy_job(
     from .playbook import send_update_playbook
 
     values = job.model_dump()
-    input_files = values.pop("input_files")
+    input_files = values.pop("input_files", [])
     q = update(models.ProxyJob).where(models.ProxyJob.id == job_id).values(**values)
     await db.execute(q)
     await db.commit()
     await delete_input_files(db, proxy_job_id=job_id)
-    for input_file in input_files:
+    for input_file in input_files or []:
         await create_input_file(db, input_file, proxy_job_id=job_id)
     proxy_job = await db.get(models.ProxyJob, job_id)
     if proxy_job and proxy_job.playbook_id:
@@ -78,7 +78,7 @@ async def get_proxy_jobs_paged(
     with contextlib.suppress(NotImplementedError):
         q = filters.sort(q)
     q = q.group_by(models.ProxyJob.id)
-    return await paginate(db, q)
+    return await apaginate(db, q)
 
 
 async def get_proxy_jobs(
@@ -100,12 +100,12 @@ async def create_proxy_job(
     proxy_job: schemas.ProxyJobCreate,
 ) -> models.ProxyJob:
     entries: dict[str, Any] = proxy_job.model_dump()
-    input_files = entries.pop("input_files")
+    input_files = entries.pop("input_files", [])
     db_proxy_job = models.ProxyJob(**entries)
     db_proxy_job.status = schemas.Status.created
     db.add(db_proxy_job)
     await db.commit()
-    for input_file in input_files:
+    for input_file in input_files or []:
         await create_input_file(db, input_file, proxy_job_id=str(db_proxy_job.id))
     await db.refresh(db_proxy_job)
     return db_proxy_job
@@ -132,7 +132,7 @@ async def get_proxy_job_output_paged(
         q = q.where(models.ProxyJobOutput.job_id == job_id)
     if type:
         q = q.where(models.ProxyJobOutput.output_type == type)
-    return await paginate(db, q.order_by(models.ProxyJobOutput.created_at.asc()))
+    return await apaginate(db, q.order_by(models.ProxyJobOutput.created_at.asc()))
 
 
 async def get_proxy_job_output(

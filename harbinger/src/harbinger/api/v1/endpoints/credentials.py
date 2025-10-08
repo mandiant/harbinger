@@ -36,7 +36,7 @@ async def credentials_filters(
 
 @router.get(
     "/{credential_id}",
-    response_model=schemas.Credential,
+    response_model=schemas.Credential | None,
     tags=["credentials", "crud"],
 )
 async def read_credential(

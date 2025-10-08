@@ -233,7 +233,7 @@ async def get_{{route}}_paged(
     q = filters.filter(q)  # type: ignore
     q = filters.sort(q)  # type: ignore
     q = q.group_by(models.{{name}}.id)
-    return await paginate(db, q)
+    return await apaginate(db, q)
 
 
 async def get_{{route}}(
@@ -283,8 +283,9 @@ async def create_{{route[:-1]}}(db: AsyncSession, {{route}}: schemas.{{name}}Cre
         update_stmt.returning(models.{{name}}),
         execution_options={"populate_existing": True},
     )
-    await db.commit()
     result = result.unique().one()
+    await db.refresh(result)
+    await db.commit()
     return result.time_updated == None, result
 
 async def update_{{route[:-1]}}(db: AsyncSession, id: str | uuid.UUID, {{route}}: schemas.{{name}}Update) -> None:

@@ -225,7 +225,8 @@ async def get_stats(
     user: Annotated[models.User, Depends(current_active_user)],
 ):
     try:
-        return await crud.get_object_stats()
+        async with get_async_neo4j_session_context() as session:
+            return await crud.get_object_stats(session)
     except ServiceUnavailable:
         logger.warning("Unable to connect to Neo4j")
         return {"items": []}
@@ -236,7 +237,8 @@ async def get_owned_stats(
     user: Annotated[models.User, Depends(current_active_user)],
 ):
     try:
-        return await crud.get_owned_stats()
+        async with get_async_neo4j_session_context() as session:
+            return await crud.get_owned_stats(session)
     except ServiceUnavailable:
         logger.warning("Unable to connect to Neo4j")
         return {"items": []}
@@ -306,7 +308,7 @@ async def pre_defined_query_graph(
         return schemas.GraphQueryResult(graph=result)
 
 
-@router.get("/nodes/{objectid}", response_model=schemas.Node, tags=["graph"])
+@router.get("/nodes/{objectid}", response_model=schemas.Node | None, tags=["graph"])
 async def get_node(
     objectid: str,
     user: Annotated[models.User, Depends(current_active_user)],

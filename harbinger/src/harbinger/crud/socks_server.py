@@ -1,7 +1,7 @@
 import contextlib
 from collections.abc import Iterable
 
-from fastapi_pagination.ext.sqlalchemy import paginate
+from fastapi_pagination.ext.sqlalchemy import apaginate
 from pydantic import UUID4
 from sqlalchemy import Select, select, update
 from sqlalchemy.dialects.postgresql import insert
@@ -67,8 +67,11 @@ async def create_socks_server(
         q.returning(models.SocksServer),
         execution_options={"populate_existing": True},
     )
+    instance = result.unique().one()
+    await db.refresh(instance)
+    db.expunge(instance)
     await db.commit()
-    return result.unique().one()
+    return instance
 
 
 async def get_socks_server(db: AsyncSession, id: UUID4) -> models.SocksServer | None:
@@ -85,7 +88,7 @@ async def list_socks_servers_paged(
     with contextlib.suppress(NotImplementedError):
         q = filters.sort(q)
     q = q.group_by(models.SocksServer.id)
-    return await paginate(db, q)
+    return await apaginate(db, q)
 
 
 async def get_socks_servers(

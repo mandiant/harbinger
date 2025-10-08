@@ -2,11 +2,12 @@ import uuid
 from collections.abc import Iterable
 
 from fastapi_pagination import Page
-from fastapi_pagination.ext.sqlalchemy import paginate
+from fastapi_pagination.ext.sqlalchemy import apaginate
 from pydantic import UUID4
 from sqlalchemy import Select, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.expression import func
 
 from harbinger import filters, models, schemas
@@ -33,12 +34,12 @@ async def get_plans_paged(
     db: AsyncSession,
     filters: filters.PlanFilter,
 ) -> Page[models.Plan]:
-    q: Select = select(models.Plan)
+    q: Select = select(models.Plan).options(selectinload(models.Plan.labels), selectinload(models.Plan.steps))
     q = q.outerjoin(models.Plan.labels)
     q = filters.filter(q)
     q = filters.sort(q)
     q = q.group_by(models.Plan.id)
-    return await paginate(db, q)
+    return await apaginate(db, q)
 
 
 async def get_plans(
@@ -94,9 +95,12 @@ async def create_plan(
         update_stmt.returning(models.Plan),
         execution_options={"populate_existing": True},
     )
-    await db.commit()
     result = result.unique().one()
-    return (result.time_updated is None, result)
+    created = result.time_updated is None
+    await db.refresh(result)
+    db.expunge(result)
+    await db.commit()
+    return (created, result)
 
 
 async def update_plan(

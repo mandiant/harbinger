@@ -14,12 +14,10 @@
 
 
 from datetime import datetime
-from typing import TYPE_CHECKING
 
 from pydantic import UUID4, BaseModel, ConfigDict
 
-if TYPE_CHECKING:
-    from .label import Label
+from .label import Label
 
 
 class KerberosBase(BaseModel):
@@ -43,3 +41,6 @@ class Kerberos(KerberosBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4
     labels: list["Label"] | None = None
+
+
+Kerberos.model_rebuild()

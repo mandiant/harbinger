@@ -34,7 +34,7 @@ async def c2_task_filters(
 
 @router.get(
     "/{task_id}",
-    response_model=schemas.C2Task,
+    response_model=schemas.C2Task | None,
     tags=["c2", "implants", "crud"],
 )
 async def read_c2_task(
