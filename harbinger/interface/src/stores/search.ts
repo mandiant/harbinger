@@ -27,11 +27,21 @@ export interface SearchResultItem {
   url: string;
 }
 
+export interface StaticCommand {
+  name: string;
+  url: string;
+  type: 'Command';
+  context: string;
+}
+
+export type CombinedSearchResult = SearchResultItem | StaticCommand;
+
 export interface SearchState {
   searchQuery: string;
   searchResults: SearchResultItem[];
   isLoading: boolean;
   error: string | null;
+  staticCommands: StaticCommand[];
 }
 
 export const useSearchStore = defineStore('search', {
@@ -40,7 +50,36 @@ export const useSearchStore = defineStore('search', {
     searchResults: [],
     isLoading: false,
     error: null,
+    staticCommands: [
+      { name: 'Add Credential', url: '/credentials/add', type: 'Command', context: 'Add a new credential.' },
+      { name: 'Upload File', url: '/files/add', type: 'Command', context: 'Upload a single file.' },
+      { name: 'Upload Multiple Files', url: '/files/add_multiple', type: 'Command', context: 'Upload multiple files at once.' },
+      { name: 'Add Playbook', url: '/playbooks/add', type: 'Command', context: 'Create a new playbook.' },
+      { name: 'Run Playbook from Template', url: '/playbooks/add_from_template', type: 'Command', context: 'Start a new playbook from a template.' },
+      { name: 'Create Playbook Template', url: '/playbooks/add_template', type: 'Command', context: 'Create a new playbook template.' },
+      { name: 'Create Playbook with AI', url: '/playbooks/add_template_ai', type: 'Command', context: 'Use AI to generate a new playbook.' },
+      { name: 'Add C2 Server', url: '/servers/add', type: 'Command', context: 'Add a new C2 server.' },
+      { name: 'Run C2 Job from Template', url: '/c2_jobs/add_from_template', type: 'Command', context: 'Run a C2 job from a template.' },
+      { name: 'Add Socks Job', url: '/proxy_jobs/add', type: 'Command', context: 'Create a new socks proxy job.' },
+      { name: 'Add Issue', url: '/issues/add', type: 'Command', context: 'Create a new issue.' },
+      { name: 'Add Plan', url: '/plans/add', type: 'Command', context: 'Create a new AI plan.' },
+      { name: 'Add Domain', url: '/domains/add', type: 'Command', context: 'Add a new domain.' },
+      { name: 'Add Password', url: '/passwords/add', type: 'Command', context: 'Add a new password.' },
+      { name: 'Add Label', url: '/labels/add', type: 'Command', context: 'Create a new label.' },
+      { name: 'Create Timeline', url: '/timeline/create', type: 'Command', context: 'Generate a new timeline report.' },
+      { name: 'Add Objective', url: '/objectives/add', type: 'Command', context: 'Add a new objective.' },
+    ],
   }),
+  getters: {
+    combinedResults(state): CombinedSearchResult[] {
+      const filteredCommands = state.searchQuery
+        ? state.staticCommands.filter((command) =>
+            command.name.toLowerCase().includes(state.searchQuery.toLowerCase())
+          )
+        : [];
+      return [...filteredCommands, ...state.searchResults];
+    },
+  },
   actions: {
     // Debounce the search to prevent API calls on every keystroke
     debouncedSearch: debounce(async function (this: SearchState, query: string) {
@@ -67,7 +106,7 @@ export const useSearchStore = defineStore('search', {
     }, 300), // 300ms debounce delay
 
     // This action is called by the component on input change
-    async performSearch(query: string) {
+    performSearch(query: string) {
       this.searchQuery = query;
       // The 'as any' is a workaround for 'this' context issues with debounced actions in Pinia
       (this as any).debouncedSearch(query);

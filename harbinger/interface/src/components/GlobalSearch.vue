@@ -21,7 +21,7 @@
       standout
       :model-value="searchQuery"
       @update:model-value="performSearch"
-      placeholder="Search (Ctrl+K)..."
+      placeholder="Search or run command (Ctrl+K)..."
       class="q-ml-md"
       style="min-width: 400px"
       :loading="isLoading"
@@ -38,13 +38,13 @@
         self="top left"
       >
         <q-list bordered separator style="max-height: 400px; overflow-y: auto">
-          <div v-if="isLoading && searchResults.length === 0" class="q-pa-md">
+          <div v-if="isLoading && combinedResults.length === 0" class="q-pa-md">
             <q-item-label class="text-center">
               <q-spinner color="primary" size="2em" />
             </q-item-label>
           </div>
           <div
-            v-else-if="!isLoading && searchResults.length === 0 && searchQuery"
+            v-else-if="!isLoading && combinedResults.length === 0 && searchQuery"
             class="q-pa-md"
           >
             <q-item-label class="text-center">No results found.</q-item-label>
@@ -55,11 +55,14 @@
             }}</q-item-label>
             <q-item
               v-for="item in group"
-              :key="item.id"
+              :key="item.url"
               clickable
               v-ripple
               @click="navigate(item.url)"
             >
+              <q-item-section avatar v-if="item.type === 'Command'">
+                <q-icon name="keyboard_arrow_right" />
+              </q-item-section>
               <q-item-section>
                 <q-item-label>{{ item.name }}</q-item-label>
                 <q-item-label caption v-if="item.context">{{
@@ -77,12 +80,12 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { useSearchStore, SearchResultItem } from 'src/stores/search';
+import { useSearchStore, CombinedSearchResult } from 'src/stores/search';
 import { storeToRefs } from 'pinia';
 
 const router = useRouter();
 const searchStore = useSearchStore();
-const { searchQuery, searchResults, isLoading } = storeToRefs(searchStore);
+const { searchQuery, isLoading, combinedResults } = storeToRefs(searchStore);
 const { performSearch } = searchStore;
 
 const isMenuOpen = computed(() => {
@@ -90,13 +93,14 @@ const isMenuOpen = computed(() => {
 });
 
 const groupedResults = computed(() => {
-  return searchResults.value.reduce((acc, item) => {
-    if (!acc[item.type]) {
-      acc[item.type] = [];
+  return combinedResults.value.reduce((acc, item) => {
+    const type = item.type === 'Command' ? 'Commands' : item.type;
+    if (!acc[type]) {
+      acc[type] = [];
     }
-    acc[item.type].push(item);
+    acc[type].push(item);
     return acc;
-  }, {} as Record<string, SearchResultItem[]>);
+  }, {} as Record<string, CombinedSearchResult[]>);
 });
 
 const navigate = (url: string) => {
