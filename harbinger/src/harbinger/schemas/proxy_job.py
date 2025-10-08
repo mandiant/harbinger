@@ -35,6 +35,7 @@ class ProxyJobBase(BaseModel):
     asciinema: bool | None = True
     proxychains: bool | None = True
     env: str | None = ""
+    docker_image: str | None = None
 
     ai_summary: str | None = ""
     processing_status: str | None = ""

@@ -178,8 +178,9 @@ async def run_proxy_job(
             command.extend(shlex.split(socks_task.arguments))
 
         log.info(f"Command for {socks_task.id}: {command}")
+        docker_image = socks_task.docker_image or "harbinger_proxy:latest"
         config = {
-            "Image": "harbinger_proxy:latest",
+            "Image": docker_image,
             "Cmd": ["tail", "-f", "/dev/null"],
             "AttachStdin": False,
             "AttachStdout": True,

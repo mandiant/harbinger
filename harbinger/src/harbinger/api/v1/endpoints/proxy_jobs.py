@@ -33,6 +33,14 @@ async def read_proxy_jobs(
     return await crud.get_proxy_jobs_paged(db, filters)
 
 
+@router.get("/docker_images", response_model=list[str], tags=["proxy_jobs", "crud"])
+async def get_docker_images(
+    db: AsyncSession = Depends(get_db),
+    user: models.User = Depends(current_active_user),
+):
+    return await crud.get_docker_images(db)
+
+
 @router.get("/filters", response_model=list[schemas.Filter], tags=["files", "crud"])
 async def proxy_job_filters(
     filter: filters.SocksJobFilter = FilterDepends(filters.SocksJobFilter),

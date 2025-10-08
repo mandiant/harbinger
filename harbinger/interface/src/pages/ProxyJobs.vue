@@ -88,6 +88,9 @@
           <q-td key="proxy_id" :props="props" @click="Goto(props.row)">
             {{ props.row.proxy_id }}
           </q-td>
+          <q-td key="docker_image" :props="props" @click="Goto(props.row)">
+            {{ props.row.docker_image }}
+          </q-td>
           <q-td key="files" :props="props" @click="Goto(props.row)">
             <q-chip icon="description" color="tertiary" v-for="file in props.row.files" v-bind:key="file.id">{{
               file.filename }}</q-chip>
@@ -165,7 +168,7 @@ store.Load();
 
 const $router = useRouter();
 
-const visible = ref(['command', 'arguments', 'status', 'labels', 'input_files']);
+const visible = ref(['command', 'arguments', 'status', 'labels', 'input_files', 'docker_image']);
 
 const columns: QTableProps['columns'] = [
   { name: 'id', label: 'id', field: 'id', align: 'left', sortable: true },
@@ -181,6 +184,7 @@ const columns: QTableProps['columns'] = [
     align: 'left',
   },
   { name: 'proxy_id', label: 'proxy_id', field: 'proxy_id', align: 'left' },
+  { name: 'docker_image', label: 'Docker Image', field: 'docker_image', align: 'left' },
   {
     name: 'files',
     label: 'files',

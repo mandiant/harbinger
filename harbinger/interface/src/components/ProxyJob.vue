@@ -30,6 +30,28 @@
         <credential-select v-model="job.credential_id" :readonly="readonly" />
         <socks-server-select v-model="job.socks_server_id" :readonly="readonly" />
         <q-input filled v-model="job.env" label="env" :readonly="readonly" dense />
+        <q-select
+          filled
+          v-model="job.docker_image"
+          use-input
+          hide-selected
+          fill-input
+          input-debounce="0"
+          :options="docker_images"
+          @filter="filterFn"
+          @new-value="createValue"
+          label="Docker Image"
+          hint="Optional: custom docker image"
+          :readonly="readonly"
+        >
+          <template v-slot:no-option>
+            <q-item>
+              <q-item-section class="text-grey">
+                No results
+              </q-item-section>
+            </q-item>
+          </template>
+        </q-select>
         <q-toggle v-model="job.tmate" label="Use tmate" />
         <q-toggle v-model="job.asciinema" label="Use asciinema" />
         <q-toggle v-model="job.proxychains" label="Use proxychains" />
@@ -102,6 +124,8 @@ const proxyJobStore = useProxyJobStore();
 const $q = useQuasar();
 
 const loading = ref(false);
+const docker_images = ref<Array<string>>([]);
+const all_docker_images = ref<Array<string>>([]);
 
 const props = defineProps({
   job_id: {
@@ -207,6 +231,48 @@ async function loadData(id: string) {
       loading.value = false;
     }
   }
+}
+
+function loadDockerImages() {
+  api
+    .get('/proxy_jobs/docker_images')
+    .then((response) => {
+      all_docker_images.value = response.data;
+    })
+    .catch(() => {
+      $q.notify({
+        color: 'negative',
+        position: 'top',
+        message: 'Loading failed',
+        icon: 'report_problem',
+      });
+    });
+}
+loadDockerImages();
+
+function createValue(val: string, done: (item: string, mode: 'add-unique') => void) {
+  if (val.length > 0) {
+    if (!all_docker_images.value.includes(val)) {
+      all_docker_images.value.push(val);
+    }
+    done(val, 'add-unique');
+  }
+}
+
+function filterFn(val: string, update: (callback: () => void) => void) {
+  if (val === '') {
+    update(() => {
+      docker_images.value = all_docker_images.value;
+    });
+    return;
+  }
+
+  update(() => {
+    const needle = val.toLowerCase();
+    docker_images.value = all_docker_images.value.filter(
+      (v) => v.toLowerCase().indexOf(needle) > -1
+    );
+  });
 }
 
 // When the job_id prop changes, load the new job's data.

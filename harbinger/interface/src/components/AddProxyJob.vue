@@ -51,6 +51,28 @@
       filled
     />
 
+    <q-select
+      filled
+      v-model="form.docker_image"
+      use-input
+      hide-selected
+      fill-input
+      input-debounce="0"
+      :options="docker_images"
+      @filter="filterFn"
+      @new-value="createValue"
+      label="Docker Image"
+      hint="Optional: custom docker image"
+    >
+      <template v-slot:no-option>
+        <q-item>
+          <q-item-section class="text-grey">
+            No results
+          </q-item-section>
+        </q-item>
+      </template>
+    </q-select>
+
     <files-select v-model="selected_files"/>
     <q-input filled v-model="form.env" label="env" hint="Environment flags, separate multiple with ','" />
     <q-toggle v-model="form.tmate" label="Use tmate" />
@@ -101,6 +123,8 @@ const loading = ref(false);
 const proxies = ref<Array<Proxy>>([]);
 const credentials = ref<Array<Credential>>([]);
 const selected_files = ref<Array<File>>([]);
+const docker_images = ref<Array<string>>([]);
+const all_docker_images = ref<Array<string>>([]);
 
 interface Form {
   command: string;
@@ -114,9 +138,12 @@ interface Form {
   proxychains: boolean;
   tmate: boolean;
   env: string;
+  docker_image?: string;
 }
 
-const form = ref<Form>({} as Form);
+const form = ref<Form>({
+  docker_image: 'harbinger_proxy:latest',
+} as Form);
 
 function onSubmit() {
   if (form.value.command != null) {
@@ -218,6 +245,48 @@ function loadCredentials() {
     });
 }
 loadCredentials();
+
+function loadDockerImages() {
+  api
+    .get('/proxy_jobs/docker_images')
+    .then((response) => {
+      all_docker_images.value = response.data;
+    })
+    .catch(() => {
+      $q.notify({
+        color: 'negative',
+        position: 'top',
+        message: 'Loading failed',
+        icon: 'report_problem',
+      });
+    });
+}
+loadDockerImages();
+
+function createValue(val: string, done: (item: string, mode: 'add-unique') => void) {
+  if (val.length > 0) {
+    if (!all_docker_images.value.includes(val)) {
+      all_docker_images.value.push(val);
+    }
+    done(val, 'add-unique');
+  }
+}
+
+function filterFn(val: string, update: (callback: () => void) => void) {
+  if (val === '') {
+    update(() => {
+      docker_images.value = all_docker_images.value;
+    });
+    return;
+  }
+
+  update(() => {
+    const needle = val.toLowerCase();
+    docker_images.value = all_docker_images.value.filter(
+      (v) => v.toLowerCase().indexOf(needle) > -1
+    );
+  });
+}
 
 function onReset() {
   form.value = {} as Form;
