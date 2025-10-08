@@ -2,7 +2,7 @@ import uuid
 from collections.abc import Iterable
 
 from fastapi_pagination import Page
-from fastapi_pagination.ext.sqlalchemy import paginate
+from fastapi_pagination.ext.sqlalchemy import apaginate
 from pydantic import UUID4
 from sqlalchemy import Select, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -47,7 +47,7 @@ async def get_timeline_paged(
     q: Select = select(models.TimeLine)
     q = filters.filter(q)
     q = filters.sort(q)
-    return await paginate(db, q)
+    return await apaginate(db, q)
 
 
 async def get_timeline_filters(db: AsyncSession, filters: filters.TimeLineFilter):
@@ -93,7 +93,7 @@ async def update_manual_timeline_task(
     db: AsyncSession,
     id: str | uuid.UUID,
     manual_timeline_tasks: schemas.ManualTimelineTaskCreate,
-) -> None:
+) -> models.ManualTimelineTask:
     q = (
         update(models.ManualTimelineTask)
         .where(models.ManualTimelineTask.id == id)
@@ -101,3 +101,4 @@ async def update_manual_timeline_task(
     )
     await db.execute(q)
     await db.commit()
+    return await db.get(models.ManualTimelineTask, id)

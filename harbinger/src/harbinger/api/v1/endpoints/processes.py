@@ -31,7 +31,7 @@ async def get_processes(
     )
 
 
-@router.get("/numbers", response_model=schemas.ProcessNumbers, tags=["process", "crud"])
+@router.get("/numbers", response_model=schemas.ProcessNumbers | None, tags=["process", "crud"])
 async def get_process_numbers(
     host_id: str = "",
     implant_id: str = "",
@@ -39,4 +39,5 @@ async def get_process_numbers(
     user: models.User = Depends(current_active_user),
 ):
     result = await crud.get_process_numbers(db, host_id, implant_id)
-    return {"items": result}
+    if result:
+        return {"items": result}

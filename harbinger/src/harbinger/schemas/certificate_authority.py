@@ -14,12 +14,10 @@
 
 
 from datetime import datetime
-from typing import TYPE_CHECKING
 
 from pydantic import UUID4, BaseModel, ConfigDict
 
-if TYPE_CHECKING:
-    from .label import Label
+from .label import Label
 
 
 class CertificateAuthorityBase(BaseModel):
@@ -46,3 +44,6 @@ class CertificateAuthority(CertificateAuthorityBase):
     time_updated: datetime | None = None
 
     labels: list["Label"] | None = None
+
+
+CertificateAuthority.model_rebuild()

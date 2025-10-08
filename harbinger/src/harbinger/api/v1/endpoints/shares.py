@@ -20,6 +20,15 @@ async def list_shares(
     return await crud.list_shares_paged(db, share_filters)
 
 
+@router.post("/", response_model=schemas.Share, tags=["crud", "shares"])
+async def create_share(
+    share: schemas.ShareCreate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[models.User, Depends(current_active_user)],
+):
+    return await crud.get_or_create_share(db, share)
+
+
 @router.get("/filters", response_model=list[schemas.Filter], tags=["crud", "shares"])
 async def shares_filters(
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -40,3 +49,13 @@ async def get_share(
     db: AsyncSession = Depends(get_db),
 ):
     return await crud.get_share(db, share_id)
+
+
+@router.delete("/{share_id}", status_code=204, tags=["crud", "shares"])
+async def delete_share(
+    share_id: UUID4,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[models.User, Depends(current_active_user)],
+):
+    await crud.delete_share(db, share_id)
+    return

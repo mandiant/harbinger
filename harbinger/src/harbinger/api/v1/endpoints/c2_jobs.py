@@ -45,7 +45,7 @@ async def c2_jobs_filters(
 
 @router.put(
     "/{job_id}",
-    response_model=schemas.C2Job,
+    response_model=schemas.C2Job | None,
     tags=["mythic", "implants", "crud"],
 )
 async def update_c2_job(
@@ -72,7 +72,7 @@ async def update_c2_job(
 
 @router.get(
     "/{job_id}",
-    response_model=schemas.C2Job,
+    response_model=schemas.C2Job | None,
     tags=["mythic", "implants", "crud"],
 )
 async def get_c2_job(
@@ -85,7 +85,7 @@ async def get_c2_job(
 
 @router.post(
     "/{job_id}/start",
-    response_model=schemas.C2Job,
+    response_model=schemas.C2Job | None,
     tags=["c2", "implants", "crud"],
 )
 async def start_c2_job(
@@ -110,7 +110,7 @@ async def start_c2_job(
 
 @router.post(
     "/{job_id}/clone",
-    response_model=schemas.C2Job,
+    response_model=schemas.C2Job | None,
     tags=["c2", "implants", "crud"],
 )
 async def clone_c2_job(

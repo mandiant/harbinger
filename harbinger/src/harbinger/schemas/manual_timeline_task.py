@@ -14,12 +14,10 @@
 
 
 from datetime import datetime
-from typing import TYPE_CHECKING
 
 from pydantic import UUID4, BaseModel, ConfigDict, field_validator
 
-if TYPE_CHECKING:
-    from .label import Label
+from .label import Label
 
 
 class ManualTimelineTaskBase(BaseModel):
@@ -55,3 +53,6 @@ class ManualTimelineTask(ManualTimelineTaskBase):
     id: UUID4 | str
 
     labels: list["Label"] | None = None
+
+
+ManualTimelineTask.model_rebuild()

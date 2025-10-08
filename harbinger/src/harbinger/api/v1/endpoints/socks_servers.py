@@ -29,7 +29,7 @@ async def socks_server_filters(
     return await crud.get_socks_server_filters(db, filters)
 
 
-@router.get("/{server_id}", response_model=schemas.SocksServer, tags=["socks", "crud"])
+@router.get("/{server_id}", response_model=schemas.SocksServer | None, tags=["socks", "crud"])
 async def get_socks_server(
     server_id: UUID4,
     user: Annotated[models.User, Depends(current_active_user)],

@@ -2,7 +2,7 @@ import contextlib
 from collections.abc import Iterable
 
 from fastapi_pagination import Page
-from fastapi_pagination.ext.sqlalchemy import paginate
+from fastapi_pagination.ext.sqlalchemy import apaginate
 from pydantic import UUID4
 from sqlalchemy import Select, select, update
 from sqlalchemy.dialects.postgresql import insert
@@ -23,7 +23,7 @@ async def get_c2_tasks_paged(
     q = filters.filter(q)
     with contextlib.suppress(NotImplementedError):
         q = filters.sort(q)
-    return await paginate(db, q)
+    return await apaginate(db, q)
 
 
 async def get_c2_task_filters(
@@ -97,9 +97,9 @@ async def create_or_update_c2_task(
 
 async def create_c2_task_output(
     db: AsyncSession,
-    c2_outputs: schemas.C2OutputCreate,
+    c2_output: schemas.C2OutputCreate,
 ) -> tuple[bool, models.C2Output]:
-    data = c2_outputs.model_dump()
+    data = c2_output.model_dump()
     data.pop("internal_task_id", None)
     data.pop("processes", [])
     data.pop("files", [])
@@ -113,8 +113,10 @@ async def create_c2_task_output(
         update_stmt.returning(models.C2Output),
         execution_options={"populate_existing": True},
     )
-    await db.commit()
     result = result.unique().one()
+    await db.refresh(result)
+    db.expunge(result)
+    await db.commit()
     return (result.time_updated is None, result)
 
 

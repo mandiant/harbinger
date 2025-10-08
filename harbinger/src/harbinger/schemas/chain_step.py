@@ -14,14 +14,11 @@
 
 
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING
 
 from pydantic import UUID4, BaseModel, ConfigDict
 
+from .label import Label
 from .playbook_step import PlaybookStepModifier
-
-if TYPE_CHECKING:
-    from .label import Label
 
 
 class ChainStepBase(BaseModel):
@@ -49,3 +46,6 @@ class ChainStep(ChainStepBase):
     time_completed: datetime | None = None
     labels: list["Label"] | None = None
     step_modifiers: list[PlaybookStepModifier] | None = None
+
+
+ChainStep.model_rebuild()

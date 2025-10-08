@@ -1,5 +1,5 @@
 from fastapi_pagination import Page
-from fastapi_pagination.ext.sqlalchemy import paginate
+from fastapi_pagination.ext.sqlalchemy import apaginate
 from pydantic import UUID4
 from sqlalchemy import Select, select
 from sqlalchemy.dialects.postgresql import insert
@@ -101,7 +101,7 @@ async def get_certificate_templates_paged(
     q = await _apply_permission_filter(q, "FullControl", fullcontrol_permissions)
     q = await _apply_permission_filter(q, "WriteDACL", writedacl_permissions)
     q = await _apply_permission_filter(q, "WriteProperty", writeproperty_permissions)
-    return await paginate(db, q)
+    return await apaginate(db, q)
 
 
 async def get_certificate_templates_filters(
@@ -179,6 +179,7 @@ async def create_certificate_template(
     db.add(template_db)
     await db.commit()
     await db.refresh(template_db)
+    db.expunge(template_db)
     for authority in authorities or []:
         auth_db = list(
             await get_certificate_authorities(
@@ -211,3 +212,41 @@ async def create_certificate_template_permissions(
     await db.commit()
     result = result.unique().one()
     return (result.time_updated is None, result)
+
+
+async def update_certificate_template(
+    db: AsyncSession,
+    certificate_template_id: UUID4,
+    certificate_template: schemas.CertificateTemplateCreate,
+) -> models.CertificateTemplate | None:
+    db_obj = await db.get(models.CertificateTemplate, certificate_template_id)
+    if not db_obj:
+        return None
+
+    update_data = certificate_template.model_dump(exclude_unset=True)
+    authorities = update_data.pop("certificate_authorities", None)
+
+    for field, value in update_data.items():
+        setattr(db_obj, field, value)
+
+    if authorities is not None:
+        # Clear existing authorities and add new ones
+        await db.execute(
+            models.CertificateAuthorityMap.__table__.delete().where(
+                models.CertificateAuthorityMap.certificate_template_id == certificate_template_id
+            )
+        )
+        for authority in authorities:
+            auth_db = list(
+                await get_certificate_authorities(
+                    db,
+                    filters.CertificateAuthorityFilter(ca_name=authority),
+                ),
+            )
+            if auth_db:
+                await create_certificate_authority_map(db, auth_db[0].id, certificate_template_id)
+
+    db.add(db_obj)
+    await db.commit()
+    await db.refresh(db_obj)
+    return db_obj

@@ -15,12 +15,10 @@
 
 from datetime import datetime
 from enum import Enum
-from typing import TYPE_CHECKING
 
 from pydantic import UUID4, BaseModel, ConfigDict, Field
 
-if TYPE_CHECKING:
-    from .label import Label
+from .label import Label
 
 
 class ProxyStatus(str, Enum):
@@ -53,6 +51,10 @@ class ProxyBase(BaseModel):
 
 
 class ProxyCreate(ProxyBase):
+    pass
+
+
+class ProxyUpdate(ProxyBase):
     pass
 
 
@@ -94,3 +96,6 @@ class ProxyChain(ProxyChainBase):
 class ProxyChainGraph(ProxyChain):
     graph: str = ""
     correct: bool = True
+
+
+ProxyChain.model_rebuild()

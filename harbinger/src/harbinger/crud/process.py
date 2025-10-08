@@ -4,7 +4,7 @@ from collections.abc import Iterable
 from typing import Any
 
 from fastapi_pagination import Page
-from fastapi_pagination.ext.sqlalchemy import paginate
+from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import func
@@ -92,7 +92,7 @@ async def get_processes_paged(
         q = q.where(models.Process.name.ilike(f"%{search}%"))
     if labels_only:
         q = q.where(models.LabeledItem.process_id == models.Process.id)
-    return await paginate(db, q.order_by(models.Process.process_id.asc()))
+    return await apaginate(db, q.order_by(models.Process.process_id.asc()))
 
 
 async def get_processes(

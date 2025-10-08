@@ -2,7 +2,7 @@ from collections.abc import Iterable
 from typing import Any
 
 from fastapi_pagination import Page
-from fastapi_pagination.ext.sqlalchemy import paginate
+from fastapi_pagination.ext.sqlalchemy import apaginate
 from pydantic import UUID4
 from sqlalchemy import Select, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -45,7 +45,7 @@ async def get_c2_jobs_paged(
     q = filters.filter(q)
     q = filters.sort(q)
     q = q.group_by(models.C2Job.id)
-    return await paginate(db, q)
+    return await apaginate(db, q)
 
 
 async def get_c2_jobs_filters(db: AsyncSession, filters: filters.C2JobFilter):
@@ -90,9 +90,10 @@ async def create_c2_job(db: AsyncSession, job: schemas.C2JobCreate) -> models.C2
     db_obj.status = schemas.Status.created
     db.add(db_obj)
     await db.commit()
-    await db.refresh(db_obj)
     for input_file in input_files or []:
         await create_input_file(db, input_file, c2_job_id=str(db_obj.id))
+    await db.refresh(db_obj)
+    db.expunge(db_obj)
     return db_obj
 
 
@@ -107,17 +108,26 @@ async def update_c2_job(
 ) -> models.C2Job | None:
     from .playbook import send_update_playbook
 
-    values = job.model_dump()
-    input_files = values.pop("input_files")
-    q = update(models.C2Job).where(models.C2Job.id == c2_job_id).values(**values)
-    await db.execute(q)
-    await db.commit()
-    await delete_input_files(db, c2_job_id=c2_job_id)
-    for input_file in input_files:
-        await create_input_file(db, input_file, c2_job_id=c2_job_id)
+    values = job.model_dump(exclude_unset=True)
+    input_files = values.pop("input_files", None)
+    if values:
+        q = update(models.C2Job).where(models.C2Job.id == c2_job_id).values(**values)
+        await db.execute(q)
+
     c2_job = await db.get(models.C2Job, c2_job_id)
-    if c2_job and c2_job.playbook_id:
-        await send_update_playbook(c2_job.playbook_id, "updated_c2_job", str(c2_job_id))
+    if not c2_job:
+        return None
+    await db.refresh(c2_job)
+    playbook_id = c2_job.playbook_id
+    await delete_input_files(db, c2_job_id=str(c2_job.id))
+    if input_files:
+        for input_file in input_files:
+            await create_input_file(db, input_file, c2_job_id=str(c2_job.id))
+    if playbook_id:
+        await send_update_playbook(str(playbook_id), "updated_c2_job", str(c2_job.id))
+    await db.refresh(c2_job)
+    db.expunge(c2_job)
+    await db.commit()
     return c2_job
 
 

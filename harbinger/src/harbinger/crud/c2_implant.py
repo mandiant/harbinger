@@ -4,7 +4,7 @@ from collections.abc import Iterable
 from datetime import datetime
 
 from fastapi_pagination import Page
-from fastapi_pagination.ext.sqlalchemy import paginate
+from fastapi_pagination.ext.sqlalchemy import apaginate
 from pydantic import UUID4
 from sqlalchemy import Select, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -32,7 +32,7 @@ async def get_c2_implants_paged(
         q = q.where(models.C2Implant.id.not_in(q1))
     with contextlib.suppress(NotImplementedError):
         q = filters.sort(q)
-    return await paginate(db, q)
+    return await apaginate(db, q)
 
 
 async def get_c2_implant_filters(

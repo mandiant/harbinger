@@ -1,11 +1,12 @@
 import uuid
 
 from fastapi_pagination import Page
-from fastapi_pagination.ext.sqlalchemy import paginate
+from fastapi_pagination.ext.sqlalchemy import apaginate
 from pydantic import UUID4
 from sqlalchemy import Select, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.expression import func
 
 from harbinger import filters, models, schemas
@@ -17,12 +18,12 @@ async def get_issues_paged(
     db: AsyncSession,
     filters: filters.IssueFilter,
 ) -> Page[models.Issue]:
-    q: Select = select(models.Issue)
+    q: Select = select(models.Issue).options(selectinload(models.Issue.labels))
     q = q.outerjoin(models.Issue.labels)
     q = filters.filter(q)
     q = filters.sort(q)
     q = q.group_by(models.Issue.id)
-    return await paginate(db, q)
+    return await apaginate(db, q)
 
 
 async def get_issue_filters(db: AsyncSession, filters: filters.IssueFilter):
@@ -51,9 +52,9 @@ async def get_issue(db: AsyncSession, id: UUID4) -> models.Issue | None:
 
 async def create_issue(
     db: AsyncSession,
-    issues: schemas.IssueCreate,
+    issue: schemas.IssueCreate,
 ) -> tuple[bool, models.Issue]:
-    data = issues.model_dump()
+    data = issue.model_dump()
     q = insert(models.Issue).values(**data).values(time_created=func.now())
     data["time_updated"] = func.now()
     update_stmt = q.on_conflict_do_update("issues_name_key", set_=data)
@@ -61,9 +62,12 @@ async def create_issue(
         update_stmt.returning(models.Issue),
         execution_options={"populate_existing": True},
     )
-    await db.commit()
     result = result.unique().one()
-    return (result.time_updated is None, result)
+    created = result.time_updated is None
+    await db.refresh(result)
+    db.expunge(result)
+    await db.commit()
+    return (created, result)
 
 
 async def update_issue(

@@ -13,12 +13,9 @@
 # limitations under the License.
 
 
-from typing import TYPE_CHECKING
-
 from pydantic import UUID4, BaseModel, ConfigDict
 
-if TYPE_CHECKING:
-    from .label import Label
+from .label import Label
 
 
 class PasswordBase(BaseModel):
@@ -36,3 +33,6 @@ class Password(PasswordBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID4
     labels: list["Label"] | None = None
+
+
+Password.model_rebuild()

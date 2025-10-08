@@ -2,7 +2,7 @@ import uuid
 from collections.abc import Iterable
 
 from fastapi_pagination import Page
-from fastapi_pagination.ext.sqlalchemy import paginate
+from fastapi_pagination.ext.sqlalchemy import apaginate
 from pydantic import UUID4
 from sqlalchemy import Select, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,7 +23,7 @@ async def get_suggestions_paged(
     q = filters.filter(q)
     q = filters.sort(q)
     q = q.group_by(models.Suggestion.id)
-    return await paginate(db, q)
+    return await apaginate(db, q)
 
 
 async def get_suggestions(
@@ -88,10 +88,11 @@ async def update_suggestion(
     db: AsyncSession,
     id: str | uuid.UUID,
     suggestions: schemas.SuggestionCreate,
-) -> None:
+) -> models.Suggestion:
     q = update(models.Suggestion).where(models.Suggestion.id == id).values(**suggestions.model_dump())
     await db.execute(q)
     await db.commit()
+    return await db.get(models.Suggestion, id)
 
 
 async def delete_suggestion(db: AsyncSession, id: str | uuid.UUID) -> None:

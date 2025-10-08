@@ -4,7 +4,7 @@ import uuid
 from collections.abc import Iterable
 
 from fastapi_pagination import Page
-from fastapi_pagination.ext.sqlalchemy import paginate
+from fastapi_pagination.ext.sqlalchemy import apaginate
 from pydantic import UUID4
 from sqlalchemy import Select, delete, or_, select, update
 from sqlalchemy.dialects.postgresql import insert
@@ -131,7 +131,7 @@ async def get_files_paged(
     with contextlib.suppress(NotImplementedError):
         q = file_filters.sort(q)
     q = q.group_by(models.File.id)
-    return await paginate(db, q)
+    return await apaginate(db, q)
 
 
 async def get_file_filters(
@@ -194,8 +194,11 @@ async def create_share_file(
         update_stmt.returning(models.ShareFile),
         execution_options={"populate_existing": True},
     )
+    instance = result.unique().one()
+    await db.refresh(instance, ["labels"])
+    db.expunge(instance)
     await db.commit()
-    return result.unique().one()
+    return instance
 
 
 async def set_share_file_downloaded(
@@ -228,7 +231,7 @@ async def list_share_files_paged(
     if labels_only:
         q = q.where(models.LabeledItem.share_file_id == models.ShareFile.id)
     q = q.order_by(models.ShareFile.name.asc())
-    return await paginate(db, q)
+    return await apaginate(db, q)
 
 
 async def list_share_files(
@@ -279,7 +282,7 @@ async def get_share_files_paged(
     q = filters.filter(q)
     q = filters.sort(q)
     q = q.group_by(models.ShareFile.id)
-    return await paginate(db, q)
+    return await apaginate(db, q)
 
 
 async def get_share_files(
@@ -353,7 +356,7 @@ async def save_parsed_share_file(
         domain_id = d.id
     _, h = await get_or_create_host(db, file.hostname, domain_id)
     host_id = h.id
-    _, share_db = await get_or_create_share(
+    share_db = await get_or_create_share(
         db,
         schemas.ShareCreate(
             host_id=host_id,

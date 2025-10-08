@@ -13,9 +13,11 @@
 # limitations under the License.
 
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from pydantic import UUID4, BaseModel, ConfigDict
+
+from .label import Label
 
 
 class PlaybookStepModifierBase(BaseModel):
@@ -45,3 +47,33 @@ class PlaybookStepModifierEntry(PlaybookStepModifierBase):
     playbook_step_id: UUID4 | str
     proxy_job_id: UUID4 | str | None = None
     c2_job_id: UUID4 | str | None = None
+
+
+class PlaybookStepBase(BaseModel):
+    playbook_id: UUID4 | str | None
+    number: int = 0
+    label: str | None = ""
+    depends_on: str | None = ""
+    proxy_job_id: UUID4 | str | None = None
+    c2_job_id: UUID4 | str | None = None
+    delay: timedelta | None = None
+    execute_after: datetime | None = None
+
+
+class PlaybookStepCreate(PlaybookStepBase):
+    pass
+
+
+class PlaybookStep(PlaybookStepBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID4
+    status: str | None
+    time_created: datetime | None = None
+    time_updated: datetime | None = None
+    time_started: datetime | None = None
+    time_completed: datetime | None = None
+    labels: list["Label"] | None = None
+    step_modifiers: list[PlaybookStepModifier] | None = None
+
+
+PlaybookStep.model_rebuild()

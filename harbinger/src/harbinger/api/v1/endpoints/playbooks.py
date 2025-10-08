@@ -98,7 +98,7 @@ async def playbook_filters(
 
 @router.get(
     "/{playbook_id}",
-    response_model=schemas.ProxyChainGraph,
+    response_model=schemas.ProxyChainGraph | None,
     tags=["chains", "crud"],
 )
 async def get_chain(
@@ -124,7 +124,7 @@ async def create_chain(
 
 @router.put(
     "/{playbook_id}",
-    response_model=schemas.ProxyChain,
+    response_model=schemas.ProxyChain | None,
     tags=["chains", "crud"],
 )
 async def update_chain(
@@ -176,7 +176,7 @@ async def clone_chain(
     if not chain:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return {"error": "Chain could not be found."}
-    return await crud.clone_chain(db, chain)
+    return await crud.clone_chain(db, schemas.ProxyChainGraph.model_validate(chain))
 
 
 @router.get(

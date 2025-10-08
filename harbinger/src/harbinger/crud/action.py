@@ -1,5 +1,5 @@
 from fastapi_pagination import Page
-from fastapi_pagination.ext.sqlalchemy import paginate
+from fastapi_pagination.ext.sqlalchemy import apaginate
 from pydantic import UUID4
 from sqlalchemy import Select, select, update
 from sqlalchemy.dialects.postgresql import insert
@@ -50,7 +50,7 @@ async def get_actions_paged(
     q = filters.filter(q)
     q = filters.sort(q)
     q = q.group_by(models.Action.id)
-    return await paginate(db, q)
+    return await apaginate(db, q)
 
 
 async def get_action_filters(db: AsyncSession, filters: filters.ActionFilter):

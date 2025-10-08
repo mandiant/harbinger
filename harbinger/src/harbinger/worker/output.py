@@ -373,7 +373,7 @@ class SnafflerParser(SimpleMatchParser):
             _, h = await crud.get_or_create_host(self.db, hostname, domain_id)
             host_id = h.id
 
-            created, share_db = await crud.get_or_create_share(
+            await crud.get_or_create_share(
                 self.db,
                 schemas.ShareCreate(
                     host_id=host_id,
@@ -382,10 +382,6 @@ class SnafflerParser(SimpleMatchParser):
                     remark=description,
                 ),
             )
-            if created:
-                log.info(
-                    f"Created new share with name: {share_db.unc_path} ({share_db.id})",
-                )
 
         pattern = re.compile(r"\[File\] {(.*)}<.*>\((.*)\) .*")
 
@@ -1111,7 +1107,7 @@ class NetShareParser(SimpleMatchParser):
         )
 
         for share in shares:
-            created, share_db = await crud.get_or_create_share(
+            await crud.get_or_create_share(
                 self.db,
                 schemas.ShareCreate(
                     host_id=host_id,
@@ -1119,10 +1115,6 @@ class NetShareParser(SimpleMatchParser):
                     unc_path=f"\\\\{unc_path_host}\\{share}",
                 ),
             )
-            if created:
-                log.info(
-                    f"Created new share with name: {share_db.unc_path} ({share_db.id})",
-                )
 
 
 OUTPUT_PARSERS: list[type[OutputParser]] = [

@@ -14,12 +14,10 @@
 
 
 from datetime import datetime
-from typing import TYPE_CHECKING
 
 from pydantic import UUID4, BaseModel, ConfigDict
 
-if TYPE_CHECKING:
-    from .label import Label
+from .label import Label
 
 
 class SuggestionBase(BaseModel):
@@ -60,3 +58,6 @@ class SuggestionBaseRequest(BaseModel):
 
 class SuggestionsRequest(SuggestionBaseRequest):
     additional_prompt: str = ""
+
+
+Suggestion.model_rebuild()

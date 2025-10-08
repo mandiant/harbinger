@@ -29,7 +29,7 @@ async def host_filters(
     return await crud.get_host_filters(db, host_filter)
 
 
-@router.get("/{host_id}", response_model=schemas.Host, tags=["hosts", "crud"])
+@router.get("/{host_id}", response_model=schemas.Host | None, tags=["hosts", "crud"])
 async def get_host(
     host_id: str,
     user: Annotated[models.User, Depends(current_active_user)],

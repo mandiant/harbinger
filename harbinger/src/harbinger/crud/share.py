@@ -1,9 +1,10 @@
 from collections.abc import Iterable
 
 from fastapi_pagination import Page
-from fastapi_pagination.ext.sqlalchemy import paginate
+from fastapi_pagination.ext.sqlalchemy import apaginate
 from pydantic import UUID4
-from sqlalchemy import Select, exc, select
+from sqlalchemy import Select, select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import func
 
@@ -15,32 +16,72 @@ from .label import create_label_item, get_labels_for_q
 async def get_or_create_share(
     db: AsyncSession,
     share: schemas.ShareCreate,
-) -> tuple[bool, models.Share]:
-    s = select(models.Share).where(models.Share.name == share.name).where(models.Share.host_id == share.host_id)
-    q = await db.execute(s)
-    db_share = q.scalars().first()
-    if not db_share:
-        db_share = models.Share(**share.model_dump())
-        db.add(db_share)
-        try:
-            await db.commit()
-            await db.refresh(db_share)
-            if share.name and (
-                "$" in share.name
-                or share.name.lower() in ["sysvol", "wsuscontent", "wsustemp", "updateservicespackages"]
-            ):
-                await create_label_item(
-                    db,
-                    label=schemas.LabeledItemCreate(
-                        label_id="3f061979-055d-473f-ba15-d7b508f0ba83",
-                        share_id=db_share.id,
-                    ),
-                )
-            return (True, db_share)
-        except exc.IntegrityError:
-            await db.rollback()
-            return await get_or_create_share(db, share)
-    return (False, db_share)
+) -> models.Share:
+    """
+    Atomically gets or creates a Share record using an INSERT ... ON CONFLICT statement.
+    """
+    insert_stmt = insert(models.Share).values(**share.model_dump())
+
+    # This statement tries to insert. If a share with the same (name, host_id)
+    # already exists, it does nothing and returns the existing one.
+    do_nothing_stmt = insert_stmt.on_conflict_do_nothing(index_elements=["name", "host_id"])
+    await db.execute(do_nothing_stmt)
+
+    # Now, fetch the share, which is guaranteed to exist.
+    select_stmt = select(models.Share).where(models.Share.name == share.name, models.Share.host_id == share.host_id)
+    db_share = (await db.execute(select_stmt)).unique().scalar_one()
+
+    # Eagerly load any relationships you might need later.
+    await db.refresh(db_share, ["labels"])
+
+    # Perform additional logic like adding a label
+    is_admin_share = share.name and (
+        "$" in share.name or share.name.lower() in ["sysvol", "wsuscontent", "wsustemp", "updateservicespackages"]
+    )
+    if is_admin_share:
+        await create_label_item(
+            db,
+            label=schemas.LabeledItemCreate(
+                label_id="3f061979-055d-473f-ba15-d7b508f0ba83",
+                object_id=db_share.id,  # Assuming object_id is the correct field
+            ),
+        )
+    await db.refresh(db_share, ["labels"])
+    db.expunge(db_share)
+    await db.commit()
+    return db_share
+
+
+# async def get_or_create_share(
+#     db: AsyncSession,
+#     share: schemas.ShareCreate,
+# ) -> tuple[bool, models.Share]:
+#     s = select(models.Share).where(models.Share.name == share.name).where(models.Share.host_id == share.host_id)
+#     q = await db.execute(s)
+#     db_share = q.scalars().first()
+#     if not db_share:
+#         db_share = models.Share(**share.model_dump())
+#         db.add(db_share)
+#         try:
+#             await db.refresh(db_share)
+#             db.expunge(db_share)
+#             await db.commit()
+#             if share.name and (
+#                 "$" in share.name
+#                 or share.name.lower() in ["sysvol", "wsuscontent", "wsustemp", "updateservicespackages"]
+#             ):
+#                 await create_label_item(
+#                     db,
+#                     label=schemas.LabeledItemCreate(
+#                         label_id="3f061979-055d-473f-ba15-d7b508f0ba83",
+#                         share_id=db_share.id,
+#                     ),
+#                 )
+#             return (True, db_share)
+#         except exc.IntegrityError:
+#             await db.rollback()
+#             return await get_or_create_share(db, share)
+#     return (False, db_share)
 
 
 async def list_shares_paged(
@@ -49,7 +90,7 @@ async def list_shares_paged(
 ) -> Page[models.Share]:
     q: Select = select(models.Share).outerjoin(models.Share.labels).group_by(models.Share.id)
     q = share_filters.filter(q)
-    return await paginate(db, q)
+    return await apaginate(db, q)
 
 
 async def get_shares(

@@ -15,7 +15,19 @@ router = APIRouter()
 
 @router.get("/", response_model=Page[schemas.Hash], tags=["crud", "hashes"])
 async def get_hashes(db: Annotated[AsyncSession, Depends(get_db)]):
+    """
+    Get all hashes with pagination.
+    """
     return await crud.list_hashes_paged(db)
+
+
+@router.post("/", response_model=schemas.Hash, status_code=201, tags=["crud", "hashes"])
+async def create_hash(hash: schemas.HashCreate, db: Annotated[AsyncSession, Depends(get_db)]):
+    """
+    Create a new hash.
+    """
+    _, db_hash = await crud.create_hash(db, hash)
+    return db_hash
 
 
 @router.get("/export", tags=["crud", "hashes"])
@@ -41,3 +53,25 @@ async def export_hashes(db: Annotated[AsyncSession, Depends(get_db)]):
 @router.get("/{hash_id}", response_model=schemas.Hash, tags=["crud", "hashes"])
 async def get_hash(hash_id: UUID4, db: AsyncSession = Depends(get_db)):
     return await crud.get_hash(db, hash_id)
+
+
+@router.put("/{hash_id}", response_model=schemas.Hash, tags=["crud", "hashes"])
+async def update_hash(
+    hash_id: UUID4,
+    hash: schemas.HashCreate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """
+    Update a hash.
+    """
+    _, db_hash = await crud.create_hash(db, hash)
+    return db_hash
+
+
+@router.delete("/{hash_id}", status_code=204, tags=["crud", "hashes"])
+async def delete_hash(hash_id: UUID4, db: Annotated[AsyncSession, Depends(get_db)]):
+    """
+    Delete a hash.
+    """
+    await crud.delete_hash(db, hash_id)
+    return

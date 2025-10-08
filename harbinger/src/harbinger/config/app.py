@@ -177,7 +177,7 @@ app.include_router(highlights.router, prefix="/highlights", tags=["highlights"])
 app.include_router(hosts.router, prefix="/hosts", tags=["hosts"])
 app.include_router(issues.router, prefix="/issues", tags=["issues"])
 app.include_router(item_label.router, prefix="/item_label", tags=["item_label"])
-app.include_router(job_templates.router, prefix="/templates", tags=["job_templates"])
+app.include_router(job_templates.router, prefix="/job_templates", tags=["job_templates"])
 app.include_router(kerberos.router, prefix="/kerberos", tags=["kerberos"])
 app.include_router(
     label_categories.router,

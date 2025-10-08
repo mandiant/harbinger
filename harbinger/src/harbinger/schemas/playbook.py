@@ -11,10 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from datetime import datetime
 
+from pydantic import UUID4, BaseModel, ConfigDict
 
-from pydantic import BaseModel
-
+from .label import Label
 from .suggestion import SuggestionBaseRequest
 
 
@@ -28,3 +29,34 @@ class PlaybookPreview(BaseModel):
 class PlaybookDetectionRiskSuggestion(SuggestionBaseRequest):
     additional_prompt: str = ""
     playbook_id: str
+
+
+class PlaybookBase(BaseModel):
+    playbook_name: str | None = None
+    description: str | None = None
+    playbook_template_id: str | UUID4 | None = None
+
+
+class PlaybookCreate(PlaybookBase):
+    pass
+
+
+class Playbook(PlaybookBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID4 | str
+    status: str | None = None
+    steps: int | None = None
+    completed: int | None = None
+    arguments: dict | None = None
+    time_created: datetime | None = None
+    time_updated: datetime | None = None
+    time_started: datetime | None = None
+    time_completed: datetime | None = None
+    suggestion_id: UUID4 | None = None
+
+    labels: list["Label"] | None = None
+
+
+class PlaybookGraph(Playbook):
+    graph: str = ""
+    correct: bool = True

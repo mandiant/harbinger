@@ -1,7 +1,7 @@
 from collections.abc import Iterable
 
 from fastapi_pagination import Page
-from fastapi_pagination.ext.sqlalchemy import paginate
+from fastapi_pagination.ext.sqlalchemy import apaginate
 from pydantic import UUID4
 from sqlalchemy import and_, delete, desc, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,7 +13,7 @@ from ._common import send_label_events
 
 
 async def get_labels_paged(db: AsyncSession) -> Page[models.Label]:
-    return await paginate(
+    return await apaginate(
         db,
         select(models.Label).order_by(models.Label.time_created.desc()),
     )

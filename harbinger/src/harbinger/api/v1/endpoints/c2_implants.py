@@ -38,7 +38,7 @@ async def c2_implant_filters(
 
 @router.get(
     "/{implant_id}",
-    response_model=schemas.C2Implant,
+    response_model=schemas.C2Implant | None,
     tags=["c2", "implants", "crud"],
 )
 async def read_c2_implant(

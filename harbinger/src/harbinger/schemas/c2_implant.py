@@ -13,14 +13,11 @@
 # limitations under the License.
 
 from datetime import datetime
-from typing import TYPE_CHECKING
 
 from pydantic import UUID4, AliasChoices, BaseModel, ConfigDict, Field, field_validator
 
+from .label import Label
 from .suggestion import SuggestionBaseRequest
-
-if TYPE_CHECKING:
-    from .label import Label
 
 
 class C2ImplantBase(BaseModel):
@@ -112,3 +109,6 @@ class C2Implant(C2ImplantBase):
 class C2ImplantSuggestionRequest(SuggestionBaseRequest):
     c2_implant_id: str
     additional_prompt: str = ""
+
+
+C2Implant.model_rebuild()

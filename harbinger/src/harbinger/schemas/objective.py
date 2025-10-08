@@ -14,12 +14,10 @@
 
 
 from datetime import datetime
-from typing import TYPE_CHECKING
 
 from pydantic import UUID4, BaseModel, ConfigDict
 
-if TYPE_CHECKING:
-    from .label import Label
+from .label import Label
 
 
 class ObjectiveBase(BaseModel):
@@ -44,3 +42,6 @@ class Objective(ObjectiveBase):
     id: UUID4 | str
 
     labels: list["Label"] | None = None
+
+
+Objective.model_rebuild()

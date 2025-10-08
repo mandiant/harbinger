@@ -1,7 +1,7 @@
 from collections.abc import Iterable
 
 from fastapi_pagination import Page
-from fastapi_pagination.ext.sqlalchemy import paginate
+from fastapi_pagination.ext.sqlalchemy import apaginate
 from pydantic import UUID4
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -31,7 +31,7 @@ async def get_hash(db: AsyncSession, hash_id: UUID4 | str) -> models.Hash | None
 
 async def list_hashes_paged(db: AsyncSession) -> Page[models.Hash]:
     q = select(models.Hash)
-    return await paginate(db, q)
+    return await apaginate(db, q)
 
 
 async def list_hashes(db: AsyncSession) -> Iterable[models.Hash]:

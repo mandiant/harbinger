@@ -15,15 +15,13 @@
 
 from datetime import datetime
 from enum import Enum
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
 
 from pydantic import UUID4, BaseModel, ConfigDict
 
 from .implant import Implant
+from .label import Label
 from .required_argument import RequiredArgument
-
-if TYPE_CHECKING:
-    from .label import Label
 
 
 class C2ServerStatus(BaseModel):
@@ -137,3 +135,6 @@ class C2ServerTypeYaml(BaseModel):
     icon_base64: str | None = ""
     required_arguments: list[RequiredArgument]
     implants: list[Implant] = []
+
+
+C2Server.model_rebuild()

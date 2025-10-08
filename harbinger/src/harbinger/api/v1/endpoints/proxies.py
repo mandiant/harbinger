@@ -28,7 +28,7 @@ async def proxys_filters(
     return await crud.get_proxy_filters(db, filters)
 
 
-@router.get("/{proxy_id}", response_model=schemas.Proxy, tags=["proxies", "crud"])
+@router.get("/{proxy_id}", response_model=schemas.Proxy | None, tags=["proxies", "crud"])
 async def read_proxy(
     proxy_id: str,
     user: Annotated[models.User, Depends(current_active_user)],
@@ -44,3 +44,13 @@ async def create_proxy(
     user: Annotated[models.User, Depends(current_active_user)],
 ):
     return await crud.create_proxy(db=db, proxy=proxy)
+
+
+@router.put("/{proxy_id}", response_model=schemas.Proxy, tags=["proxies", "crud"])
+async def update_proxy(
+    proxy_id: str,
+    proxy: schemas.ProxyUpdate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[models.User, Depends(current_active_user)],
+):
+    return await crud.update_proxy(db=db, proxy_id=proxy_id, proxy_update=proxy)

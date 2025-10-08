@@ -44,7 +44,6 @@ __all__ = [
     "create_proxy",
     "create_proxy_job",
     "create_proxy_job_output",
-    "create_random_color",
     "create_setting",
     "create_setting_category",
     "create_share_file",
@@ -61,9 +60,6 @@ __all__ = [
     "delete_situational_awareness",
     "delete_step",
     "delete_suggestion",
-    "divmod_excel",
-    "env",
-    "filter_shuffle",
     "get_action",
     "get_action_filters",
     "get_actions_paged",
@@ -282,6 +278,7 @@ __all__ = [
     "update_plan_step",
     "update_playbook_step_modifier",
     "update_playbook_steps",
+    "update_proxy",
     "update_proxy_job",
     "update_proxy_job_status",
     "update_setting",
@@ -292,6 +289,7 @@ __all__ = [
     "update_step",
     "update_step_status",
     "update_suggestion",
+    "update_certificate_template",
 ]
 from ._common import (
     create_filter_for_column,
@@ -372,6 +370,7 @@ from .certificate_template import (
     get_certificate_template,
     get_certificate_templates_filters,
     get_certificate_templates_paged,
+    update_certificate_template,
 )
 from .checklist import (
     create_checklist,
@@ -513,7 +512,15 @@ from .playbook import (
     update_step_status,
 )
 from .process import create_process, get_highest_process_number, get_process_numbers, get_processes, get_processes_paged
-from .proxy import create_proxy, get_proxies, get_proxies_paged, get_proxy, get_proxy_filters, update_or_create_proxy
+from .proxy import (
+    create_proxy,
+    get_proxies,
+    get_proxies_paged,
+    get_proxy,
+    get_proxy_filters,
+    update_or_create_proxy,
+    update_proxy,
+)
 from .proxy_job import (
     clone_proxy_job,
     create_proxy_job,

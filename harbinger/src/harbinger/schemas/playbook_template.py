@@ -15,15 +15,13 @@
 
 import builtins
 import random
-from typing import TYPE_CHECKING, Literal
+from typing import Literal
 from uuid import uuid4
 
 from pydantic import UUID4, BaseModel, ConfigDict, Field, create_model
 
 from .argument import Argument, TypeEnum
-
-if TYPE_CHECKING:
-    from .label import Label
+from .label import Label
 
 
 class PlaybookTemplateBase(BaseModel):
@@ -102,3 +100,6 @@ class PlaybookTemplateGenerated(BaseModel):
     args: list[Argument]
     steps: str
     add_depends_on: bool
+
+
+PlaybookTemplateView.model_rebuild()

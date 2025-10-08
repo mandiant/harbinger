@@ -2,11 +2,12 @@ import uuid
 from collections.abc import Iterable
 
 from fastapi_pagination import Page
-from fastapi_pagination.ext.sqlalchemy import paginate
+from fastapi_pagination.ext.sqlalchemy import apaginate
 from pydantic import UUID4
 from sqlalchemy import Select, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.expression import func
 
 from harbinger import filters, models, schemas
@@ -19,12 +20,12 @@ async def get_objectives_paged(
     db: AsyncSession,
     filters: filters.ObjectivesFilter,
 ) -> Page[models.Objectives]:
-    q: Select = select(models.Objectives)
+    q: Select = select(models.Objectives).options(selectinload(models.Objectives.labels))
     q = q.outerjoin(models.Objectives.labels)
     q = filters.filter(q)
     q = filters.sort(q)
     q = q.group_by(models.Objectives.id)
-    return await paginate(db, q)
+    return await apaginate(db, q)
 
 
 async def get_objectives(
@@ -83,16 +84,20 @@ async def create_objective(
         update_stmt.returning(models.Objectives),
         execution_options={"populate_existing": True},
     )
-    await db.commit()
     result = result.unique().one()
-    return (result.time_updated is None, result)
+    created = result.time_updated is None
+    await db.refresh(result, ["labels"])
+    db.expunge(result)
+    await db.commit()
+    return (created, result)
 
 
 async def update_objective(
     db: AsyncSession,
     id: str | uuid.UUID,
     objective: schemas.ObjectiveCreate,
-) -> None:
+) -> models.Objectives | None:
     q = update(models.Objectives).where(models.Objectives.id == id).values(**objective.model_dump())
     await db.execute(q)
     await db.commit()
+    return await db.get(models.Objectives, id)

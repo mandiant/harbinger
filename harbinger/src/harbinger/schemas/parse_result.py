@@ -14,12 +14,10 @@
 
 
 from datetime import datetime
-from typing import TYPE_CHECKING
 
 from pydantic import UUID4, BaseModel, ConfigDict
 
-if TYPE_CHECKING:
-    from .label import Label
+from .label import Label
 
 
 class ParseResultBase(BaseModel):
@@ -41,3 +39,6 @@ class ParseResult(ParseResultBase):
     id: UUID4
     time_created: datetime
     labels: list["Label"] | None = []
+
+
+ParseResult.model_rebuild()
