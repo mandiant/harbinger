@@ -17,7 +17,7 @@
 <template>
   <q-page padding>
     
-    <share-view :share_id="id"/>
+    <share-view :share_id="id" :key="id"/>
   </q-page>
 </template>
 

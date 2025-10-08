@@ -62,6 +62,7 @@ from harbinger.api.v1.endpoints import (
     proxies,
     proxy_job_output,
     proxy_jobs,
+    search,
     share_files,
     shares,
     situational_awareness,
@@ -214,6 +215,7 @@ app.include_router(
     tags=["proxy_job_output"],
 )
 app.include_router(proxy_jobs.router, prefix="/proxy_jobs", tags=["proxy_jobs"])
+app.include_router(search.router, prefix="/search", tags=["search"])
 app.include_router(settings_router.router, prefix="/settings", tags=["settings"])
 app.include_router(share_files.router, prefix="/share_files", tags=["share_files"])
 app.include_router(shares.router, prefix="/shares", tags=["shares"])

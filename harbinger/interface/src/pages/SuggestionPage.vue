@@ -23,7 +23,7 @@
 </template>
 
 <script setup lang="ts">
-import { toRefs } from 'vue';
+import { toRefs, watch } from 'vue';
 
 import BreadCrumb from 'src/components/BreadCrumb.vue';
 import useLoadObject from 'src/load-object';
@@ -44,6 +44,10 @@ const { object, loadObject } = useLoadObject<Suggestion>(
   'suggestions',
   id.value
 );
+
+watch(id, () => {
+  loadObject();
+});
 
 loadObject()
 </script>

@@ -17,7 +17,7 @@
 <template>
   <q-page padding>
     
-    <c2-implant :id="id" />
+    <c2-implant :id="id" :key="id" />
   </q-page>
 </template>
 

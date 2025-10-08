@@ -17,7 +17,7 @@
 <template>
   <q-page padding>
     
-    <c2-task :task_id="task_id" />
+    <c2-task :task_id="task_id" :key="task_id" />
   </q-page>
 </template>
 

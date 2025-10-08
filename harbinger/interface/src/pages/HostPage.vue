@@ -72,7 +72,7 @@
 </template>
 
 <script setup lang="ts">
-import { toRefs, ref } from 'vue';
+import { toRefs, ref, watch } from 'vue';
 
 import { Host } from '../models';
 import useLoadObject from 'src/load-object';
@@ -98,6 +98,12 @@ const { id } = toRefs(props);
 const { loading, object, loadObject } = useLoadObject<Host>('hosts', id.value);
 const { data, loadData, AddFilter } =
   useLoadData<Array<number>>('processes/numbers');
+
+watch(id, () => {
+  AddFilter({ host_id: id.value });
+  loadData();
+  loadObject();
+});
 
 AddFilter({ host_id: id.value });
 loadData();

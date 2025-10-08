@@ -26,6 +26,10 @@
         </q-btn>
         <q-toolbar-title>Harbinger</q-toolbar-title>
 
+        <q-space />
+        <global-search />
+        <q-space />
+
         <progress-bars />
         <event-web-socket />
 
@@ -102,6 +106,7 @@ import NavigationList from 'src/components/NavigationList.vue';
 import EventWebSocket from 'src/components/EventWebSocket.vue';
 import ProgressBars from 'src/components/ProgressBars.vue';
 import BreadCrumb from 'src/components/BreadCrumb.vue';
+import GlobalSearch from 'src/components/GlobalSearch.vue';
 
 const $q = useQuasar();
 const $router = useRouter();

@@ -17,13 +17,12 @@
 <template>
   <q-page padding>
     
-    <file-view :file_id="id" />
+    <file-view :file_id="id" :key="id" />
   </q-page>
 </template>
 
 <script setup lang="ts">
 import { toRefs } from 'vue';
-import BreadCrumb from 'src/components/BreadCrumb.vue';
 import FileView from 'src/components/FileView.vue';
 
 const props = defineProps({

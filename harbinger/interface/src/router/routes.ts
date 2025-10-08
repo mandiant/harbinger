@@ -486,6 +486,17 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: '/c2/output/:id',
+        name: 'c2_output',
+        component: () => import('src/pages/C2OutputPage.vue'),
+        props: true,
+        meta: {
+          icon: 'output',
+          parent: 'output',
+          display_name: 'C2 Output',
+        },
+      },
+      {
         path: '/processes',
         name: 'processes',
         component: () => import('src/pages/ProcessPage.vue'),
