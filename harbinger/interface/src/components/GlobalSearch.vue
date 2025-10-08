@@ -21,10 +21,14 @@
       standout
       :model-value="searchQuery"
       @update:model-value="performSearch"
+      @keydown.down.prevent="handleArrowDown"
+      @keydown.up.prevent="handleArrowUp"
+      @keydown.enter.prevent="handleEnter"
       placeholder="Search or run command (Ctrl+K)..."
       class="q-ml-md"
       style="min-width: 400px"
       :loading="isLoading"
+      ref="searchInputRef"
     >
       <template v-slot:prepend>
         <q-icon name="search" />
@@ -59,6 +63,8 @@
               clickable
               v-ripple
               @click="navigate(item.url)"
+              :ref="(el) => setItemRef(item, el)"
+              :class="{ 'selected-item': isSelected(item) }"
             >
               <q-item-section avatar v-if="item.type === 'Command'">
                 <q-icon name="keyboard_arrow_right" />
@@ -77,19 +83,38 @@
   </div>
 </template>
 
+<style>
+.selected-item {
+  background-color: #e0e0e0; /* A light grey for highlighting */
+}
+.body--dark .selected-item {
+  background-color: #555; /* A darker grey for dark mode */
+}
+</style>
+
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { useSearchStore, CombinedSearchResult } from 'src/stores/search';
 import { storeToRefs } from 'pinia';
+import { QInput } from 'quasar';
 
 const router = useRouter();
 const searchStore = useSearchStore();
 const { searchQuery, isLoading, combinedResults } = storeToRefs(searchStore);
 const { performSearch } = searchStore;
 
+const searchInputRef = ref<QInput | null>(null);
+const selectedIndex = ref(-1);
+const itemRefs = ref<Record<string, any>>({});
+
 const isMenuOpen = computed(() => {
   return searchQuery.value.length > 0;
+});
+
+// A flattened list of results for easy indexing with keyboard
+const flatResults = computed(() => {
+  return Object.values(groupedResults.value).flat();
 });
 
 const groupedResults = computed(() => {
@@ -103,6 +128,60 @@ const groupedResults = computed(() => {
   }, {} as Record<string, CombinedSearchResult[]>);
 });
 
+// Reset selection when search query changes
+watch(searchQuery, () => {
+  selectedIndex.value = -1;
+  itemRefs.value = {}; // Clear refs on new search
+});
+
+const setItemRef = (item: CombinedSearchResult, el: any) => {
+  if (el) {
+    // Use a unique key for each item
+    const key = 'id' in item ? item.id : item.url;
+    itemRefs.value[key] = el;
+  }
+};
+
+const isSelected = (item: CombinedSearchResult) => {
+  if (selectedIndex.value < 0) return false;
+  const selectedItem = flatResults.value[selectedIndex.value];
+  if (!selectedItem) return false;
+  // Compare items based on a unique key
+  const itemKey = 'id' in item ? item.id : item.url;
+  const selectedKey = 'id' in selectedItem ? selectedItem.id : selectedItem.url;
+  return itemKey === selectedKey;
+};
+
+const scrollToSelected = () => {
+  if (selectedIndex.value < 0) return;
+  const item = flatResults.value[selectedIndex.value];
+  if (!item) return;
+  const key = 'id' in item ? item.id : item.url;
+  const el = itemRefs.value[key];
+  if (el && el.$el) {
+    el.$el.scrollIntoView({ block: 'nearest' });
+  }
+};
+
+const handleArrowDown = () => {
+  if (flatResults.value.length === 0) return;
+  selectedIndex.value = (selectedIndex.value + 1) % flatResults.value.length;
+  nextTick(scrollToSelected);
+};
+
+const handleArrowUp = () => {
+  if (flatResults.value.length === 0) return;
+  selectedIndex.value = (selectedIndex.value - 1 + flatResults.value.length) % flatResults.value.length;
+  nextTick(scrollToSelected);
+};
+
+const handleEnter = () => {
+  if (selectedIndex.value >= 0 && flatResults.value[selectedIndex.value]) {
+    const item = flatResults.value[selectedIndex.value];
+    navigate(item.url);
+  }
+};
+
 const navigate = (url: string) => {
   router.push(url);
   // Clear search to hide menu after navigation
@@ -113,10 +192,7 @@ const navigate = (url: string) => {
 const handleKeyPress = (event: KeyboardEvent) => {
   if ((event.ctrlKey || event.metaKey) && event.key === 'k') {
     event.preventDefault();
-    const searchInput = document.querySelector('.search-container input') as HTMLInputElement;
-    if (searchInput) {
-      searchInput.focus();
-    }
+    searchInputRef.value?.focus();
   }
 };
 
