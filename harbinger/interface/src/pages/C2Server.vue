@@ -17,7 +17,7 @@
 <template>
   <q-page padding>
     
-    <c2-server :id="id" />
+    <c2-server :id="id" :key="id" />
   </q-page>
 </template>
 
