@@ -62,6 +62,7 @@ class ProxyJob(TimeLine):
     asciinema: Mapped[bool] = mapped_column(Boolean, default=True)
     proxychains: Mapped[bool] = mapped_column(Boolean, default=True)
     env: Mapped[str] = mapped_column(String)
+    docker_image: Mapped[str] = mapped_column(String, nullable=True)
     ai_summary: Mapped[str] = mapped_column(String)
     processing_status: Mapped[str] = mapped_column(String)
 

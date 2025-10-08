@@ -84,7 +84,7 @@ function format(obj: SocksServer) {
 
 function loadCredentials() {
   api
-    .get('/socks_servers')
+    .get('/socks_servers/')
     .then((response) => {
       socks_servers.value = response.data.items;
     })

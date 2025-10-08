@@ -42,6 +42,7 @@ class SocksTask(BaseModel):
     env: str | None = ""
     credential: schemas.Credential | None = None
     files: list[schemas.File] | None = []
+    docker_image: str | None = None
 
 
 class SocksTaskResult(BaseModel):

@@ -57,6 +57,7 @@ class RunSocks:
                 env=socks_task.env,
                 files=socks_task.input_files,
                 credential=socks_task.credential,
+                docker_image=socks_task.docker_image,
             ),
             schedule_to_close_timeout=timedelta(days=365),
             task_queue=f"{constants.SOCKS_JOBS_QUEUE}_{socks_task.socks_server_id}",

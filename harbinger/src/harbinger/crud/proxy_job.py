@@ -174,3 +174,12 @@ async def clone_proxy_job(
             ),
         )
     return None
+
+
+async def get_docker_images(db: AsyncSession) -> list[str]:
+    q = select(models.ProxyJob.docker_image).distinct()
+    q = q.where(models.ProxyJob.docker_image.isnot(None))
+    result = await db.execute(q)
+    images = set(result.scalars().all())
+    images.add("harbinger_proxy:latest")
+    return sorted(list(images))
