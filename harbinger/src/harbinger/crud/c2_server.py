@@ -201,6 +201,8 @@ async def create_c2_server_type(
     db: AsyncSession, c2_server_type: schemas.C2ServerTypeCreate
 ) -> tuple[bool, models.C2ServerType]:
     data = c2_server_type.model_dump()
+    if not data.get("id"):
+        data["id"] = uuid.uuid4()
     q = insert(models.C2ServerType).values(**data).values(time_created=func.now())
     data["time_updated"] = func.now()
     update_stmt = q.on_conflict_do_update(models.C2ServerType.__table__.primary_key, set_=data)
