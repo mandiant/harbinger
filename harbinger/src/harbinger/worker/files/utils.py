@@ -88,8 +88,9 @@ async def process_harbinger_yaml(
                     icon=server.icon_base64,
                 ),
             )
+            c2_server_type_id = obj.id
             if not created:
-                await crud.delete_c2_server_arguments(db, obj.id)
+                await crud.delete_c2_server_arguments(db, c2_server_type_id)
             for argument in server.required_arguments or []:
                 await crud.create_c2_server_argument(
                     db,
@@ -99,7 +100,7 @@ async def process_harbinger_yaml(
                         default=str(argument.default) if argument.default else None,
                         error=(argument.error if argument.error else "Please fill in this value"),
                         type=(argument.type if argument.type else argument.default_type()),
-                        c2_server_type_id=obj.id,
+                        c2_server_type_id=c2_server_type_id,
                     ),
                 )
         await db.commit()
@@ -113,8 +114,9 @@ async def process_harbinger_yaml(
                 await db.rollback()
         for category in config.setting_categories or []:
             c_db = await crud.create_setting_category(db, category)
+            c_db_id = c_db.id
             for setting in category.settings:
-                setting.category_id = c_db.id
+                setting.category_id = c_db_id
                 await crud.create_setting(db, setting)
         for playbook in config.playbooks or []:
             dump = playbook.model_dump(exclude_unset=True)
