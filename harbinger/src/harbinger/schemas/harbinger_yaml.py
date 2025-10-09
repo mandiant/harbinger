@@ -13,18 +13,14 @@
 # limitations under the License.
 
 
-from typing import TYPE_CHECKING
-
 from pydantic import BaseModel
 
+from .action import ActionCreate
 from .c2_server import C2ServerCreate, C2ServerTypeYaml
 from .file_config import FileConfig
 from .label import LabelCreate
-
-if TYPE_CHECKING:
-    from .action import ActionCreate
-    from .playbook_template import PlaybookTemplateCreate
-    from .setting import SettingCategoryCreate
+from .playbook_template import PlaybookTemplateCreate
+from .setting import SettingCategoryCreate
 
 
 class HarbingerYaml(BaseModel):
@@ -35,3 +31,6 @@ class HarbingerYaml(BaseModel):
     setting_categories: list["SettingCategoryCreate"] | None = None
     playbooks: list["PlaybookTemplateCreate"] | None = None
     c2_servers: list["C2ServerCreate"] | None = None
+
+
+HarbingerYaml.model_rebuild()

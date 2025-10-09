@@ -16,6 +16,8 @@ import asyncio
 import pathlib
 
 import click
+import structlog
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from harbinger.config import get_settings
 from harbinger.database.database import SessionLocal
@@ -23,19 +25,30 @@ from harbinger.database.redis_pool import redis
 from harbinger.worker.files.utils import process_harbinger_yaml
 
 settings = get_settings()
+log = structlog.get_logger()
 
 
-async def create_all():
-    async with SessionLocal() as db:
+async def create_all(db: AsyncSession | None = None):
+    log.info("Starting create_all")
+
+    async def process_files(db_session: AsyncSession):
         for directory in ["connectors", "labels", "settings", "playbooks"]:
             base = pathlib.Path(__file__).parent.resolve() / directory
-            print(f"Checking {base}")
+            log.info(f"Checking {base}")
             files = list(base.iterdir())
             for file in files:
-                print(f"Processing {file}")
+                log.info(f"Processing {file}")
                 with open(file) as f:
                     yaml_data = f.read()
-                    await process_harbinger_yaml(db, yaml_data)
+                    await process_harbinger_yaml(db_session, yaml_data)
+
+    if db:
+        await process_files(db)
+    else:
+        async with SessionLocal() as db_session:
+            await process_files(db_session)
+
+    log.info("Finished create_all")
 
 
 async def acreate_defaults():

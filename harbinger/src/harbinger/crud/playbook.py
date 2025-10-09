@@ -679,7 +679,7 @@ async def create_playbook_template(
     if exists:
         await delete_label_item(
             db,
-            schemas.LabeledItemDelete(playbook_template_id=template.id),
+            schemas.LabeledItemDelete(playbook_template_id=playbook_template.id),
         )
     for entry in playbook_template.labels or []:
         label = await get_label_by_name(db, entry)
@@ -692,7 +692,7 @@ async def create_playbook_template(
             db,
             schemas.LabeledItemCreate(
                 label_id=label.id,
-                playbook_template_id=template.id,
+                playbook_template_id=playbook_template.id,
             ),
         )
     return template

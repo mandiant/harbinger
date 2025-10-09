@@ -31,9 +31,6 @@ from harbinger.database.database import Base
 from harbinger.database.types import HarbingerUUID, UserForeignKey, now, int_pk, uuid_pk
 from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from .user import User
-
 class {model_name_camel}(Base):
     id: Mapped[uuid_pk]
     # TODO: Define your model columns here

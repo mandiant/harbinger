@@ -57,8 +57,11 @@ async def create_setting_category(
         update_stmt.returning(models.SettingCategory),
         execution_options={"populate_existing": True},
     )
+    resp = result.unique().one()
+    await db.refresh(resp)
+    db.expunge(resp)
     await db.commit()
-    return result.unique().one()
+    return resp
 
 
 async def update_setting(
