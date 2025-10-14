@@ -21,7 +21,7 @@ async def db_share_file(db_session: AsyncSession, db_share: schemas.Share) -> sc
     file_in = schemas.ShareFileCreate(
         share_id=db_share.id,
         name="testfile.txt",
-        path="/test/share/testfile.txt",
+        unc_path="/test/share/testfile.txt",
     )
     share_file = await crud.create_share_file(db=db_session, share_file=file_in)
     return schemas.ShareFile.model_validate(share_file)

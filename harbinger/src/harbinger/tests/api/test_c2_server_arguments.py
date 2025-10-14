@@ -25,7 +25,7 @@ async def test_list_c2_server_arguments(
     args_in = schemas.C2ServerArgumentsCreate(
         c2_server_type_id=db_c2_server_type.id,
         name="Test Argument",
-        value="test_value",
+        default="test_value",
     )
     await crud.create_c2_server_argument(db=db_session, c2_server_argument=args_in)
 

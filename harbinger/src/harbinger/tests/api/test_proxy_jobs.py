@@ -15,9 +15,6 @@ async def db_socks_server(db_session: AsyncSession) -> schemas.SocksServer:
         type="local",
         hostname="test",
         operating_system="windows",
-        name="Test SOCKS Server",
-        host="localhost",
-        port=1080,
     )
     server = await crud.create_socks_server(db=db_session, socks_server=server_in)
     return schemas.SocksServer.model_validate(server)
