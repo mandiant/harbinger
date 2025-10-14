@@ -1279,7 +1279,7 @@ async def save_task_output(
             output=c2_task_output.response_text or "",
         )
         if created and c2_task_output.processes and c2_task:
-            implant = await crud.get_c2_implant(c2_task.c2_implant_id)
+            implant = await crud.get_c2_implant(db, c2_task.c2_implant_id)
             if implant and implant.host_id:
                 result.host_id = implant.host_id
                 highest_number = await crud.get_highest_process_number(
@@ -2098,7 +2098,7 @@ async def c2_job_detection_risk(req: schemas.C2JobDetectionRiskRequest) -> None:
 
         c2_job_str = object_to_string(c2_job, schemas.C2Job)
 
-        c2_implant = await crud.get_c2_implant(c2_job.c2_implant_id)
+        c2_implant = await crud.get_c2_implant(db, c2_job.c2_implant_id)
 
         if not c2_implant:
             log.warning(
@@ -2320,7 +2320,7 @@ async def load_data_for_ai(
         ],
     )
     if c2_implant_id:
-        c2_implant = await crud.get_c2_implant(c2_implant_id)
+        c2_implant = await crud.get_c2_implant(db, c2_implant_id)
         if c2_implant:
             labels = await crud.recurse_labels_c2_implant(db, c2_implant_id)
             c2_implant_dict = c2_implant.__dict__
