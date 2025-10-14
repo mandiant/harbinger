@@ -31,7 +31,7 @@ async def get_processes(
     )
 
 
-@router.get("/numbers", response_model=schemas.ProcessNumbers | None, tags=["process", "crud"])
+@router.get("/numbers/", response_model=schemas.ProcessNumbers | None, tags=["process", "crud"])
 async def get_process_numbers(
     host_id: str = "",
     implant_id: str = "",

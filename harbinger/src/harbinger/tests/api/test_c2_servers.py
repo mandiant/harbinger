@@ -23,7 +23,7 @@ async def test_read_c2_servers(
     authenticated_client: httpx.AsyncClient, db_session: AsyncSession, db_c2_server_type: schemas.C2ServerType
 ):
     server_in = schemas.C2ServerCreate(
-        type=db_c2_server_type.id,
+        type=db_c2_server_type.name,
         name="Test Server",
         hostname="http://localhost",
         username="test",

@@ -230,7 +230,7 @@ app.include_router(
     prefix="/playbook_step_modifier",
     tags=["step_modifiers"],
 )
-app.include_router(steps.router, prefix="/playbook_step", tags=["steps"])
+app.include_router(steps.router, prefix="/steps", tags=["steps"])
 app.include_router(suggestions.router, prefix="/suggestions", tags=["suggestions"])
 app.include_router(timeline.router, prefix="/timeline", tags=["timeline"])
 app.include_router(statistics.router, prefix="/statistics", tags=["statistics"])
