@@ -34,7 +34,7 @@ async def test_get_processes(authenticated_client: httpx.AsyncClient, db_process
 
 @pytest.mark.asyncio
 async def test_get_process_numbers(authenticated_client: httpx.AsyncClient, db_process: schemas.Process):
-    response = await authenticated_client.get(f"/processes/numbers?host_id={db_process.host_id}")
+    response = await authenticated_client.get(f"/processes/numbers/?host_id={db_process.host_id}")
 
     assert response.status_code == 200
     assert "items" in response.json()
