@@ -13,10 +13,8 @@ pytestmark = pytest.mark.asyncio
 async def db_c2_server(db_session: AsyncSession) -> schemas.C2Server:
     server_in = schemas.C2ServerCreate(
         name="Test Server",
-        url="http://localhost",
-        username="test",
-        password="password",
-        c2_server_type="test",
+        hostname="http://localhost",
+        type="test",
     )
     server = await crud.create_c2_server(db=db_session, c2_server=server_in)
     return schemas.C2Server.model_validate(server)
@@ -29,21 +27,7 @@ async def db_c2_implant(db_session: AsyncSession, db_c2_server: schemas.C2Server
         internal_id=implant_id,
         c2_server_id=db_c2_server.id,
         hostname="test-host",
-        ip_address="127.0.0.1",
-        username="test-user",
-        architecture="x64",
-        os="Windows",
-        c2_type="sliver",
-        payload_type="http",
-        name="test-implant",
-        description="test-implant",
-        sleep=60,
-        jitter=10,
-        external_ip="1.1.1.1",
-        domain="test.local",
-        process="test.exe",
-        pid=1234,
-        raw_json={},
+        ip="127.0.0.1",
     )
     _, implant = await crud.create_or_update_c2_implant(db=db_session, implant=implant_in)
     return schemas.C2Implant.model_validate(implant)
@@ -108,14 +92,13 @@ async def test_get_c2_job_not_found(authenticated_client: httpx.AsyncClient):
 async def test_create_c2_job(authenticated_client: httpx.AsyncClient, db_c2_implant: schemas.C2Implant):
     job_data = {
         "c2_implant_id": str(db_c2_implant.id),
-        "command": "pwd",
-        "arguments": json.dumps({}),
-        "c2_type": "sliver",
+        "command": "whoami",
+        "arguments": "",
     }
     response = await authenticated_client.post("/c2_jobs/", json=job_data)
 
     assert response.status_code == 200
-    assert response.json()["command"] == "pwd"
+    assert response.json()["command"] == "whoami"
 
 
 @pytest.mark.asyncio

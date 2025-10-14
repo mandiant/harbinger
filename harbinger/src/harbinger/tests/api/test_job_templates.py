@@ -27,7 +27,7 @@ steps: ''
 async def test_playbook_templates(
     authenticated_client: httpx.AsyncClient, db_playbook_template: schemas.PlaybookTemplate
 ):
-    response = await authenticated_client.get("/job_templates/playbooks/")
+    response = await authenticated_client.get("/templates/playbooks/")
 
     assert response.status_code == 200
     assert len(response.json()["items"]) >= 1
@@ -37,7 +37,7 @@ async def test_playbook_templates(
 async def test_get_playbook_template(
     authenticated_client: httpx.AsyncClient, db_playbook_template: schemas.PlaybookTemplate
 ):
-    response = await authenticated_client.get(f"/job_templates/playbooks/{db_playbook_template.id}")
+    response = await authenticated_client.get(f"/templates/playbooks/{db_playbook_template.id}")
 
     assert response.status_code == 200
     assert response.json()["name"] == "Test Playbook Template"
@@ -45,11 +45,11 @@ async def test_get_playbook_template(
 
 @pytest.mark.asyncio
 async def test_job_templates(authenticated_client: httpx.AsyncClient):
-    response = await authenticated_client.get("/job_templates/c2/")
+    response = await authenticated_client.get("/templates/c2/")
     assert response.status_code == 200
     assert "templates" in response.json()
 
-    response = await authenticated_client.get("/job_templates/proxy/")
+    response = await authenticated_client.get("/templates/proxy/")
     assert response.status_code == 200
     assert "templates" in response.json()
 
@@ -58,7 +58,7 @@ async def test_job_templates(authenticated_client: httpx.AsyncClient):
 async def test_chain_templates_schema(
     authenticated_client: httpx.AsyncClient, db_playbook_template: schemas.PlaybookTemplate
 ):
-    response = await authenticated_client.get(f"/job_templates/playbooks/{db_playbook_template.id}/schema")
+    response = await authenticated_client.get(f"/templates/playbooks/{db_playbook_template.id}/schema")
     assert response.status_code == 200
     assert "title" in response.json()
 
@@ -74,6 +74,6 @@ args: []
 steps: ''
         """,
     }
-    response = await authenticated_client.post("/job_templates/playbooks/", json=template_data)
+    response = await authenticated_client.post("/templates/playbooks/", json=template_data)
     assert response.status_code == 200
     assert response.json()["name"] == "New Playbook Template"

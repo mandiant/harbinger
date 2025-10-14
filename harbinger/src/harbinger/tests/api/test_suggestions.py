@@ -10,7 +10,7 @@ pytestmark = pytest.mark.asyncio
 async def db_suggestion(db_session: AsyncSession) -> schemas.Suggestion:
     suggestion_in = schemas.SuggestionCreate(
         name="Test Suggestion",
-        description="A test suggestion",
+        reason="A test suggestion",
     )
     _, suggestion = await crud.create_suggestion(db=db_session, suggestion=suggestion_in)
     return schemas.Suggestion.model_validate(suggestion)
@@ -36,7 +36,7 @@ async def test_get_suggestion(authenticated_client: httpx.AsyncClient, db_sugges
 async def test_create_suggestion(authenticated_client: httpx.AsyncClient):
     suggestion_data = {
         "name": "New Suggestion",
-        "description": "A new suggestion",
+        "reason": "A new suggestion",
     }
     response = await authenticated_client.post("/suggestions/", json=suggestion_data)
 
@@ -48,7 +48,7 @@ async def test_create_suggestion(authenticated_client: httpx.AsyncClient):
 async def test_update_suggestion(authenticated_client: httpx.AsyncClient, db_suggestion: schemas.Suggestion):
     update_data = {
         "name": "Updated Suggestion",
-        "description": "An updated suggestion",
+        "reason": "An updated suggestion",
     }
     response = await authenticated_client.put(f"/suggestions/{db_suggestion.id}", json=update_data)
 

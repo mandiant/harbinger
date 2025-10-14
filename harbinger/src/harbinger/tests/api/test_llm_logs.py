@@ -19,8 +19,7 @@ async def db_plan(db_session: AsyncSession) -> schemas.Plan:
 async def test_list_llm_logs(authenticated_client: httpx.AsyncClient, db_session: AsyncSession, db_plan: schemas.Plan):
     log_in = schemas.LlmLogCreate(
         plan_id=db_plan.id,
-        prompt="Test prompt",
-        response="Test response",
+        content={"prompt": "Test prompt", "response": "Test response"},
     )
     await crud.create_llm_log(db=db_session, llm_log=log_in)
 

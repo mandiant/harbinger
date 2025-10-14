@@ -12,10 +12,8 @@ pytestmark = pytest.mark.asyncio
 async def db_c2_server(db_session: AsyncSession) -> schemas.C2Server:
     server_in = schemas.C2ServerCreate(
         name="Test Server",
-        url="http://localhost",
-        username="test",
-        password="password",
-        c2_server_type="test",
+        hostname="http://localhost",
+        type="test",
     )
     server = await crud.create_c2_server(db=db_session, c2_server=server_in)
     return schemas.C2Server.model_validate(server)
