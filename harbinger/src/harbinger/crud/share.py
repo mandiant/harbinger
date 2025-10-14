@@ -43,7 +43,7 @@ async def get_or_create_share(
             db,
             label=schemas.LabeledItemCreate(
                 label_id="3f061979-055d-473f-ba15-d7b508f0ba83",
-                object_id=db_share.id,  # Assuming object_id is the correct field
+                share_id=db_share.id,
             ),
         )
     await db.refresh(db_share, ["labels"])
