@@ -22,9 +22,10 @@
       <q-btn color="secondary" icon="refresh" @click="domainStore.LoadData()">Refresh</q-btn>
     </div>
     <q-table :rows-per-page-options="[ 5, 10, 15, 20, 25, 50, 100 ]" title="Domains" :rows="data" row-key="id" :columns="columns" :loading="loading"
-      v-model:pagination="pagination" @request="domainStore.onRequest">
+      v-model:pagination="pagination" @request="domainStore.onRequest" selection="multiple" v-model:selected="selected">
       <template v-slot:top>
         <div class="col-2 q-table__title">Domains</div>
+        <bulk-label-actions :selected="selected" object-type="domain" @update="domainStore.LoadData()" />
         <q-space />
         <filter-view object-type="domains" v-model="filters" v-on:updateFilters="domainStore.updateFilters" />
         <q-select v-model="visible" multiple borderless dense options-dense :display-value="$q.lang.table.columns"
@@ -43,6 +44,9 @@
     </template>
       <template v-slot:body="props">
         <q-tr :props="props">
+          <q-td>
+            <q-checkbox v-model="props.selected" />
+          </q-td>
           <q-td key="id" :props="props">
             {{ props.row.id }}
           </q-td>
@@ -79,10 +83,13 @@ import { api } from 'boot/axios';
 import { useQuasar } from 'quasar';
 import LabelsList from '../components/LabelsList.vue';
 import FilterView from '../components/FilterView.vue';
+import BulkLabelActions from 'src/components/BulkLabelActions.vue';
 import { defineTypedStore } from 'src/stores/datastore';
 import { storeToRefs } from 'pinia'
 
 const store = useCounterStore();
+const selected = ref<Domain[]>([]);
+
 
 const useDomains = defineTypedStore<Domain>('domains');
 const domainStore = useDomains();
