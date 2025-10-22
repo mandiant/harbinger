@@ -29,6 +29,9 @@
       <q-card-section>
         <div class="text-h6">Edit labels</div>
       </q-card-section>
+      <q-card-section>
+        <q-input dense v-model="search" label="search" ref="searchInput" autofocus />
+      </q-card-section>
       <q-card-section class="q-gutter-sm">
         <div class="text-h6">Current labels</div>
         <q-btn v-for="label in modelValue" v-bind:key="label.id" flat :label="label.name" @click="deleteLabel(label.id)"
@@ -50,11 +53,45 @@
 <script setup lang="ts">
 import { useQuasar } from 'quasar';
 import { Label } from '../models'
-import { toRefs, ref, computed } from 'vue';
+import { toRefs, ref, computed, watch, nextTick } from 'vue';
 import { api } from 'boot/axios';
 import { useLabelStore } from 'src/stores/labels';
 
 const label_store = useLabelStore();
+
+const search = ref('');
+const searchInput = ref();
+
+const showDialog = ref(false);
+
+watch(showDialog, (newValue) => {
+  if (newValue) {
+    nextTick(() => {
+      searchInput.value.focus();
+    });
+  }
+});
+
+const props = defineProps({
+  modelValue: {
+    type: Array<Label>,
+    required: true
+  },
+  objectType: {
+    type: String,
+    required: true
+  },
+  objectId: {
+    type: String,
+    required: true
+  },
+  readonly: {
+    type: Boolean,
+    default: false,
+  },
+});
+
+const { modelValue, objectType, objectId, readonly } = toRefs(props);
 
 const $q = useQuasar();
 const emit = defineEmits(['update:modelValue']);
@@ -79,7 +116,14 @@ function calcColor(label: Label) {
 }
 
 const filteredTags = computed(() => {
-  return label_store.label_category_map;
+  const newMap = new Map<string, Label[]>();
+  for (const [key, value] of label_store.label_category_map.entries()) {
+    const labels = value.filter(l => l.name.toLowerCase().includes(search.value.toLowerCase()));
+    if (labels.length > 0) {
+      newMap.set(key, labels);
+    }
+  }
+  return newMap;
 })
 
 function filterLabels(labels: Array<Label>){
@@ -89,33 +133,6 @@ function filterLabels(labels: Array<Label>){
     }))
   })
 }
-
-// const filteredTags = computed(() => {
-//   return label_store.labels.filter(entry => {
-//     return !modelValue.value.find((el => {
-//       return el.id == entry.id
-//     }))
-//   })
-// })
-
-const props = defineProps({
-  modelValue: {
-    type: Array<Label>,
-    required: true
-  },
-  objectType: {
-    type: String,
-    required: true
-  },
-  objectId: {
-    type: String,
-    required: true
-  },
-  readonly: {
-    type: Boolean,
-    default: false,
-  },
-});
 
 interface Form {
   label_id: string;
@@ -134,10 +151,6 @@ interface Form {
   suggestion_id?: string;
   playbook_template_id?: string;
 }
-
-const showDialog = ref(false);
-
-const { modelValue, objectType, objectId, readonly } = toRefs(props);
 
 function deleteLabel(label_id: string) {
   let data: Form = {
