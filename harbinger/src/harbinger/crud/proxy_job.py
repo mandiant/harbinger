@@ -171,6 +171,7 @@ async def clone_proxy_job(
                 proxychains=proxy_job.proxychains,
                 env=proxy_job.env,
                 socks_server_id=proxy_job.socks_server_id,
+                docker_image=proxy_job.docker_image,
             ),
         )
     return None
