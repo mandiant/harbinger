@@ -233,7 +233,7 @@ function Clone(row: ProxyJob) {
       $q.notify({
         color: 'negative',
         position: 'top',
-        message: `Failed to start: ${error.response.data.error}`,
+        message: `Failed to clone: ${error.response.data.error}`,
         icon: 'report_problem',
       });
     });

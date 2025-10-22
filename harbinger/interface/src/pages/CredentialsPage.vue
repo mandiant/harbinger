@@ -181,7 +181,7 @@ function formatPassword(obj: Password, kerb: Kerberos) {
     }
   }
   else if (kerb) {
-    return 'kerberos ticket: ' + kerb.client
+    return 'kerberos ticket: ' + kerb.client + ' server: ' + kerb.server
   }
   return '';
 }
