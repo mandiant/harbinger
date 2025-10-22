@@ -146,19 +146,23 @@ async def get_share_statistics(db: AsyncSession) -> dict:
 
 
 async def indexer_list_shares(
-    db: AsyncSession,
-    max_shares: int = 0,
-    not_label_ids: list[str] | None = None,
+    db: AsyncSession, max_shares: int = 0, not_label_ids: list[str] | None = None
 ) -> Iterable[models.Share]:
-    """List shares"""
+    """
+    List shares
+    """
     q = select(models.Share)
-    q = q.filter(~models.Share.id.in_(select(models.ShareFile.share_id).distinct()))
+    file_exists_subq = select(models.ShareFile.share_id).where(models.ShareFile.share_id == models.Share.id)
+    q = q.where(~file_exists_subq.exists())
+
     if max_shares > 0:
         q = q.limit(max_shares)
     if not_label_ids:
-        q1 = select(models.LabeledItem.share_id)
-        q1 = q1.where(models.LabeledItem.label_id.in_(not_label_ids))
-        q = q.where(models.Share.id.not_in(q1))
+        label_exists_subq = select(models.LabeledItem.share_id)
+        label_exists_subq = label_exists_subq.where(models.LabeledItem.label_id.in_(not_label_ids))
+        label_exists_subq = label_exists_subq.where(models.LabeledItem.share_id == models.Share.id)
+        q = q.where(~label_exists_subq.exists())
+
     dq = await db.execute(q)
     return dq.scalars().unique().all()
 
@@ -174,9 +178,10 @@ async def indexer_list_shares_filtered(
 ) -> Iterable[str]:
     q = select(models.Share.id)
     if not_label_ids:
-        q1 = select(models.LabeledItem.share_id)
-        q1 = q1.where(models.LabeledItem.label_id.in_(not_label_ids))
-        q = q.where(models.Share.id.not_in(q1))
+        label_exists_subq = select(models.LabeledItem.share_id)
+        label_exists_subq = label_exists_subq.where(models.LabeledItem.label_id.in_(not_label_ids))
+        label_exists_subq = label_exists_subq.where(models.LabeledItem.share_id == models.Share.id)
+        q = q.where(~label_exists_subq.exists())
     q2 = select(models.ShareFile.share_id).where(models.ShareFile.share_id.in_(q))
     if depth > -1:
         q2 = q2.filter(models.ShareFile.depth == depth)
@@ -187,6 +192,6 @@ async def indexer_list_shares_filtered(
     if max_shares > 0:
         q2 = q2.limit(max_shares)
     if search:
-        q2 = q2.filter(models.ShareFile.like(f"%{search}%"))
+        q2 = q2.filter(models.ShareFile.unc_path.like(f"%{search}%"))
     dq = await db.execute(q2)
     return dq.scalars().unique().all()
