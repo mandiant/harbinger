@@ -52,3 +52,6 @@ class Domain(Base):
         if self.short_name:
             return self.short_name
         return ""
+
+    def __str__(self) -> str:
+        return f"Domain: {self.name}"
