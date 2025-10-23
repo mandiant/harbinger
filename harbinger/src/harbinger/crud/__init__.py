@@ -135,6 +135,7 @@ __all__ = [
     "get_highlight",
     "get_highlights_filters",
     "get_highlights_paged",
+    "get_highlights",
     "get_host",
     "get_host_filters",
     "get_hosts",
@@ -237,6 +238,7 @@ __all__ = [
     "list_share_files",
     "list_share_files_paged",
     "list_shares_paged",
+    "get_share_file_by_file_id",
     "list_situational_awareness",
     "list_situational_awarenesss_paged",
     "list_socks_servers_paged",
@@ -428,7 +430,7 @@ from .file import (
 )
 from .filters_dispatch import get_filters_for_model
 from .hash import create_hash, delete_hash, get_hash, list_hashes, list_hashes_paged
-from .highlight import create_highlight, get_highlight, get_highlights_filters, get_highlights_paged
+from .highlight import create_highlight, get_highlight, get_highlights, get_highlights_filters, get_highlights_paged
 from .host import get_host, get_host_filters, get_hosts, get_hosts_paged, get_or_create_host, update_host
 from .issue import create_issue, get_issue, get_issue_filters, get_issues_paged, update_issue
 from .kerberos import get_kerberos, get_kerberos_paged, get_or_create_kerberos
@@ -539,6 +541,7 @@ from .setting import create_setting, create_setting_category, get_setting, get_s
 from .share import (
     get_or_create_share,
     get_share,
+    get_share_file_by_file_id,
     get_share_filters,
     get_share_statistics,
     get_shares,

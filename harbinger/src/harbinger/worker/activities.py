@@ -1042,6 +1042,41 @@ async def create_timeline(timeline: schemas.CreateTimeline):
                         artefact_headers,
                         tablefmt="github",
                     )
+
+                    highlighted_files_info = []
+                    processed_file_ids = set()
+                    highlights = await crud.get_highlights(db, filters.HighlightFilter(), offset=0, limit=10000)
+                    for highlight in highlights:
+                        if highlight.file_id and highlight.file_id not in processed_file_ids:
+                            processed_file_ids.add(highlight.file_id)
+                            file = await crud.get_file(db, highlight.file_id)
+                            if file:
+                                share_file = await crud.get_share_file_by_file_id(db, file.id)
+                                unc_path = share_file.unc_path if share_file else "N/A"
+                                highlighted_files_info.append({"file": file, "unc_path": unc_path})
+
+                    highlighted_files_output = []
+                    for item in highlighted_files_info:
+                        file = item["file"]
+                        unc_path = item["unc_path"]
+                        content_str = ""
+                        try:
+                            content = await download_file(file.path, file.bucket)
+                            if len(content) < 1024 * 1024:  # 1MB limit
+                                if file.filetype == "cast":
+                                    # TODO: Add screenshot generation for cast files
+                                    content_str = "![Screenshot](screenshots/placeholder.png)"
+                                else:
+                                    content_str = f"```{file.filetype}\n{content.decode('utf-8', errors='ignore')}\n```"
+                            else:
+                                content_str = "[Content not displayed due to size/format]"
+                        except Exception:
+                            content_str = "[Content not available]"
+
+                        highlighted_files_output.append(
+                            f"---\n**File:** `{file.filename}`\n**UNC Path:** `{unc_path}`\n\n**Content:**\n{content_str}"
+                        )
+
                     with open(basedir / "timeline.md", "w") as f:
                         f.write("# Attack Path\n\n\n")
                         f.write(summary)
@@ -1051,6 +1086,8 @@ async def create_timeline(timeline: schemas.CreateTimeline):
                         f.write(output_table)
                         f.write("\n\n\n# Artifacts\n\n\n")
                         f.write(artefact_output)
+                        f.write("\n\n\n## Highlighted Files and Evidence\n\n")
+                        f.write("\n\n".join(highlighted_files_output))
 
                     with open(basedir / "timeline.csv", "w", newline="") as csvfile:
                         writer = csv.writer(csvfile)
