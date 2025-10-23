@@ -123,7 +123,7 @@ const columns: QTableProps['columns'] = [
 
 function createSummaries() {
   api
-    .post('/create_summaries/', data)
+    .post('/create_summaries/')
     .then(() => {
       $q.notify({
         color: 'green-4',
