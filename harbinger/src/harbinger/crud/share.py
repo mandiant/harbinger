@@ -195,3 +195,12 @@ async def indexer_list_shares_filtered(
         q2 = q2.filter(models.ShareFile.unc_path.like(f"%{search}%"))
     dq = await db.execute(q2)
     return dq.scalars().unique().all()
+
+
+async def get_share_file_by_file_id(db: AsyncSession, file_id: UUID4) -> models.ShareFile | None:
+    """
+    Gets a ShareFile record by file_id.
+    """
+    s = select(models.ShareFile).where(models.ShareFile.file_id == file_id)
+    q = await db.execute(s)
+    return q.scalars().first()

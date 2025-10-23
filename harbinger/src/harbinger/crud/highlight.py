@@ -41,6 +41,22 @@ async def get_highlights_paged(
     return await apaginate(db, q)
 
 
+async def get_highlights(
+    db: AsyncSession,
+    filters: filters.HighlightFilter,
+    offset: int = 0,
+    limit: int = 10,
+) -> list[models.Highlight]:
+    q: Select = select(models.Highlight)
+    q = q.outerjoin(models.Highlight.labels)
+    q = filters.filter(q)
+    q = filters.sort(q)
+    q = q.group_by(models.Highlight.id)
+    q = q.offset(offset).limit(limit)
+    result = await db.execute(q)
+    return result.scalars().unique().all()
+
+
 async def get_highlights_filters(
     db: AsyncSession,
     filters: filters.HighlightFilter,
