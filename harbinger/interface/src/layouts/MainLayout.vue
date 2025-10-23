@@ -18,55 +18,59 @@
   <q-layout view="hHh Lpr lff" class="bg-image">
     <q-header elevated>
       <q-toolbar>
-        <q-btn flat @click="drawer = !drawer" round dense icon="menu" />
-        <q-btn flat :to="'/'">
-          <q-avatar>
-            <img src="Harbinger.png" />
-          </q-avatar>
-        </q-btn>
-        <q-toolbar-title>Harbinger</q-toolbar-title>
+        <div class="row items-center no-wrap">
+          <q-btn flat @click="drawer = !drawer" round dense icon="menu" />
+          <q-btn flat :to="'/'">
+            <q-avatar>
+              <img src="Harbinger.png" />
+            </q-avatar>
+          </q-btn>
+          <q-toolbar-title shrink>Harbinger</q-toolbar-title>
+        </div>
 
-        <q-space />
-        <global-search />
-        <q-space />
+        <div class="col">
+          <global-search />
+        </div>
 
-        <progress-bars />
-        <event-web-socket />
+        <div class="row items-center no-wrap">
+          <progress-bars />
+          <event-web-socket />
 
-        <q-btn-dropdown stretch flat :label="me.email">
-          <q-list>
-            <q-item @click="toggleDark" clickable v-show="!darkmode">
-              <q-item-section avatar>
-                <q-avatar color="secondary" text-color="white" icon="dark_mode" />
-              </q-item-section>
-              <q-item-section>Dark mode</q-item-section>
-            </q-item>
-            <q-item @click="toggleDark" clickable v-show="darkmode">
-              <q-item-section avatar>
-                <q-avatar color="secondary" text-color="white" icon="light_mode" />
-              </q-item-section>
-              <q-item-section>Light mode</q-item-section>
-            </q-item>
-            <q-item to="/settings" clickable>
-              <q-item-section avatar>
-                <q-avatar color="secondary" text-color="white" icon="settings" />
-              </q-item-section>
-              <q-item-section>Settings</q-item-section>
-            </q-item>
-            <q-item @click="openAdmin" clickable>
-              <q-item-section avatar>
-                <q-avatar color="secondary" text-color="white" icon="admin_panel_settings" />
-              </q-item-section>
-              <q-item-section>Admin panel</q-item-section>
-            </q-item>
-            <q-item clickable>
-              <q-item-section avatar>
-                <q-avatar color="secondary" text-color="white" icon="logout" />
-              </q-item-section>
-              <q-item-section @click="logOut">Logout</q-item-section>
-            </q-item>
-          </q-list>
-        </q-btn-dropdown>
+          <q-btn-dropdown stretch flat :label="me.email">
+            <q-list>
+              <q-item @click="toggleDark" clickable v-show="!darkmode">
+                <q-item-section avatar>
+                  <q-avatar color="secondary" text-color="white" icon="dark_mode" />
+                </q-item-section>
+                <q-item-section>Dark mode</q-item-section>
+              </q-item>
+              <q-item @click="toggleDark" clickable v-show="darkmode">
+                <q-item-section avatar>
+                  <q-avatar color="secondary" text-color="white" icon="light_mode" />
+                </q-item-section>
+                <q-item-section>Light mode</q-item-section>
+              </q-item>
+              <q-item to="/settings" clickable>
+                <q-item-section avatar>
+                  <q-avatar color="secondary" text-color="white" icon="settings" />
+                </q-item-section>
+                <q-item-section>Settings</q-item-section>
+              </q-item>
+              <q-item @click="openAdmin" clickable>
+                <q-item-section avatar>
+                  <q-avatar color="secondary" text-color="white" icon="admin_panel_settings" />
+                </q-item-section>
+                <q-item-section>Admin panel</q-item-section>
+              </q-item>
+              <q-item clickable>
+                <q-item-section avatar>
+                  <q-avatar color="secondary" text-color="white" icon="logout" />
+                </q-item-section>
+                <q-item-section @click="logOut">Logout</q-item-section>
+              </q-item>
+            </q-list>
+          </q-btn-dropdown>
+        </div>
       </q-toolbar>
     </q-header>
 
