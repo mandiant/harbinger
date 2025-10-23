@@ -21,6 +21,7 @@ async def _process_dynamic_argument_ids(db: AsyncSession, arguments: dict[str, A
         "c2_implant": models.C2Implant,
         "kerberos": models.Kerberos,
         "file": models.File,
+        "proxy": models.Proxy,
     }
     arguments_to_process = list(arguments.keys())
     for arg_key in arguments_to_process:
