@@ -83,7 +83,12 @@
   </div>
 </template>
 
-<style>
+<style scoped>
+.search-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
 .selected-item {
   background-color: #e0e0e0; /* A light grey for highlighting */
 }
