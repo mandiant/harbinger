@@ -45,3 +45,6 @@ class Password(Base):
         lazy="joined",
         viewonly=True,
     )
+
+    def __str__(self) -> str:
+        return f"Password: {self.password=} {self.nt=} {self.aes128_key=} {self.aes256_key=}"

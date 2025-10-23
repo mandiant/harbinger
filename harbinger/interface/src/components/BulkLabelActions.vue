@@ -37,7 +37,10 @@
         <q-card-section>
           <div class="text-h6">Add a label to {{ selected.length }} item(s)</div>
         </q-card-section>
-        <q-card-section class="q-gutter-sm" v-for="[key, value] in label_store.label_category_map" v-bind:key="key">
+        <q-card-section>
+          <q-input dense v-model="search" label="search" ref="searchInput" autofocus />
+        </q-card-section>
+        <q-card-section class="q-gutter-sm" v-for="[key, value] in filteredTags" v-bind:key="key">
           <div class="text-h6" v-if="key">{{ key }}</div>
           <div class="text-h6" v-else>No category</div>
           <q-btn v-for="label in value" v-bind:key="label.id" flat :label="label.name" @click="addLabel(label.id)"
@@ -54,7 +57,10 @@
         <q-card-section>
           <div class="text-h6">Remove a label from {{ selected.length }} item(s)</div>
         </q-card-section>
-        <q-card-section class="q-gutter-sm" v-for="[key, value] in label_store.label_category_map" v-bind:key="key">
+        <q-card-section>
+          <q-input dense v-model="search" label="search" ref="searchInput" autofocus />
+        </q-card-section>
+        <q-card-section class="q-gutter-sm" v-for="[key, value] in filteredTags" v-bind:key="key">
           <div class="text-h6" v-if="key">{{ key }}</div>
           <div class="text-h6" v-else>No category</div>
           <q-btn v-for="label in value" v-bind:key="label.id" flat :label="label.name" @click="removeLabel(label.id)"
@@ -69,7 +75,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed, watch, nextTick } from 'vue';
 import { api } from 'boot/axios';
 import { useQuasar } from 'quasar';
 import { useLabelStore } from 'src/stores/labels';
@@ -85,8 +91,38 @@ const emit = defineEmits(['update']);
 const $q = useQuasar();
 const showAddDialog = ref(false);
 const showRemoveDialog = ref(false);
+const search = ref('');
+const searchInput = ref();
+
+watch(showAddDialog, (newValue) => {
+  if (newValue) {
+    nextTick(() => {
+      searchInput.value.focus();
+    });
+  }
+});
+
+watch(showRemoveDialog, (newValue) => {
+  if (newValue) {
+    nextTick(() => {
+      searchInput.value.focus();
+    });
+  }
+});
 
 const label_store = useLabelStore();
+
+const filteredTags = computed(() => {
+  const newMap = new Map<string, Label[]>();
+  for (const [key, value] of label_store.label_category_map.entries()) {
+    const labels = value.filter(l => l.name.toLowerCase().includes(search.value.toLowerCase()));
+    if (labels.length > 0) {
+      newMap.set(key, labels);
+    }
+  }
+  return newMap;
+})
+
 
 // from https://stackoverflow.com/a/12043228
 function calcColor(label: Label) {
@@ -118,12 +154,14 @@ function addLabel(labelId: string) {
         $q.notify({
           color: 'positive',
           message: `Label added to ${item.name || item.filename || item.id}`,
+          position: 'top',
         });
       })
       .catch(() => {
         $q.notify({
           color: 'negative',
           message: `Error adding label to ${item.name || item.filename || item.id}`,
+          position: 'top',
         });
       });
   }

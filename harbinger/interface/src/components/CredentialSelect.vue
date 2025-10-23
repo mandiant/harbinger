@@ -86,7 +86,9 @@ function formatCredential(obj: Credential) {
       result += ` ${obj.password.password}`;
     }
   }
-
+  if (obj.kerberos) {
+    result += ` client: ${obj.kerberos.client} server: ${obj.kerberos.server}`
+  }
   return result;
 }
 function loadCredentials() {
