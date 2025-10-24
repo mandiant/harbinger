@@ -73,26 +73,31 @@ async def create_or_update_c2_task(
     returns tuple[bool, C2Task]
     The bool indicates if the task was created.
     """
-    q = (
-        select(models.C2Task)
-        .where(models.C2Task.c2_server_id == task.c2_server_id)
-        .where(models.C2Task.internal_id == task.internal_id)
-    )
-    res = await db.execute(q)
-    db_task = res.scalars().first()
     data = task.model_dump()
     data.pop("internal_implant_id", None)
-    if db_task:
-        await db.execute(q)
-        await db.commit()
-        new = False
-    else:
-        db_task = models.C2Task(**data)
-        db.add(db_task)
-        await db.commit()
-        await db.refresh(db_task)
-        new = True
-    return (new, db_task)
+
+    insert_stmt = insert(models.C2Task).values(**data)
+
+    update_data = data.copy()
+    update_data["time_updated"] = func.now()
+
+    update_stmt = insert_stmt.on_conflict_do_update(
+        "c2_task_uc",
+        set_=update_data,
+    )
+
+    result = await db.scalars(
+        update_stmt.returning(models.C2Task),
+        execution_options={"populate_existing": True},
+    )
+    db_task = result.unique().one()
+
+    # An insert will result in time_updated being None, an update will set it.
+    # This assumes the `time_updated` column is nullable and has no default.
+    was_created = db_task.time_updated is None
+    await db.commit()
+    await db.refresh(db_task)
+    return was_created, db_task
 
 
 async def create_c2_task_output(
