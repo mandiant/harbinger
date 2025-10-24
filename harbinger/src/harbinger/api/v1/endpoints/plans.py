@@ -100,7 +100,11 @@ async def update_plan(
 
 
 @router.post("/{plan_id}/start_supervisor")
-async def start_plan_supervisor(plan_id: str, client: Annotated[Client, Depends(get_client)]):
+async def start_plan_supervisor(
+    plan_id: str,
+    client: Annotated[Client, Depends(get_client)],
+    user: Annotated[models.User, Depends(current_active_user)],
+):
     """Starts the supervisor workflow for a given plan."""
     try:
         await client.start_workflow(
@@ -123,6 +127,7 @@ async def stop_plan_supervisor(
     plan_id: str,
     client: Annotated[Client, Depends(get_client)],
     db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[models.User, Depends(current_active_user)],
 ):
     """Stops the supervisor workflow for a given plan."""
     try:
@@ -145,7 +150,11 @@ async def stop_plan_supervisor(
 
 
 @router.post("/{plan_id}/force_update")
-async def force_supervisor_update(plan_id: str, client: Annotated[Client, Depends(get_client)]):
+async def force_supervisor_update(
+    plan_id: str,
+    client: Annotated[Client, Depends(get_client)],
+    user: Annotated[models.User, Depends(current_active_user)],
+):
     """Forces an immediate update cycle for a running supervisor."""
     try:
         handle = client.get_workflow_handle(f"supervisor-{plan_id}")
