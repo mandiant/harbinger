@@ -1251,10 +1251,7 @@ async def save_task(c2_task: schemas.C2TaskCreate) -> schemas.C2Task:
             c2_task.c2_implant_id = c2_implant.id
         else:
             log.warning("Unable to find the implant corresponding to the task")
-        created, c2_task_db = await crud.create_or_update_c2_task(db, c2_task)
-        if created:
-            log.info("Created new task.")
-
+        c2_task_db = await crud.create_or_update_c2_task(db, c2_task)
         if c2_task.command_name == "download":
             try:
                 data = json.loads(c2_task.original_params or "{}")

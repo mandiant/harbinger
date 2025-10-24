@@ -44,7 +44,7 @@ async def db_c2_task(
         c2_server_id=db_c2_server.id,
         command_name="whoami",
     )
-    _, task = await crud.create_or_update_c2_task(db=db_session, task=task_in)
+    task = await crud.create_or_update_c2_task(db=db_session, task=task_in)
     return schemas.C2Task.model_validate(task)
 
 

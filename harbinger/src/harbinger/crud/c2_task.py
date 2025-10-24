@@ -68,7 +68,7 @@ async def get_c2_tasks(
 async def create_or_update_c2_task(
     db: AsyncSession,
     task: schemas.C2TaskCreate,
-) -> tuple[bool, models.C2Task]:
+) -> models.C2Task:
     """Creates the c2 task in the database, if the c2 task with that id already exists, updates it.
     returns tuple[bool, C2Task]
     The bool indicates if the task was created.
@@ -79,25 +79,18 @@ async def create_or_update_c2_task(
     insert_stmt = insert(models.C2Task).values(**data)
 
     update_data = data.copy()
-    update_data["time_updated"] = func.now()
-
     update_stmt = insert_stmt.on_conflict_do_update(
-        "c2_task_uc",
+        "c2_tasks_uc",
         set_=update_data,
     )
-
     result = await db.scalars(
         update_stmt.returning(models.C2Task),
         execution_options={"populate_existing": True},
     )
     db_task = result.unique().one()
-
-    # An insert will result in time_updated being None, an update will set it.
-    # This assumes the `time_updated` column is nullable and has no default.
-    was_created = db_task.time_updated is None
     await db.commit()
     await db.refresh(db_task)
-    return was_created, db_task
+    return db_task
 
 
 async def create_c2_task_output(
