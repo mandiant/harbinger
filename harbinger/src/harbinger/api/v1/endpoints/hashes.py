@@ -5,8 +5,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from fastapi_pagination import Page
-from harbinger import crud, schemas
-from harbinger.config.dependencies import get_db
+from harbinger import crud, models, schemas
+from harbinger.config.dependencies import current_active_user, get_db
 from pydantic import UUID4
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,7 +14,7 @@ router = APIRouter()
 
 
 @router.get("/", response_model=Page[schemas.Hash], tags=["crud", "hashes"])
-async def get_hashes(db: Annotated[AsyncSession, Depends(get_db)]):
+async def get_hashes(db: Annotated[AsyncSession, Depends(get_db)], user: models.User = Depends(current_active_user)):
     """
     Get all hashes with pagination.
     """
@@ -22,7 +22,11 @@ async def get_hashes(db: Annotated[AsyncSession, Depends(get_db)]):
 
 
 @router.post("/", response_model=schemas.Hash, status_code=201, tags=["crud", "hashes"])
-async def create_hash(hash: schemas.HashCreate, db: Annotated[AsyncSession, Depends(get_db)]):
+async def create_hash(
+    hash: schemas.HashCreate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: models.User = Depends(current_active_user),
+):
     """
     Create a new hash.
     """
@@ -31,7 +35,7 @@ async def create_hash(hash: schemas.HashCreate, db: Annotated[AsyncSession, Depe
 
 
 @router.get("/export", tags=["crud", "hashes"])
-async def export_hashes(db: Annotated[AsyncSession, Depends(get_db)]):
+async def export_hashes(db: Annotated[AsyncSession, Depends(get_db)], user: models.User = Depends(current_active_user)):
     hashes = await crud.list_hashes(db)
     hashes_dict = {}
     for hash in hashes:
@@ -51,7 +55,9 @@ async def export_hashes(db: Annotated[AsyncSession, Depends(get_db)]):
 
 
 @router.get("/{hash_id}", response_model=schemas.Hash, tags=["crud", "hashes"])
-async def get_hash(hash_id: UUID4, db: AsyncSession = Depends(get_db)):
+async def get_hash(
+    hash_id: UUID4, db: AsyncSession = Depends(get_db), user: models.User = Depends(current_active_user)
+):
     return await crud.get_hash(db, hash_id)
 
 
@@ -60,6 +66,7 @@ async def update_hash(
     hash_id: UUID4,
     hash: schemas.HashCreate,
     db: Annotated[AsyncSession, Depends(get_db)],
+    user: models.User = Depends(current_active_user),
 ):
     """
     Update a hash.
@@ -69,7 +76,9 @@ async def update_hash(
 
 
 @router.delete("/{hash_id}", status_code=204, tags=["crud", "hashes"])
-async def delete_hash(hash_id: UUID4, db: Annotated[AsyncSession, Depends(get_db)]):
+async def delete_hash(
+    hash_id: UUID4, db: Annotated[AsyncSession, Depends(get_db)], user: models.User = Depends(current_active_user)
+):
     """
     Delete a hash.
     """

@@ -1,7 +1,7 @@
 import asyncio
 from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import httpx
 import pytest
@@ -31,6 +31,7 @@ from harbinger.database.users import (
     UserManager,
     get_redis_strategy,
 )
+from harbinger.worker.client import get_client
 
 
 # --- 1. Container and Core Infrastructure (Session-Scoped) ---
@@ -135,8 +136,14 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[httpx.AsyncClient, 
     """
     Provides a client with the database session dependency overridden.
     """
+
+    def get_test_client():
+        return MagicMock()
+
     # CORRECTED: Override the correct dependency, 'get_db'
     app.dependency_overrides[get_db] = lambda: db_session
+    app.dependency_overrides[get_async_session] = lambda: db_session
+    app.dependency_overrides[get_client] = get_test_client
 
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
@@ -160,12 +167,16 @@ async def authenticated_client(
     def get_test_db():
         return db_session
 
+    def get_test_client():
+        return MagicMock()
+
     redis_client = await aioredis.from_url(redis_dsn, decode_responses=True)
     strategy = RedisStrategy(redis_client, lifetime_seconds=3600)
 
     app.dependency_overrides[get_db] = get_test_db
     app.dependency_overrides[get_async_session] = get_test_db
     app.dependency_overrides[get_redis_strategy] = lambda: strategy
+    app.dependency_overrides[get_client] = get_test_client
 
     # 2. Create the user inside a savepoint (nested transaction)
     user_db = SQLAlchemyUserDatabase(db_session, models.User)
